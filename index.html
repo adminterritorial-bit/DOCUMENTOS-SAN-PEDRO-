@@ -7,7 +7,7 @@
   <title>Sistema Maestro Documental · San Pedro</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=20260919-v10">
-  <link rel="stylesheet" href="./styles.css?v=20260919-v21">
+  <link rel="stylesheet" href="./styles.css?v=20260919-v22">
 </head>
 <body class="premium-v4 premium-v9 premium-v10">
   <div class="ambient ambient-a"></div>
@@ -397,8 +397,8 @@
         <div class="selected-signers-title"><strong>Orden de los firmantes</strong><small>En modo secuencial este será el orden 1 → 2 → 3.</small></div>
         <div class="selected-signer-list" id="selectedSignerList"><div class="signature-empty compact">Aún no has seleccionado firmantes.</div></div>
         <div class="signature-placement-setup">
-          <div><span class="eyebrow">PASO OBLIGATORIO</span><strong>Marcar dónde firma cada persona</strong><small>Cada firmante debe tener una ubicación exacta dentro del documento antes del envío.</small></div>
-          <button class="btn primary" id="startPlacementMode" type="button" disabled>Marcar lugares de firma</button>
+          <div class="placement-setup-copy"><strong id="placementSetupLabel">Ubica las firmas en el documento</strong><small id="placementSetupHint">Haz clic en “Ubicar firmas” y marca un punto por cada firmante.</small></div>
+          <button class="btn soft placement-launch-btn" id="startPlacementMode" type="button" disabled>Ubicar firmas</button>
         </div>
       </div>
       <div class="signature-legal-note"><strong>Firma electrónica con trazabilidad.</strong><span>El documento queda bloqueado al enviarse. Cada firmante solo puede actuar en el campo de firma que le fue asignado; el resto del contenido permanece en modo lectura.</span></div>
@@ -432,16 +432,17 @@
   </div>
 
   <aside class="signature-placement-panel hidden" id="signaturePlacementPanel" aria-live="polite">
-    <div class="placement-panel-head">
-      <div><span class="eyebrow">UBICACIÓN DE FIRMAS</span><h3>Marca dónde firma cada usuario</h3></div>
-      <button id="exitPlacementMode" type="button" aria-label="Volver al envío">×</button>
-    </div>
-    <p>Selecciona un firmante y haz clic dentro de una página. Puedes volver a hacer clic para mover su campo.</p>
-    <div class="placement-progress" id="placementProgress">0 de 0 ubicaciones listas</div>
-    <div class="placement-signer-list" id="placementSignerList"></div>
-    <div class="placement-panel-actions">
-      <button class="btn soft" id="clearPlacements" type="button">Limpiar ubicaciones</button>
-      <button class="btn primary" id="finishPlacements" type="button">Volver al envío</button>
+    <div class="placement-dock-main">
+      <div class="placement-dock-status">
+        <span class="placement-dock-dot"></span>
+        <div><strong id="placementProgress">0 de 0 ubicaciones</strong><small>Selecciona un firmante y haz clic sobre la hoja</small></div>
+      </div>
+      <div class="placement-signer-list" id="placementSignerList"></div>
+      <div class="placement-dock-actions">
+        <button class="placement-icon-btn" id="clearPlacements" type="button" title="Limpiar ubicaciones">↺</button>
+        <button class="btn primary" id="finishPlacements" type="button">Listo</button>
+        <button class="placement-icon-btn" id="exitPlacementMode" type="button" title="Volver al envío">×</button>
+      </div>
     </div>
   </aside>
 
@@ -486,6 +487,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script type="module" src="./app.js?v=20260919-v21"></script>
+  <script type="module" src="./app.js?v=20260919-v22"></script>
 </body>
 </html>
