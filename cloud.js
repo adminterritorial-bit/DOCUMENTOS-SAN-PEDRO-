@@ -686,7 +686,7 @@ async function sendToSignatures(){
 }
 
 function statusBadge(status){
-  const labels={pending:"Pendiente",signed:"Firmado",rejected:"Rechazado",expired:"Vencido",sent:"Enviado",in_progress:"En curso",completed:"Completado",archived:"Archivado"};
+  const labels={pending:"Pendiente",signed:"Firmado",rejected:"Rechazado",expired:"Vencido",sent:"Enviado",in_progress:"En curso",completed:"Completado",archived:"Archivado",void:"Anulado"};
   return `<span class="signature-status status-${status}">${labels[status]||status}</span>`;
 }
 function mySignatureCard(s){
@@ -730,7 +730,12 @@ async function loadDashboard(){
       .eq("created_by",session.user.id).order("created_at",{ascending:false});
     if(sent.error)throw sent.error;
 
-    const pending=(mine.data||[]).filter(x=>x.status==="pending");
+    const mineRows=(mine.data||[]).filter(x=>{
+      const requestStatus=x.docsys_signature_requests?.status;
+      const documentStatus=x.docsys_signature_requests?.docsys_documents?.status;
+      return !["void","rejected","expired"].includes(requestStatus) && documentStatus!=="void";
+    });
+    const pending=mineRows.filter(x=>x.status==="pending");
     $("#mySignatureCount").textContent=String(pending.length);
     $("#pendingSignatureBadge").textContent=String(pending.length);
     $("#pendingSignatureBadge").classList.toggle("hidden",pending.length===0);
@@ -741,7 +746,7 @@ async function loadDashboard(){
         ctx.toast(`Tienes ${pending.length} documento${pending.length===1?"":"s"} pendiente${pending.length===1?"":"s"} de firma`);
       }
     }
-    $("#mySignatureList").innerHTML=(mine.data||[]).length?(mine.data||[]).map(mySignatureCard).join(""):'<div class="signature-empty">No tienes solicitudes de firma.</div>';
+    $("#mySignatureList").innerHTML=mineRows.length?mineRows.map(mySignatureCard).join(""):'<div class="signature-empty">No tienes solicitudes de firma.</div>';
     $("#sentSignatureCount").textContent=String((sent.data||[]).length);
     $("#sentSignatureList").innerHTML=(sent.data||[]).length?(sent.data||[]).map(sentRequestCard).join(""):'<div class="signature-empty">Todavía no has enviado documentos a firma.</div>';
   }catch(e){
@@ -905,6 +910,7 @@ function setSignatureInputMode(mode){
   $("#saveCurrentSignature")?.classList.toggle("hidden",!canSave);
   $("#signatureVaultConsentRow")?.classList.toggle("hidden",!canSave);
   if(!canSave&&$("#signatureVaultConsent"))$("#signatureVaultConsent").checked=false;
+  renderActiveSignaturePreview();
   updateSignatureConfirmState();
 }
 async function imageFileToSignatureArtifact(file){
@@ -1068,6 +1074,30 @@ function renderRuntimeSignatureFields(fields,{interactiveSignerId=null}={}){
     page.appendChild(el);
   });
 }
+function renderActiveSignaturePreview(){
+  if(!activeSignatureFieldId||!activeSignerId)return;
+  const field=$(`[data-signature-field="${activeSignatureFieldId}"]`,ctx.paper);
+  if(!field)return;
+
+  const artifact=currentSignatureSource==="drawn"
+    ? drawnArtifactFromPad()
+    : normalizeSignatureArtifact(currentSignatureArtifact);
+
+  field.classList.add("interactive");
+  field.classList.toggle("has-preview",Boolean(artifact));
+
+  if(!artifact){
+    field.innerHTML=`<button type="button" class="signature-field-action" data-sign-field-action="${activeSignatureFieldId}"><span>✍</span><strong>FIRMAR AQUÍ</strong><small>Selecciona o crea tu firma</small></button>`;
+    return;
+  }
+
+  field.innerHTML=`<button type="button" class="signature-field-action signature-field-preview-action" data-sign-field-action="${activeSignatureFieldId}">
+    <span class="signature-field-preview-visual">${signatureMarkSvg(artifact)}</span>
+    <strong>FIRMA APLICADA</strong>
+    <small>Haz clic para cambiarla</small>
+  </button>`;
+}
+
 function resetSignaturePad(){
   signaturePadStrokes=[];
   signaturePadCurrent=null;
@@ -1075,6 +1105,7 @@ function resetSignaturePad(){
   redrawSignaturePad();
   if(currentSignatureSource==="drawn")renderSignatureArtifactPreview(null);
   $("#saveCurrentSignature")?.classList.add("hidden");
+  renderActiveSignaturePreview();
   updateSignatureConfirmState();
 }
 function redrawSignaturePad(){
@@ -1175,6 +1206,7 @@ function bindSignaturePad(){
     $("#saveCurrentSignature")?.classList.toggle("hidden",!currentSignatureArtifact);
     $("#signatureVaultConsentRow")?.classList.toggle("hidden",!currentSignatureArtifact);
     redrawSignaturePad();
+    renderActiveSignaturePreview();
     updateSignatureConfirmState();
     try{canvas.releasePointerCapture?.(e.pointerId);}catch{}
   };
@@ -1229,7 +1261,8 @@ async function openSigner(signerId){
       ctx.toast("Este documento ya fue firmado por ti.");
       return;
     }
-    ctx.toast("Revisa el documento. Solo puedes firmar en el recuadro azul marcado «FIRMAR AQUÍ».");
+    ctx.toast("Documento listo para firma");
+    await openSignatureModalFromField(prepared.field.id);
   }catch(error){
     console.error("openSigner failed",error);
     ctx.toast(error.message||"No tienes acceso a esta solicitud");
@@ -1548,7 +1581,8 @@ function bindEvents(){
       currentSignatureSource="uploaded";
       setSignatureInputMode("uploaded");
       $("#saveCurrentSignature")?.classList.remove("hidden");
-      ctx.toast("Imagen convertida a formato interno SPSIG1");
+      renderActiveSignaturePreview();
+      ctx.toast("Firma aplicada al documento");
     }catch(error){
       ctx.toast(error.message||"No fue posible procesar la imagen");
     }finally{
