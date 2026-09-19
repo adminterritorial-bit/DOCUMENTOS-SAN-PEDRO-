@@ -1583,12 +1583,19 @@ body.easy-mode .doc-block:hover>.quick-add{opacity:1}
 
 /* quick-add authoring controls: intentionally visible and inviting */
 .premium-v10 .quick-add{
-  max-height:none!important;overflow:visible!important;opacity:.92!important;transform:none!important;
-  display:flex!important;flex-wrap:wrap;justify-content:flex-start;gap:6px;
-  margin:8px 0 12px!important;padding:8px 9px!important;
-  border:1px solid #d9e8ef;border-radius:12px;
-  background:linear-gradient(135deg,#f7fbfd,#eef8fc);
-  box-shadow:inset 0 1px 0 #fff,0 5px 15px rgba(8,49,77,.04)
+  position:absolute!important;left:0;right:0;top:calc(100% + 5px);z-index:24;
+  max-height:none!important;overflow:visible!important;opacity:0!important;visibility:hidden;pointer-events:none;
+  transform:translateY(-5px)!important;display:flex!important;flex-wrap:wrap;justify-content:flex-start;gap:6px;
+  margin:0!important;padding:8px 9px!important;
+  border:1px solid #cfe4ed;border-radius:12px;
+  background:linear-gradient(135deg,rgba(255,255,255,.99),rgba(235,248,253,.99));
+  box-shadow:0 12px 28px rgba(7,70,106,.14),inset 0 1px 0 #fff;
+  transition:opacity .15s ease,transform .15s ease,visibility .15s ease!important
+}
+.premium-v10 .doc-block:hover>.quick-add,
+.premium-v10 .doc-block:focus-within>.quick-add,
+.premium-v10 .doc-block.selected>.quick-add{
+  opacity:1!important;visibility:visible;pointer-events:auto;transform:translateY(0)!important
 }
 .premium-v10 .quick-add>span{
   display:flex;align-items:center;min-height:32px;margin:0 2px 0 0!important;
@@ -1617,6 +1624,18 @@ body.easy-mode .doc-block:hover>.quick-add{opacity:1}
   background:rgba(255,255,255,.13)!important;border-color:rgba(255,255,255,.20)!important
 }
 .premium-v10 .ribbon-shortcuts button:hover{background:#fff!important;color:#075f8e!important}
+.premium-v10 .doc-block .block-actions{
+  padding:6px!important;gap:5px!important;border-radius:11px!important;
+  border-color:#c7deea!important;background:rgba(255,255,255,.98)!important;
+  box-shadow:0 10px 24px rgba(7,68,104,.14)!important
+}
+.premium-v10 .doc-block .block-actions button{
+  width:32px!important;height:32px!important;min-width:32px!important;border-radius:9px!important;
+  border-color:#c6dfea!important;background:#f6fbfd!important;color:#22698c!important;font-weight:900!important
+}
+.premium-v10 .doc-block .block-actions button:hover{
+  background:#e8f7fd!important;border-color:#5bb3d8!important;color:#0873a9!important
+}
 
 /* more legible physical page marker */
 .premium-v10 .sheet-number{
