@@ -81,8 +81,18 @@ async function blobToBase64(blob){
   for(let i=0;i<bytes.length;i+=chunk) binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
   return btoa(binary);
 }
-function openModal(id){$("#"+id)?.classList.remove("hidden")}
-function closeModal(id){$("#"+id)?.classList.add("hidden")}
+function openModal(id){
+  const modal=$("#"+id);
+  if(!modal)return;
+  modal.classList.remove("hidden");
+  modal.removeAttribute("aria-hidden");
+}
+function closeModal(id){
+  const modal=$("#"+id);
+  if(!modal)return;
+  modal.classList.add("hidden");
+  modal.setAttribute("aria-hidden","true");
+}
 function setBusy(btn,busy,label){
   if(!btn)return;
   if(busy){
@@ -2086,6 +2096,15 @@ function bindEvents(){
       renderSelectedSigners();
     }
   }));
+  qsa(".modal-shell").forEach(modal=>modal.addEventListener("click",e=>{
+    if(e.target!==modal)return;
+    closeModal(modal.id);
+  }));
+  document.addEventListener("keydown",e=>{
+    if(e.key!=="Escape")return;
+    const open=qsa(".modal-shell").filter(modal=>!modal.classList.contains("hidden")).at(-1);
+    if(open)closeModal(open.id);
+  });
   $("#mySignatureList")?.addEventListener("click",e=>{
     const id=e.target.closest("[data-open-sign]")?.dataset.openSign;
     if(id){openSigner(id);return;}
