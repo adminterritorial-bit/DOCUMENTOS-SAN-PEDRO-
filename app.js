@@ -194,7 +194,7 @@ function bindRootInteractions(){
     const b=e.target.closest(".doc-block");
     if(b){
       selectedBlock=b;
-      $(".doc-block.selected",root).forEach(x=>x.classList.remove("selected"));
+      $$(".doc-block.selected",root).forEach(x=>x.classList.remove("selected"));
       b.classList.add("selected");
       updateSelectedBlockInfo(b);
     }
@@ -265,8 +265,8 @@ function updatePageCount(){
     const pagePx=297*pxPerMm;
     const pages=Math.max(1,Math.ceil(paper.scrollHeight/pagePx));
     $("#pageCount").textContent=pages;
-    $(".auto-page-total",paper).forEach(x=>x.textContent=pages);
-    $(".auto-page-current",paper).forEach(x=>x.textContent=1);
+    $$(".auto-page-total",paper).forEach(x=>x.textContent=pages);
+    $$(".auto-page-current",paper).forEach(x=>x.textContent=1);
 
     // La vista web es un lienzo continuo; estos marcadores muestran dónde cae
     // cada hoja. En Word se usan campos PAGE / NUMPAGES reales y automáticos.
@@ -365,7 +365,7 @@ $("#sidebarBlockPalette")?.addEventListener("click",e=>{
   if(type) addBlock(type);
 });
 
-$("[data-side-group] .side-group-title").forEach(btn=>{
+$$("[data-side-group] .side-group-title").forEach(btn=>{
   btn.addEventListener("click",()=>{
     btn.closest("[data-side-group]")?.classList.toggle("open");
   });
