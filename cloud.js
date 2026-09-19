@@ -542,6 +542,13 @@ async function loadDashboard(){
     $("#mySignatureCount").textContent=String(pending.length);
     $("#pendingSignatureBadge").textContent=String(pending.length);
     $("#pendingSignatureBadge").classList.toggle("hidden",pending.length===0);
+    if(pending.length){
+      const noticeKey="docsys-pending-signature-notice:"+session.user.id+":"+pending.map(x=>x.id).sort().join(",");
+      if(!sessionStorage.getItem(noticeKey)){
+        sessionStorage.setItem(noticeKey,"1");
+        ctx.toast(`Tienes ${pending.length} documento${pending.length===1?"":"s"} pendiente${pending.length===1?"":"s"} de firma`);
+      }
+    }
     $("#mySignatureList").innerHTML=(mine.data||[]).length?(mine.data||[]).map(mySignatureCard).join(""):'<div class="signature-empty">No tienes solicitudes de firma.</div>';
     $("#sentSignatureCount").textContent=String((sent.data||[]).length);
     $("#sentSignatureList").innerHTML=(sent.data||[]).length?(sent.data||[]).map(sentRequestCard).join(""):'<div class="signature-empty">Todavía no has enviado documentos a firma.</div>';
