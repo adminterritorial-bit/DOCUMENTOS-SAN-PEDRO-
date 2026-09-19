@@ -608,11 +608,18 @@ async function checkIntegrationReadiness(){
   try{
     setBusy(btn,true,"Verificando…");
     const provider=await getGoogleProviderStatus();
-    const rows=[{
-      label:"Google OAuth",
-      ok:provider.enabled===true,
-      detail:provider.enabled===true?"Habilitado en Supabase Auth":"Pendiente de activar en Authentication → Providers"
-    }];
+    const rows=[
+      {
+        label:"Usuario y contraseña",
+        ok:true,
+        detail:"Modo demostración activo. No existe registro público; los usuarios deben crearse previamente en Supabase Auth."
+      },
+      {
+        label:"Google OAuth",
+        ok:provider.enabled===true,
+        detail:provider.enabled===true?"Habilitado en Supabase Auth":"Opcional por ahora · pendiente de activar en Authentication → Providers"
+      }
+    ];
 
     if(session?.user){
       const out=await supabase.functions.invoke(DOCSYS_SIGNATURE_FUNCTION,{body:{action:"readiness"}});
