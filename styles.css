@@ -2277,3 +2277,12 @@ body.easy-mode .doc-block:hover>.quick-add{opacity:1}
   .signature-artifact-preview{grid-template-columns:1fr}
   .signature-artifact-preview>div:last-child{min-width:0;text-align:center}
 }
+
+
+.signature-vault-consent{
+  margin-top:8px;padding:8px 9px;display:flex;align-items:flex-start;gap:7px;
+  border:1px solid #d9e7df;border-radius:10px;background:#f6fbf8
+}
+.signature-vault-consent input{margin-top:2px;accent-color:#147c56}
+.signature-vault-consent span{font-size:7.6px;line-height:1.45;color:#567061}
+.signature-vault-consent b{color:#2c6248}
