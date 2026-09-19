@@ -153,8 +153,9 @@ export async function exportDocx(state,paper){
     ],21)
   ]})]})]});
 
-  const footerCells=[...paper.querySelectorAll(".approval-table td")].map(td=>cell([new Paragraph({children:[new TextRun({text:clean(td.innerText),font,size:13})]})]));
-  const contact=clean(paper.querySelector(".contact-line")?.innerText).replace(/\s+\/\s+/g," / ");
+  const firstPage=paper.querySelector(".document-page")||paper;
+  const footerCells=[...firstPage.querySelectorAll(".approval-table td")].map(td=>cell([new Paragraph({children:[new TextRun({text:clean(td.innerText),font,size:13})]})]));
+  const contact=clean(firstPage.querySelector(".contact-line")?.innerText).replace(/\s+\/\s+/g," / ");
   const footer=new Footer({children:[
     new Table({width:{size:100,type:WidthType.PERCENTAGE},borders,rows:[new TableRow({children:footerCells})]}),
     new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:40},children:[new TextRun({text:contact,font,size:13})]})
