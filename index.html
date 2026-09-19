@@ -7,7 +7,7 @@
   <title>Sistema Maestro Documental · San Pedro</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=20260919-v10">
-  <link rel="stylesheet" href="./styles.css?v=20260919-v30">
+  <link rel="stylesheet" href="./styles.css?v=20260919-v31">
 </head>
 <body class="premium-v4 premium-v9 premium-v10">
   <div class="ambient ambient-a"></div>
@@ -45,7 +45,9 @@
         <button class="btn easy-toggle" id="easyModeBtn" type="button" aria-pressed="true" title="Activar una interfaz más simple y grande"><span>☀</span> Modo fácil</button>
         <button class="btn help-btn" id="startTourBtn" type="button" title="Iniciar recorrido guiado"><span>?</span> Ayuda</button>
         <span class="save-status" id="saveStatus"><i></i> Guardado local</span>
-        <button class="btn soft" id="saveDraft">Guardar</button>
+        <button class="btn soft" id="saveDraft" title="Guardar una copia local en este navegador">Guardar local</button>
+        <button class="btn cloud-save-btn" id="saveCloudDocument" type="button" title="Guardar este borrador en la base de datos institucional"><span>☁</span> Guardar documento</button>
+        <span class="cloud-save-status" id="cloudSaveStatus">Sin guardar en sistema</span>
         <button class="btn soft" id="exportPdf">PDF</button>
         <button class="btn primary" id="exportDocx">Exportar Word</button>
       </div>
@@ -554,6 +556,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script type="module" src="./app.js?v=20260919-v30"></script>
+  <script type="module" src="./app.js?v=20260919-v31"></script>
 </body>
 </html>
