@@ -89,15 +89,23 @@ function closeHelp(){
 function ensureEditor(){
   const editor=$("#editorPanel");
   if(editor?.classList.contains("hidden")){
-    $(".rail-btn[data-panel='editor']")?.click();
+    $(".workspace-nav-btn[data-panel='editor']")?.click();
   }
 }
 
-function revealSidebar(){
+function revealWorkspaceFor(target){
   const sidebar=$("#documentSidebar");
   const layout=$(".editor-layout");
   sidebar?.classList.remove("collapsed");
   layout?.classList.remove("sidebar-collapsed");
+
+  const compact=window.matchMedia("(max-width: 1279px)").matches;
+  if(!compact)return;
+  const inConfig=target===sidebar||target?.closest?.("#documentSidebar");
+  const inspector=$("#documentInspector");
+  const inInspector=target===inspector||target?.closest?.("#documentInspector");
+  document.body.classList.toggle("config-drawer-open",Boolean(inConfig));
+  document.body.classList.toggle("inspector-drawer-open",Boolean(inInspector));
 }
 
 function revealGroupFor(target){
@@ -108,7 +116,7 @@ function revealGroupFor(target){
 function focusTarget(target,{focus=false}={}){
   if(!target) return;
   ensureEditor();
-  revealSidebar();
+  revealWorkspaceFor(target);
   revealGroupFor(target);
   target.scrollIntoView({behavior:"smooth",block:"center",inline:"nearest"});
   target.classList.add("guide-pulse");
@@ -190,7 +198,7 @@ function renderTourStep(){
   if(!step||!target){finishTour();return;}
 
   ensureEditor();
-  revealSidebar();
+  revealWorkspaceFor(target);
   revealGroupFor(target);
 
   $("#tourStepLabel").textContent=`Paso ${tourIndex+1} de ${TOUR_STEPS.length}`;
@@ -252,7 +260,7 @@ function closeWelcome(){
 function handleWelcome(action){
   if(action==="templates"){
     closeWelcome();
-    $(".rail-btn[data-panel='templates']")?.click();
+    $(".workspace-nav-btn[data-panel='templates']")?.click();
     return;
   }
   if(action==="tour"){
