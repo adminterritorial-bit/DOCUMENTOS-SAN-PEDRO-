@@ -19,7 +19,7 @@ Aplicación web institucional para crear, normalizar, firmar, verificar y archiv
 - Bloqueo de la versión enviada a firmas.
 - Código de evidencia `SP-AAAA-XXXXXXXXXXXX`.
 - Registro de eventos encadenado mediante SHA-256.
-- Sello visible y QR de verificación en el PDF final.
+- Sello visible y QR de verificación en el PDF final.\n- Firma visual reutilizable mediante formato interno `SPSIG1`: dibujada o convertida desde PNG/JPG/WEBP sin conservar la imagen original.\n- `Mi firma` personal vinculada al usuario; reutilizar la representación no elimina autenticación, consentimiento ni evidencia por documento.
 - Verificación pública por código.
 - Archivo final automático en Google Drive institucional.
 - Lectura compartida del archivo final con firmantes autorizados.
@@ -78,7 +78,7 @@ Este mecanismo se diseña como **firma electrónica**. No se presenta como firma
 
 Ver:
 
-- `FIRMA-ELECTRONICA-FE-1.0-2026.md`
+- `FIRMA-ELECTRONICA-FE-1.0-2026.md`\n- `FIRMA-ELECTRONICA-FE-1.1-2026.md`
 - `CONFIGURACION-INTEGRACIONES.md`
 
 ## Google Drive
