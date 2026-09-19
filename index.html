@@ -34,10 +34,13 @@
       <nav class="workspace-nav" aria-label="Secciones del sistema">
         <button class="workspace-nav-btn active" data-panel="editor" type="button">Editor</button>
         <button class="workspace-nav-btn" data-panel="templates" type="button">Plantillas</button>
+        <button class="workspace-nav-btn" data-panel="signatures" type="button">Firmas <span class="nav-badge hidden" id="pendingSignatureBadge">0</span></button>
         <button class="workspace-nav-btn" data-panel="settings" type="button">Sistema</button>
       </nav>
 
       <div class="status-cluster">
+        <button class="btn signature-send-btn hidden" id="sendToSignatures" type="button" title="Enviar el documento actual a firmas"><span>✦</span> Enviar a firmas</button>
+        <button class="auth-user-chip hidden" id="authUserChip" type="button" title="Cuenta conectada"><span class="auth-avatar" id="authAvatar">SP</span><span><strong id="authUserName">Usuario</strong><small id="authUserRole">Institucional</small></span></button>
         <button class="btn easy-toggle" id="easyModeBtn" type="button" aria-pressed="true" title="Activar una interfaz más simple y grande"><span>☀</span> Modo fácil</button>
         <button class="btn help-btn" id="startTourBtn" type="button" title="Iniciar recorrido guiado"><span>?</span> Ayuda</button>
         <span class="save-status" id="saveStatus"><i></i> Guardado local</span>
@@ -289,6 +292,23 @@
         <div id="templateGrid" class="template-grid premium-template-grid"></div>
       </section>
 
+      <section id="signaturesPanel" class="panel-screen hidden signatures-screen">
+        <div class="section-heading premium-section-heading signatures-heading">
+          <div><span class="eyebrow">FIRMA ELECTRÓNICA</span><h2>Centro de firmas</h2><p>Solicitudes enviadas, firmas pendientes, evidencia y archivo institucional.</p></div>
+          <button class="btn primary" id="signaturePanelNew" type="button">Enviar documento actual</button>
+        </div>
+        <div class="signature-dashboard">
+          <section class="signature-lane">
+            <div class="signature-lane-head"><div><span class="eyebrow">BANDEJA</span><h3>Pendientes de mi firma</h3></div><span class="signature-count" id="mySignatureCount">0</span></div>
+            <div class="signature-list" id="mySignatureList"><div class="signature-empty">Inicia sesión para consultar tus firmas pendientes.</div></div>
+          </section>
+          <section class="signature-lane">
+            <div class="signature-lane-head"><div><span class="eyebrow">SEGUIMIENTO</span><h3>Solicitudes enviadas por mí</h3></div><span class="signature-count" id="sentSignatureCount">0</span></div>
+            <div class="signature-list" id="sentSignatureList"><div class="signature-empty">Todavía no has enviado documentos a firma.</div></div>
+          </section>
+        </div>
+      </section>
+
       <section id="settingsPanel" class="panel-screen hidden">
         <div class="section-heading premium-section-heading">
           <div><span class="eyebrow">SISTEMA</span><h2>Reglas de trabajo</h2><p>El editor está diseñado para mantener formato, TRD, estructura y márgenes bajo control.</p></div>
@@ -330,6 +350,56 @@
     </div>
   </aside>
 
+  <div class="auth-overlay hidden" id="authOverlay" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <div class="auth-card">
+      <div class="auth-brand"><div class="auth-brand-mark">SP</div><div><span class="eyebrow">ALCALDÍA DE SAN PEDRO</span><h2 id="authTitle">Sistema Maestro Documental</h2></div></div>
+      <p>Acceso institucional protegido. Solo cuentas Google del dominio <b>@sanpedro-valle.gov.co</b>.</p>
+      <button class="google-login-btn" id="googleLoginBtn" type="button"><span>G</span><strong>Continuar con Google</strong></button>
+      <div class="auth-security-note"><span>✓</span><div><strong>Acceso restringido</strong><small>El aplicativo no admite cuentas personales ni autenticación por contraseña.</small></div></div>
+      <div class="auth-error hidden" id="authError"></div>
+    </div>
+  </div>
+
+  <div class="modal-shell hidden" id="signatureRequestModal" role="dialog" aria-modal="true" aria-labelledby="signatureRequestTitle">
+    <div class="modal-card signature-request-card">
+      <div class="modal-head"><div><span class="eyebrow">FLUJO DE FIRMA</span><h2 id="signatureRequestTitle">Enviar documento a firmas</h2></div><button class="modal-close" data-close-modal="signatureRequestModal" type="button">×</button></div>
+      <div class="signature-document-summary" id="signatureDocumentSummary"></div>
+      <div class="signature-mode-row">
+        <label><span>Orden de firma</span><select id="signatureMode"><option value="sequential">Secuencial · 1 → 2 → 3</option><option value="parallel">Paralelo · cualquiera puede firmar</option></select></label>
+        <div class="signature-integrity"><span>SHA-256</span><code id="signatureHashPreview">Se calculará al enviar</code></div>
+      </div>
+      <div class="signer-editor-head"><div><strong>Firmantes</strong><small>Entre 1 y 3 usuarios institucionales.</small></div><button class="btn soft" id="addSignerRow" type="button">+ Agregar firmante</button></div>
+      <div class="signer-rows" id="signerRows"></div>
+      <div class="signature-legal-note"><strong>Firma electrónica con trazabilidad.</strong><span>El documento queda bloqueado al enviarse. Cada firmante valida identidad institucional, recibe un código de un solo uso y genera un código de evidencia único asociado al hash del documento.</span></div>
+      <div class="modal-actions"><button class="btn soft" data-close-modal="signatureRequestModal" type="button">Cancelar</button><button class="btn primary" id="confirmSendToSignatures" type="button">Crear solicitud y notificar</button></div>
+    </div>
+  </div>
+
+  <div class="modal-shell hidden" id="signDocumentModal" role="dialog" aria-modal="true" aria-labelledby="signDocumentTitle">
+    <div class="modal-card sign-document-card">
+      <div class="modal-head"><div><span class="eyebrow">FIRMA ELECTRÓNICA</span><h2 id="signDocumentTitle">Revisar y firmar documento</h2></div><button class="modal-close" data-close-modal="signDocumentModal" type="button">×</button></div>
+      <div id="signDocumentInfo" class="sign-document-info"></div>
+      <div class="signature-verification-box">
+        <div class="verification-step"><span>1</span><div><strong>Identidad Google institucional</strong><small id="signIdentityStatus">Se verificará con tu sesión.</small></div></div>
+        <div class="verification-step"><span>2</span><div><strong>Código de un solo uso</strong><small>Se enviará a tu correo institucional y vence en 10 minutos.</small></div></div>
+        <div class="verification-step"><span>3</span><div><strong>Integridad SHA-256</strong><small>La firma solo se registra si el documento conserva exactamente el mismo hash.</small></div></div>
+      </div>
+      <div class="otp-panel">
+        <button class="btn soft" id="requestSignatureOtp" type="button">Enviar código a mi correo</button>
+        <label><span>Código de 6 dígitos</span><input id="signatureOtpCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000"></label>
+      </div>
+      <div class="signature-consent"><label><input type="checkbox" id="signatureConsent"> <span>Declaro que revisé el documento y manifiesto mi aprobación para firmarlo electrónicamente.</span></label></div>
+      <div class="modal-actions"><button class="btn soft" data-close-modal="signDocumentModal" type="button">Cancelar</button><button class="btn primary" id="confirmElectronicSignature" type="button" disabled>Firmar documento</button></div>
+    </div>
+  </div>
+
+  <div class="modal-shell hidden" id="verifySignatureModal" role="dialog" aria-modal="true" aria-labelledby="verifySignatureTitle">
+    <div class="modal-card verify-signature-card">
+      <div class="modal-head"><div><span class="eyebrow">VERIFICACIÓN PÚBLICA</span><h2 id="verifySignatureTitle">Verificar firma</h2></div><button class="modal-close" data-close-modal="verifySignatureModal" type="button">×</button></div>
+      <div id="verifySignatureResult" class="verify-result">Consultando evidencia…</div>
+    </div>
+  </div>
+
   <div class="welcome-overlay hidden" id="welcomeOverlay" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
     <div class="welcome-card">
       <button class="welcome-close" id="closeWelcome" type="button" aria-label="Cerrar">×</button>
@@ -364,6 +434,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script type="module" src="./app.js?v=20260919-v10"></script>
+  <script type="module" src="./app.js?v=20260919-v11"></script>
 </body>
 </html>
