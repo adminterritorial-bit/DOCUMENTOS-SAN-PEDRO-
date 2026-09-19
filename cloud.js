@@ -443,7 +443,7 @@ async function loadDashboard(){
   try{
     const email=(session.user.email||"").toLowerCase();
     const mine=await supabase.from("docsys_signers")
-      .select("id,request_id,signer_order,signer_name,signer_email,signer_role,status,evidence_code,signed_at,docsys_signature_requests(id,status,expires_at,document_id,docsys_documents(id,title,document_type,document_number,trd_code,status,document_sha256,drive_url))")
+      .select("id,request_id,signer_order,signer_name,signer_email,signer_role,status,evidence_code,signed_at,created_at,docsys_signature_requests(id,status,expires_at,document_id,docsys_documents(id,title,document_type,document_number,trd_code,status,document_sha256,drive_url))")
       .eq("signer_email",email).order("created_at",{ascending:false});
     if(mine.error)throw mine.error;
 
@@ -459,7 +459,12 @@ async function loadDashboard(){
     $("#mySignatureList").innerHTML=(mine.data||[]).length?(mine.data||[]).map(mySignatureCard).join(""):'<div class="signature-empty">No tienes solicitudes de firma.</div>';
     $("#sentSignatureCount").textContent=String((sent.data||[]).length);
     $("#sentSignatureList").innerHTML=(sent.data||[]).length?(sent.data||[]).map(sentRequestCard).join(""):'<div class="signature-empty">Todavía no has enviado documentos a firma.</div>';
-  }catch(e){console.error(e)}
+  }catch(e){
+    const detail=e?.message||e?.details||e?.hint||"No fue posible consultar el centro de firmas.";
+    console.error("Signature dashboard error:",detail,e);
+    if($("#mySignatureList"))$("#mySignatureList").innerHTML='<div class="signature-empty signature-error">No fue posible cargar la bandeja de firmas. Actualiza la página; si continúa, revisa la sesión.</div>';
+    if($("#sentSignatureList"))$("#sentSignatureList").innerHTML='<div class="signature-empty signature-error">No fue posible cargar las solicitudes enviadas.</div>';
+  }
 }
 async function openSigner(signerId){
   if(!session){openModal("authOverlay");return;}
