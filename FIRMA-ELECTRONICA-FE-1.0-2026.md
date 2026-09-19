@@ -52,7 +52,13 @@ Al marcar la casilla de aceptación y confirmar con el código recibido, el firm
 - utiliza voluntariamente el mecanismo FE-1.0-2026 para expresar su aprobación;
 - comprende que el código recibido es personal y no debe compartirse.
 
-### 7. Sellado y verificación
+### 7. OCR, imagen de firma y evidencia visual
+
+El OCR no se utiliza como factor de autenticación ni como fuente de validez de la firma. OCR sirve para reconocer texto en imágenes y no permite, por sí mismo, demostrar quién firmó un documento.
+
+Si en una evolución posterior se incorpora un trazo manuscrito, rúbrica o imagen de firma, ese elemento se considerará una **representación visual adicional**. La evidencia principal de FE-1.0-2026 seguirá siendo la identidad Google institucional, el OTP, el consentimiento expreso, la integridad SHA-256 y la trazabilidad registrada.
+
+### 8. Sellado y verificación
 
 El documento final incorpora una evidencia visible de firma electrónica con:
 
@@ -64,7 +70,7 @@ El documento final incorpora una evidencia visible de firma electrónica con:
 
 El QR conduce al verificador público del Sistema Maestro Documental, que consulta la evidencia registrada sin divulgar información de autenticación sensible.
 
-### 8. Archivo final
+### 9. Archivo final
 
 Al completarse todas las firmas:
 
@@ -74,7 +80,7 @@ Al completarse todas las firmas:
 4. Supabase conserva únicamente el identificador del archivo, los hashes y metadatos de trazabilidad;
 5. se otorga acceso de lectura a los participantes autorizados.
 
-### 9. Referentes normativos
+### 10. Referentes normativos
 
 El diseño toma como referente:
 
@@ -82,11 +88,11 @@ El diseño toma como referente:
 - Decreto 1074 de 2015, artículos 2.2.2.47.1 a 2.2.2.47.8;
 - Decreto 1789 de 2021, respecto del uso de firmas electrónicas y digitales en la actividad pública.
 
-### 10. Validación institucional
+### 11. Validación institucional
 
 Antes de declarar FE-1.0-2026 como mecanismo oficial para una clase documental concreta, la dependencia jurídica y el responsable del proceso documental deben definir el nivel de confianza requerido, validar la aplicabilidad del mecanismo para dicha clase y determinar si existen actos o procedimientos que requieran certificado digital, firma digital certificada, estampado cronológico de una ECD u otra formalidad adicional.
 
-### 11. Control de versión
+### 12. Control de versión
 
 Versión inicial: **FE-1.0-2026**.
 
