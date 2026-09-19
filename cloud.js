@@ -722,13 +722,38 @@ function bindEvents(){
   $("#authUserChip")?.addEventListener("click",()=>{if(confirm("¿Cerrar la sesión institucional?"))signOut();});
   $("#sendToSignatures")?.addEventListener("click",openSendModal);
   $("#signaturePanelNew")?.addEventListener("click",openSendModal);
-  $("#addSignerRow")?.addEventListener("click",()=>addSigner());
+  $("#signerDirectorySearch")?.addEventListener("input",renderSignerDirectory);
+  $("#refreshSignerDirectory")?.addEventListener("click",async()=>{
+    const btn=$("#refreshSignerDirectory");
+    try{
+      setBusy(btn,true,"Actualizando…");
+      await loadSignerDirectory(true);
+    }catch(error){
+      ctx.toast(error.message||"No fue posible actualizar los usuarios");
+    }finally{
+      setBusy(btn,false);
+    }
+  });
+  $("#signerDirectoryList")?.addEventListener("click",e=>{
+    const card=e.target.closest("[data-directory-user]");
+    if(card&&!card.disabled)toggleSignerSelection(card.dataset.directoryUser);
+  });
+  $("#selectedSignerList")?.addEventListener("click",e=>{
+    const card=e.target.closest("[data-selected-signer]");
+    if(!card)return;
+    const id=card.dataset.selectedSigner;
+    if(e.target.closest("[data-remove-signer]")){
+      toggleSignerSelection(id);
+      return;
+    }
+    const move=e.target.closest("[data-move-signer]");
+    if(move)moveSelectedSigner(id,Number(move.dataset.moveSigner));
+  });
   $("#confirmSendToSignatures")?.addEventListener("click",sendToSignatures);
   $("#requestSignatureOtp")?.addEventListener("click",requestOtp);
   $("#confirmElectronicSignature")?.addEventListener("click",confirmSignature);
   $("#signatureConsent")?.addEventListener("change",e=>{$("#confirmElectronicSignature").disabled=!e.target.checked;});
   $("#checkIntegrationsBtn")?.addEventListener("click",checkIntegrationReadiness);
-  $("[data-close-modal='signatureRequestModal']")?.addEventListener("click",()=>closeModal("signatureRequestModal"));
   qsa("[data-close-modal]").forEach(btn=>btn.addEventListener("click",()=>closeModal(btn.dataset.closeModal)));
   $("#mySignatureList")?.addEventListener("click",e=>{
     const id=e.target.closest("[data-open-sign]")?.dataset.openSign;
