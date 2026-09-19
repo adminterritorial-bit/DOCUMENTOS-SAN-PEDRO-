@@ -160,13 +160,16 @@ export async function exportDocx(state,paper){
     new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:40},children:[new TextRun({text:contact,font,size:13})]})
   ]});
 
+  const exportRoot=document.createElement("div");
+  paper.querySelectorAll(".page-blocks > .doc-block").forEach(block=>exportRoot.appendChild(block.cloneNode(true)));
+
   const body=[
     new Paragraph({spacing:{after:100},children:[new TextRun({text:`CÓDIGO TRD: ${state.trdCode}`,bold:true,font,size})]}),
     ...(state.docTitle?[
       new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:80,after:30},children:[new TextRun({text:`${state.docTitle} ${state.numberToken||""} ${state.docNumber||""}`.replace(/\s+/g," ").trim(),bold:true,font,size})]}),
       new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:130},children:[new TextRun({text:state.dateText,bold:true,font,size})]})
     ]:[]),
-    ...blocksToDocx(paper.querySelector("#blockRoot"),d,state)
+    ...blocksToDocx(exportRoot,d,state)
   ];
 
   const safeMarginCm=Math.max(1,Number(state.marginCm)||2.54);
@@ -182,29 +185,41 @@ export async function exportDocx(state,paper){
 }
 
 export async function exportPdf(state,paper){
-  const clone=paper.cloneNode(true);
-  const marginCm=Math.max(1,Number(state.marginCm)||2.54);
-  const marginMm=marginCm*10;
-  const contentWidthMm=Math.max(120,210-(marginMm*2));
+  const pages=[...paper.querySelectorAll(".document-page")];
+  if(!pages.length) throw new Error("No hay páginas para exportar.");
 
-  clone.style.transform="none";
-  clone.style.margin="0";
-  clone.style.boxShadow="none";
-  clone.style.border="0";
-  clone.style.borderRadius="0";
-  clone.style.padding="0";
-  clone.style.width=`${contentWidthMm}mm`;
-  clone.style.minHeight="0";
-  clone.querySelectorAll(".block-actions,.quick-add,.page-markers,.page-auto-note").forEach(el=>el.remove());
-  clone.querySelectorAll("[contenteditable]").forEach(el=>el.removeAttribute("contenteditable"));
+  const wrapper=document.createElement("div");
+  wrapper.className="pdf-page-stack";
+  wrapper.style.margin="0";
+  wrapper.style.padding="0";
+  wrapper.style.background="#fff";
+
+  pages.forEach((page,index)=>{
+    const clone=page.cloneNode(true);
+    clone.style.transform="none";
+    clone.style.margin="0";
+    clone.style.boxShadow="none";
+    clone.style.border="0";
+    clone.style.borderRadius="0";
+    clone.style.width="210mm";
+    clone.style.height="297mm";
+    clone.style.minHeight="297mm";
+    clone.style.maxHeight="297mm";
+    clone.style.overflow="hidden";
+    clone.style.pageBreakAfter=index<pages.length-1?"always":"auto";
+    clone.style.breakAfter=index<pages.length-1?"page":"auto";
+    clone.querySelectorAll(".block-actions,.quick-add,.sheet-number,.page-auto-note").forEach(el=>el.remove());
+    clone.querySelectorAll("[contenteditable]").forEach(el=>el.removeAttribute("contenteditable"));
+    wrapper.appendChild(clone);
+  });
 
   const opt={
-    margin:[marginMm,marginMm,marginMm,marginMm],
+    margin:0,
     filename:`${safe(state.docTitle||state.formatName)}_${safe(state.docNumber||"")}.pdf`,
-    image:{type:"jpeg",quality:.98},
+    image:{type:"jpeg",quality:.99},
     html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff",windowWidth:1200},
     jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
-    pagebreak:{mode:["css","legacy"],avoid:["table",".article-row",".kpi-grid",".signature-box",".institutional-header",".institutional-footer"]}
+    pagebreak:{mode:["css","legacy"],before:[],after:[".document-page:not(:last-child)"]}
   };
-  await window.html2pdf().set(opt).from(clone).save();
+  await window.html2pdf().set(opt).from(wrapper).save();
 }
