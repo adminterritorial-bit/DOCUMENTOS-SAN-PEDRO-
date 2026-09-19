@@ -1883,3 +1883,40 @@ body.easy-mode .doc-block:hover>.quick-add{opacity:1}
 .integration-readiness .ok>span{background:#def2e6;color:#27794d}
 .integration-readiness .pending{border-color:#eadab3;background:#fffaf1}
 .integration-readiness .pending>span{background:#f8eac4;color:#8d6811}
+
+
+/* hybrid demo authentication */
+.auth-card{width:min(760px,100%)}
+.auth-login-grid{display:grid;grid-template-columns:1fr 34px 1fr;gap:12px;align-items:stretch}
+.auth-login-method{padding:15px;border:1px solid #dce8ee;border-radius:15px;background:#fff}
+.auth-login-method h3{margin:5px 0 13px;font-size:14px;color:#193f57}
+.auth-method-kicker{font-size:7.5px;font-weight:900;letter-spacing:.12em;color:#6f8796}
+.auth-login-method label{display:block;margin:9px 0}
+.auth-login-method label>span{display:block;margin-bottom:5px;font-size:8.5px;font-weight:800;color:#617989}
+.auth-login-method input{
+  width:100%;min-height:43px;padding:9px 10px;border:1px solid #cfdfe7;border-radius:10px;background:#fbfdfe;
+  color:#173e55;font-size:11px;outline:none
+}
+.auth-login-method input:focus{border-color:#5bb2d7;background:#fff;box-shadow:0 0 0 4px rgba(55,166,214,.10)}
+.password-login-btn{
+  width:100%;min-height:44px;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:9px;
+  border:1px solid #0b74ad;border-radius:11px;background:linear-gradient(135deg,#0875af,#159ed6);color:#fff;
+  font-size:11px;font-weight:800;box-shadow:0 9px 20px rgba(7,103,158,.18)
+}
+.password-login-btn:hover{filter:saturate(1.08);box-shadow:0 12px 25px rgba(7,103,158,.22)}
+.password-login-btn span{font-size:17px}
+.auth-method-note{display:block;margin-top:9px;font-size:7.8px;line-height:1.45;color:#7a8e9b}
+.auth-method-divider{display:grid;place-items:center;position:relative;color:#8aa0ad;font-size:8px;font-weight:800}
+.auth-method-divider:before{content:"";position:absolute;top:0;bottom:0;width:1px;background:#dce7ed}
+.auth-method-divider span{position:relative;z-index:1;padding:7px 0;background:rgba(250,253,255,.97)}
+.google-method{display:flex;flex-direction:column}
+.google-method .auth-provider-status{margin-top:0}
+.google-method .google-login-btn{margin-top:auto}
+.password-method{background:linear-gradient(145deg,#f8fcfe,#fff)}
+@media(max-width:700px){
+  .auth-card{padding:20px}
+  .auth-login-grid{grid-template-columns:1fr}
+  .auth-method-divider{height:24px}
+  .auth-method-divider:before{left:0;right:0;top:50%;bottom:auto;width:auto;height:1px}
+  .auth-method-divider span{padding:0 8px}
+}
