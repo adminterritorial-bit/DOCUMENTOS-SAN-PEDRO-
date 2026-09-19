@@ -14,6 +14,21 @@ function imageBytes(){
 function htmlChildrenToDocx(root,d,opts){
   const {Paragraph,TextRun,HeadingLevel,AlignmentType,Table,TableRow,TableCell,WidthType,PageBreak,TableOfContents}=d;
   const out=[];
+  const runs=(node,marks={})=>{
+    const result=[];
+    node.childNodes.forEach(ch=>{
+      if(ch.nodeType===3){if(ch.textContent)result.push(new TextRun({text:ch.textContent,font:opts.fontFamily,size:Math.round(opts.fontSize*2),...marks}));return}
+      if(ch.nodeType!==1)return;
+      const tag=ch.tagName.toLowerCase();
+      if(tag==="br"){result.push(new TextRun({break:1}));return}
+      const next={...marks};
+      if(tag==="strong"||tag==="b")next.bold=true;
+      if(tag==="em"||tag==="i")next.italics=true;
+      if(tag==="u")next.underline={};
+      runs(ch,next).forEach(x=>result.push(x));
+    });
+    return result;
+  };
   const walk=(el)=>{
     if(el.nodeType!==1)return;
     const tag=el.tagName.toLowerCase();
@@ -22,10 +37,10 @@ function htmlChildrenToDocx(root,d,opts){
     }
     if(tag==="p"){
       const txt=stripNodeText(el); if(!txt)return;
-      out.push(new Paragraph({children:[new TextRun({text:txt,bold:el.classList.contains("article")?false:undefined})],alignment:el.classList.contains("article")?AlignmentType.JUSTIFIED:AlignmentType.JUSTIFIED,spacing:{after:160,line:Math.round(240*opts.lineHeight)}})); return;
+      out.push(new Paragraph({children:runs(el),alignment:AlignmentType.JUSTIFIED,spacing:{after:160,line:Math.round(240*opts.lineHeight)}})); return;
     }
     if(tag==="table"){
-      const rows=[...el.querySelectorAll(":scope > tbody > tr, :scope > tr")].map(tr=>new TableRow({children:[...tr.children].map(td=>new TableCell({children:[new Paragraph({text:stripNodeText(td)})]}))}));
+      const rows=[...el.querySelectorAll(":scope > tbody > tr, :scope > tr")].map(tr=>new TableRow({children:[...tr.children].map(td=>new TableCell({children:[new Paragraph({children:[new TextRun({text:stripNodeText(td),bold:td.tagName.toLowerCase()==="th",font:opts.fontFamily,size:Math.round(opts.fontSize*2)})]})]}))}));
       out.push(new Table({rows,width:{size:100,type:WidthType.PERCENTAGE}})); out.push(new Paragraph("")); return;
     }
     if(el.classList.contains("auto-toc")){out.push(new TableOfContents("Tabla de contenido",{hyperlink:true,headingStyleRange:"1-3"}));return}
@@ -41,9 +56,9 @@ export async function exportWord(state,editor){
   const font=state.fontFamily; const size=Math.round(state.fontSize*2);
   const cell=(children)=>new TableCell({children,verticalAlign:VerticalAlign.CENTER});
   const header=new Header({children:[new Table({width:{size:100,type:WidthType.PERCENTAGE},rows:[new TableRow({children:[
-    cell([new Paragraph({alignment:AlignmentType.CENTER,children:[new ImageRun({data:imageBytes(),transformation:{width:62,height:70},type:"jpg"})]}),new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:"ALCALDÍA MUNICIPAL\nSAN PEDRO - VALLE",bold:true,size:14,font})]})]),
-    cell([new Paragraph({children:[new TextRun({text:"Nombre: ",bold:true,size:16,font}),new TextRun({text:"ACTO ADMINISTRATIVO",size:16,font})]}),new Paragraph({children:[new TextRun({text:"Proceso: ",bold:true,size:16,font}),new TextRun({text:"PLANEACIÓN Y DIRECCIONAMIENTO ESTRATÉGICO",size:16,font})]}),new Paragraph({children:[new TextRun({text:"Responsable: ",bold:true,size:16,font}),new TextRun({text:"LÍDER DEL PROCESO",size:16,font})]})]),
-    cell([new Paragraph({children:[new TextRun({text:"Código: GD-FT-10",bold:true,size:16,font})]}),new Paragraph({children:[new TextRun({text:"Fecha de emisión: 03/06/2016",size:16,font})]}),new Paragraph({children:[new TextRun({text:"Versión: 2",bold:true,size:16,font})]}),new Paragraph({children:[new TextRun({text:"Página: ",bold:true,size:16,font}),new TextRun({children:[PageNumber.CURRENT],size:16,font}),new TextRun({text:" de ",size:16,font}),new TextRun({children:[PageNumber.TOTAL_PAGES],size:16,font})]})])
+    cell([new Paragraph({alignment:AlignmentType.CENTER,children:[new ImageRun({data:imageBytes(),transformation:{width:62,height:70},type:"jpg"})]}),new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:`ALCALDÍA MUNICIPAL\nSAN PEDRO - VALLE\nNIT. ${state.municipalityNit}`,bold:true,size:14,font})]})]),
+    cell([new Paragraph({children:[new TextRun({text:"Nombre: ",bold:true,size:16,font}),new TextRun({text:state.formatName,size:16,font})]}),new Paragraph({children:[new TextRun({text:"Proceso: ",bold:true,size:16,font}),new TextRun({text:state.processName,size:16,font})]}),new Paragraph({children:[new TextRun({text:"Responsable: ",bold:true,size:16,font}),new TextRun({text:state.responsibleName,size:16,font})]})]),
+    cell([new Paragraph({children:[new TextRun({text:`Código: ${state.formatCode}`,bold:true,size:16,font})]}),new Paragraph({children:[new TextRun({text:`Fecha de emisión: ${state.formatIssueDate}`,size:16,font})]}),new Paragraph({children:[new TextRun({text:`Versión: ${state.formatVersion}`,bold:true,size:16,font})]}),new Paragraph({children:[new TextRun({text:"Página: ",bold:true,size:16,font}),new TextRun({children:[PageNumber.CURRENT],size:16,font}),new TextRun({text:" de ",size:16,font}),new TextRun({children:[PageNumber.TOTAL_PAGES],size:16,font})]})])
   ]})]})]});
   const footer=new Footer({children:[
     new Table({width:{size:100,type:WidthType.PERCENTAGE},rows:[new TableRow({children:[
@@ -55,8 +70,8 @@ export async function exportWord(state,editor){
   ]});
   const content=[
     new Paragraph({children:[new TextRun({text:`CÓDIGO TRD: ${state.trdCode}`,bold:true,size,font})]}),
-    new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:180,after:40},children:[new TextRun({text:`${state.typeLabel.toUpperCase()} No. ${state.docNumber}`,bold:true,size,font})]}),
-    new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:180},children:[new TextRun({text:formatDateLong(state.docDate).toUpperCase(),bold:true,size,font})]}),
+    new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:180,after:40},children:[new TextRun({text:`${state.typeLabel.toUpperCase()} ${state.numberToken} ${state.docNumber}`,bold:true,size,font})]}),
+    new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:180},children:[new TextRun({text:`${state.datePrefix}${formatDateLong(state.docDate).toUpperCase()}`,bold:true,size,font})]}),
     new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:320},children:[new TextRun({text:state.subject.toUpperCase(),bold:true,size,font})]}),
     ...htmlChildrenToDocx(editor,d,state),
     new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:500},children:[new TextRun({text:`Dado en San Pedro Valle del Cauca, a los ${formatDateLong(state.docDate)}.`,size,font})]}),
