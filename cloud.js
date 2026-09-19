@@ -896,7 +896,10 @@ function setSignatureInputMode(mode){
     if(currentSignatureArtifact)renderSignatureArtifactPreview(currentSignatureArtifact,"Firma convertida","SPSIG1 · imagen normalizada, fondo removido");
     else renderSignatureArtifactPreview(null);
   }
-  $("#saveCurrentSignature")?.classList.toggle("hidden",mode==="saved"||!currentSignatureArtifact);
+  const canSave=mode!=="saved"&&Boolean(currentSignatureArtifact);
+  $("#saveCurrentSignature")?.classList.toggle("hidden",!canSave);
+  $("#signatureVaultConsentRow")?.classList.toggle("hidden",!canSave);
+  if(!canSave&&$("#signatureVaultConsent"))$("#signatureVaultConsent").checked=false;
   updateSignatureConfirmState();
 }
 async function imageFileToSignatureArtifact(file){
@@ -971,6 +974,9 @@ async function saveCurrentSignatureToVault(){
   try{
     artifact=signatureMarkPayload();
     if(currentSignatureSource==="saved")return;
+    if(!$("#signatureVaultConsent")?.checked){
+      throw new Error("Debes autorizar expresamente el guardado de tu firma reutilizable.");
+    }
     setBusy(btn,true,"Guardando…");
     const source=currentSignatureSource==="uploaded"?"uploaded":"drawn";
     const {data,error}=await supabase.rpc("docsys_save_my_signature",{
@@ -981,6 +987,9 @@ async function saveCurrentSignatureToVault(){
     savedSignatureArtifact=artifact;
     savedSignatureLoaded=true;
     renderSavedSignatureStatus();
+    if($("#signatureVaultConsent"))$("#signatureVaultConsent").checked=false;
+    $("#signatureVaultConsentRow")?.classList.add("hidden");
+    $("#saveCurrentSignature")?.classList.add("hidden");
     ctx.toast("Tu firma quedó guardada para futuros documentos");
   }catch(error){
     ctx.toast(error.message||"No fue posible guardar la firma");
@@ -1114,7 +1123,9 @@ function updateSignatureConfirmState(){
   btn.disabled=!($("#signatureConsent")?.checked&&hasMark);
   if(currentSignatureSource==="drawn"){
     currentSignatureArtifact=drawnArtifactFromPad();
-    $("#saveCurrentSignature")?.classList.toggle("hidden",!currentSignatureArtifact);
+    const canSave=Boolean(currentSignatureArtifact);
+    $("#saveCurrentSignature")?.classList.toggle("hidden",!canSave);
+    $("#signatureVaultConsentRow")?.classList.toggle("hidden",!canSave);
   }
 }
 function bindSignaturePad(){
@@ -1157,6 +1168,7 @@ function bindSignaturePad(){
     currentSignatureArtifact=drawnArtifactFromPad();
     if(currentSignatureArtifact)renderSignatureArtifactPreview(currentSignatureArtifact,"Firma dibujada","SPSIG1 · trazos vectoriales");
     $("#saveCurrentSignature")?.classList.toggle("hidden",!currentSignatureArtifact);
+    $("#signatureVaultConsentRow")?.classList.toggle("hidden",!currentSignatureArtifact);
     redrawSignaturePad();
     updateSignatureConfirmState();
     try{canvas.releasePointerCapture?.(e.pointerId);}catch{}
@@ -1232,6 +1244,8 @@ async function openSignatureModalFromField(fieldId){
     $("#signIdentityStatus").textContent="Sesión verificada: "+session.user.email;
     $("#signatureOtpCode").value="";
     $("#signatureConsent").checked=false;
+    if($("#signatureVaultConsent"))$("#signatureVaultConsent").checked=false;
+    $("#signatureVaultConsentRow")?.classList.add("hidden");
     resetSignaturePad();
     await loadSavedSignature();
     if(savedSignatureArtifact){
