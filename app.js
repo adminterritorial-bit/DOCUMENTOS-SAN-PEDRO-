@@ -64,10 +64,13 @@ function applyDocumentStyle(){
   const size=Number($("#fontSize").value)||11;
   const line=Number($("#lineHeight").value)||1.5;
   const margin=Number($("#marginPreset").value)||2.54;
+  const pageMarginMm=Math.max(10,margin*10).toFixed(1);
   paper.style.setProperty("--doc-font",`"${font}", Arial, sans-serif`);
   paper.style.setProperty("--doc-size",`${size}pt`);
   paper.style.setProperty("--doc-line",line);
-  paper.style.padding=`15mm ${Math.max(12,margin*10).toFixed(1)}mm 17mm`;
+  paper.style.setProperty("--page-margin",`${pageMarginMm}mm`);
+  paper.style.padding=`${pageMarginMm}mm`;
+  paper.dataset.pageMarginCm=margin.toFixed(2);
 }
 
 function updateDateLabel(){
@@ -81,6 +84,7 @@ function syncFieldToDocument(id){
   const value=$("#"+id)?.value??"";
   $$("[data-bind='"+id+"']",paper).forEach(el=>el.textContent=value);
   if(id==="docDate") updateDateLabel();
+  if(id==="docNumber") updateWorkspaceLabels();
   if(["fontFamily","fontSize","lineHeight","marginPreset"].includes(id)) applyDocumentStyle();
   updatePageCount(); queueSave();
 }
@@ -130,11 +134,40 @@ function resetBlocks(){
   root.innerHTML="";
 }
 
+function updateWorkspaceLabels(){
+  const type=$("#docType")?.value;
+  const t=TEMPLATES[type];
+  const label=t?.label||"Documento";
+  const number=$("#docNumber")?.value?.trim();
+  const name=number ? `${label} ${number}` : label;
+  if($("#activeDocLabel")) $("#activeDocLabel").textContent=name;
+  if($("#sidebarDocName")) $("#sidebarDocName").textContent=label;
+  if($("#canvasDocType")) $("#canvasDocType").textContent=label;
+}
+
+function updateSelectedBlockInfo(block){
+  const box=$("#selectedBlockInfo");
+  if(!box) return;
+  if(!block){
+    box.innerHTML="<strong>Documento</strong><span>Selecciona un bloque para ubicarte y trabajar con precisión.</span>";
+    return;
+  }
+  const names={
+    title:"Título",subtitle:"Subtítulo",paragraph:"Texto",list:"Lista",table:"Tabla",kpi:"Indicador KPI",
+    considerando:"Considerando",resolutiva:"Parte resolutiva",article:"Artículo","paragraph-article":"Parágrafo",
+    toc:"Tabla de contenido",timeline:"Cronograma",matrix:"Matriz",callout:"Nota",signature:"Firma",pagebreak:"Salto de página"
+  };
+  const type=block.dataset.block||"Bloque";
+  const preview=(block.innerText||"").replace(/\s+/g," ").trim().slice(0,110);
+  box.innerHTML=`<strong>${names[type]||type}</strong><span>${preview||"Bloque seleccionado. Usa los controles para mover, duplicar, editar o eliminar."}</span>`;
+}
+
 function applyTemplate(type,{announce=true}={}){
   const t=TEMPLATES[type];
   if(!t) return;
   $("#docType").value=type;
   $("#formatName").value=t.formatName;
+  updateWorkspaceLabels();
   $("#docTitleText").textContent=t.title;
   $("#docNumberToken").textContent=t.numberToken;
   resetBlocks();
@@ -159,10 +192,15 @@ function bindRootInteractions(){
   });
   root.addEventListener("click",e=>{
     const b=e.target.closest(".doc-block");
-    if(b){ selectedBlock=b; $$(".doc-block.selected",root).forEach(x=>x.classList.remove("selected")); b.classList.add("selected"); }
+    if(b){
+      selectedBlock=b;
+      $(".doc-block.selected",root).forEach(x=>x.classList.remove("selected"));
+      b.classList.add("selected");
+      updateSelectedBlockInfo(b);
+    }
   });
   root.addEventListener("focusin",e=>{
-    const b=e.target.closest(".doc-block"); if(b) selectedBlock=b;
+    const b=e.target.closest(".doc-block"); if(b){ selectedBlock=b; updateSelectedBlockInfo(b); }
   });
   root.addEventListener("input",()=>{
     updateToc(); updateOutline(); updatePageCount(); queueSave();
@@ -269,6 +307,7 @@ function restoreDraft(){
       const v=$("#"+id)?.value; if(v!=null) $$("[data-bind='"+id+"']",paper).forEach(el=>el.textContent=v);
     }});
     updateDateLabel();
+    updateWorkspaceLabels();
     return true;
   }catch(e){ console.error(e); return false; }
 }
@@ -314,16 +353,40 @@ paper.addEventListener("input",e=>{
 
 $("#docType").addEventListener("change",()=>applyTemplate($("#docType").value));
 
-$("#toggleAdvanced").onclick=()=>{
-  const p=$("#advancedConfig");p.classList.toggle("open");
-  $("#toggleAdvanced").textContent=p.classList.contains("open")?"Ocultar configuración institucional":"Mostrar configuración institucional";
-};
-
 $("#editorRibbon").addEventListener("click",e=>{
   const cmd=e.target.closest("[data-cmd]")?.dataset.cmd;
   if(cmd){document.execCommand(cmd,false,null);paper.focus();queueSave();return;}
   const type=e.target.closest("[data-add]")?.dataset.add;
   if(type) addBlock(type);
+});
+
+$("#sidebarBlockPalette")?.addEventListener("click",e=>{
+  const type=e.target.closest("[data-add]")?.dataset.add;
+  if(type) addBlock(type);
+});
+
+$("[data-side-group] .side-group-title").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    btn.closest("[data-side-group]")?.classList.toggle("open");
+  });
+});
+
+$("#collapseDocumentSidebar")?.addEventListener("click",()=>{
+  const sidebar=$("#documentSidebar");
+  const layout=$(".editor-layout");
+  sidebar?.classList.toggle("collapsed");
+  layout?.classList.toggle("sidebar-collapsed",sidebar?.classList.contains("collapsed"));
+  $("#collapseDocumentSidebar").title=sidebar?.classList.contains("collapsed")?"Expandir configuración":"Contraer configuración";
+});
+
+$("#focusConfig")?.addEventListener("click",()=>{
+  const sidebar=$("#documentSidebar");
+  const layout=$(".editor-layout");
+  sidebar?.classList.remove("collapsed");
+  layout?.classList.remove("sidebar-collapsed");
+  sidebar?.scrollIntoView({behavior:"smooth",block:"start"});
+  const first=$("[data-side-group]",sidebar);
+  first?.classList.add("open");
 });
 
 $("#templateGrid").addEventListener("click",e=>{
@@ -366,6 +429,7 @@ if(!restoreDraft()){
   fieldIds.forEach(id=>syncFieldToDocument(id));
 }
 applyDocumentStyle();
+updateWorkspaceLabels();
 setTimeout(updatePageCount,250);
 
 if("serviceWorker" in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});}
