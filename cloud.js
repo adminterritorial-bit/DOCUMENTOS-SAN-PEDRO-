@@ -27,7 +27,18 @@ const isGoogleUser=user=>{
   const providers=user?.app_metadata?.providers||[];
   return user?.app_metadata?.provider==="google"||providers.includes("google");
 };
-const isAllowedUser=user=>!!user?.email&&domainOf(user.email)===DOCSYS_ALLOWED_DOMAIN&&isGoogleUser(user);
+function jwtPayload(token){
+  try{
+    const part=token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");
+    return JSON.parse(decodeURIComponent(escape(atob(part.padEnd(Math.ceil(part.length/4)*4,"=")))));
+  }catch{return {};}
+}
+const isAllowedSession=s=>{
+  const user=s?.user;
+  const claims=jwtPayload(s?.access_token||"");
+  const oauth=Array.isArray(claims.amr)&&claims.amr.some(x=>x?.method==="oauth");
+  return !!user?.email&&domainOf(user.email)===DOCSYS_ALLOWED_DOMAIN&&isGoogleUser(user)&&oauth;
+};
 
 async function sha256Hex(input){
   const data=typeof input==="string"?new TextEncoder().encode(input):input;
@@ -113,7 +124,7 @@ function renderAuth(){
 async function validateSession(){
   const {data}=await supabase.auth.getSession();
   session=data.session;
-  if(session?.user&&!isAllowedUser(session.user)){
+  if(session?.user&&!isAllowedSession(session)){
     await supabase.auth.signOut();
     session=null;
     profile=null;
@@ -433,7 +444,7 @@ export async function initCloud(options){
   await validateSession();
   supabase.auth.onAuthStateChange(async(_event,newSession)=>{
     session=newSession;
-    if(session?.user&&isAllowedUser(session.user))await ensureProfile();
+    if(session?.user&&isAllowedSession(session))await ensureProfile();
     renderAuth();
     if(session)await loadDashboard();
   });
