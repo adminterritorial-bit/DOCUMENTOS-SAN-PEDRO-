@@ -7,7 +7,7 @@
   <title>Sistema Maestro Documental · San Pedro</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=20260919-v10">
-  <link rel="stylesheet" href="./styles.css?v=20260919-v14">
+  <link rel="stylesheet" href="./styles.css?v=20260919-v18">
 </head>
 <body class="premium-v4 premium-v9 premium-v10">
   <div class="ambient ambient-a"></div>
@@ -385,8 +385,18 @@
         <label><span>Orden de firma</span><select id="signatureMode"><option value="sequential">Secuencial · 1 → 2 → 3</option><option value="parallel">Paralelo · cualquiera puede firmar</option></select></label>
         <div class="signature-integrity"><span>SHA-256</span><code id="signatureHashPreview">Se calculará al enviar</code></div>
       </div>
-      <div class="signer-editor-head"><div><strong>Firmantes</strong><small>Entre 1 y 3 usuarios institucionales.</small></div><button class="btn soft" id="addSignerRow" type="button">+ Agregar firmante</button></div>
-      <div class="signer-rows" id="signerRows"></div>
+      <div class="signer-editor-head"><div><strong>Seleccionar firmantes</strong><small>Solo aparecen usuarios existentes, confirmados y habilitados en el sistema.</small></div><span class="selected-signer-count" id="selectedSignerCount">0 / 3</span></div>
+      <div class="signer-directory-shell">
+        <div class="signer-directory-tools">
+          <label><span>Buscar usuario</span><input id="signerDirectorySearch" type="search" autocomplete="off" placeholder="Nombre, correo, cargo o dependencia"></label>
+          <button class="btn soft" id="refreshSignerDirectory" type="button">Actualizar usuarios</button>
+        </div>
+        <div class="signer-directory-list" id="signerDirectoryList"><div class="signature-empty">Cargando usuarios habilitados…</div></div>
+      </div>
+      <div class="selected-signers-shell">
+        <div class="selected-signers-title"><strong>Orden de los firmantes</strong><small>En modo secuencial este será el orden 1 → 2 → 3.</small></div>
+        <div class="selected-signer-list" id="selectedSignerList"><div class="signature-empty compact">Aún no has seleccionado firmantes.</div></div>
+      </div>
       <div class="signature-legal-note"><strong>Firma electrónica con trazabilidad.</strong><span>El documento queda bloqueado al enviarse. Cada firmante valida identidad institucional, recibe un código de un solo uso y genera un código de evidencia único asociado al hash del documento.</span></div>
       <div class="modal-actions"><button class="btn soft" data-close-modal="signatureRequestModal" type="button">Cancelar</button><button class="btn primary" id="confirmSendToSignatures" type="button">Crear solicitud y notificar</button></div>
     </div>
@@ -454,6 +464,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script type="module" src="./app.js?v=20260919-v17"></script>
+  <script type="module" src="./app.js?v=20260919-v18"></script>
 </body>
 </html>
