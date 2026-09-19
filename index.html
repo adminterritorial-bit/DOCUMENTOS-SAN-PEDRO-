@@ -7,7 +7,7 @@
   <title>Sistema Maestro Documental · San Pedro</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=20260919-v10">
-  <link rel="stylesheet" href="./styles.css?v=20260919-v12">
+  <link rel="stylesheet" href="./styles.css?v=20260919-v13">
 </head>
 <body class="premium-v4 premium-v9 premium-v10">
   <div class="ambient ambient-a"></div>
@@ -318,6 +318,7 @@
           <div class="system-rule"><strong>Paginación</strong><span>Hojas A4 físicas separadas en el editor y paginación automática en Word/PDF.</span></div>
           <div class="system-rule"><strong>Estructura</strong><span>Contenido modular por títulos, textos, listas, tablas, KPI, matrices, artículos y más.</span></div>
           <div class="system-rule"><strong>Edición</strong><span>Metadatos y contenido editables desde la barra lateral o directamente sobre la hoja.</span></div>
+          <div class="system-rule integration-rule"><strong>Integraciones institucionales</strong><span>Google OAuth, correo de códigos y archivo final en Drive.</span><button class="btn soft" id="checkIntegrationsBtn" type="button">Verificar configuración</button><div class="integration-readiness" id="integrationReadiness"></div></div>
         </div>
       </section>
     </main>
@@ -354,6 +355,7 @@
     <div class="auth-card">
       <div class="auth-brand"><div class="auth-brand-mark">SP</div><div><span class="eyebrow">ALCALDÍA DE SAN PEDRO</span><h2 id="authTitle">Sistema Maestro Documental</h2></div></div>
       <p>Acceso institucional protegido. Solo cuentas Google del dominio <b>@sanpedro-valle.gov.co</b>.</p>
+      <div class="auth-provider-status is-checking" id="authProviderStatus"><span></span><div><strong>Verificando Google OAuth…</strong><small>Comprobando la configuración de Supabase Auth.</small></div></div>
       <button class="google-login-btn" id="googleLoginBtn" type="button"><span>G</span><strong>Continuar con Google</strong></button>
       <div class="auth-security-note"><span>✓</span><div><strong>Acceso restringido</strong><small>El aplicativo no admite cuentas personales ni autenticación por contraseña.</small></div></div>
       <div class="auth-error hidden" id="authError"></div>
@@ -437,6 +439,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script type="module" src="./app.js?v=20260919-v12"></script>
+  <script type="module" src="./app.js?v=20260919-v13"></script>
 </body>
 </html>
