@@ -3,6 +3,7 @@ import {LOGO_DATA_URL} from "./assets.js";
 async function docxLib(){return await import("https://esm.sh/docx@9.5.1?bundle");}
 const clean=s=>(s||"").replace(/\s+/g," ").trim();
 const safe=s=>(s||"documento").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"_").replace(/^_+|_+$/g,"");
+const domValue=(paper,key,fallback="")=>clean(paper.querySelector(`[data-bind="${key}"]`)?.innerText)||fallback;
 
 function logoBytes(){
   const b64=LOGO_DATA_URL.split(",")[1],bin=atob(b64),arr=new Uint8Array(bin.length);
@@ -122,6 +123,11 @@ function blocksToDocx(root,d,state){
 }
 
 export async function exportDocx(state,paper){
+  state={...state};
+  ["municipalityNit","formatName","processName","responsibleName","formatCode","formatIssueDate","formatVersion","trdCode","docNumber","projectedBy","reviewedBy","approvedBy","address","phone","website","email","postalCode"].forEach(k=>state[k]=domValue(paper,k,state[k]));
+  state.docTitle=clean(paper.querySelector("#docTitleText")?.innerText)||state.docTitle;
+  state.numberToken=clean(paper.querySelector("#docNumberToken")?.innerText)||state.numberToken;
+  state.dateText=clean(paper.querySelector("#docDateText")?.innerText)||state.dateText;
   const d=await docxLib();
   const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,Header,Footer,ImageRun,AlignmentType,VerticalAlign,WidthType,PageNumber,BorderStyle}=d;
   const font=state.fontFamily,size=Math.round(state.fontSize*2);
