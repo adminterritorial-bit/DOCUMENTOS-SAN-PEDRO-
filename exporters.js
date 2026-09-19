@@ -153,12 +153,16 @@ export async function exportDocx(state,paper){
     ],21)
   ]})]})]});
 
-  const footerCells=[...paper.querySelectorAll(".approval-table td")].map(td=>cell([new Paragraph({children:[new TextRun({text:clean(td.innerText),font,size:13})]})]));
-  const contact=clean(paper.querySelector(".contact-line")?.innerText).replace(/\s+\/\s+/g," / ");
+  const firstPage=paper.querySelector(".document-page")||paper;
+  const footerCells=[...firstPage.querySelectorAll(".approval-table td")].map(td=>cell([new Paragraph({children:[new TextRun({text:clean(td.innerText),font,size:13})]})]));
+  const contact=clean(firstPage.querySelector(".contact-line")?.innerText).replace(/\s+\/\s+/g," / ");
   const footer=new Footer({children:[
     new Table({width:{size:100,type:WidthType.PERCENTAGE},borders,rows:[new TableRow({children:footerCells})]}),
     new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:40},children:[new TextRun({text:contact,font,size:13})]})
   ]});
+
+  const exportRoot=document.createElement("div");
+  paper.querySelectorAll(".page-blocks > .doc-block").forEach(block=>exportRoot.appendChild(block.cloneNode(true)));
 
   const body=[
     new Paragraph({spacing:{after:100},children:[new TextRun({text:`CÓDIGO TRD: ${state.trdCode}`,bold:true,font,size})]}),
@@ -166,7 +170,7 @@ export async function exportDocx(state,paper){
       new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:80,after:30},children:[new TextRun({text:`${state.docTitle} ${state.numberToken||""} ${state.docNumber||""}`.replace(/\s+/g," ").trim(),bold:true,font,size})]}),
       new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:130},children:[new TextRun({text:state.dateText,bold:true,font,size})]})
     ]:[]),
-    ...blocksToDocx(paper.querySelector("#blockRoot"),d,state)
+    ...blocksToDocx(exportRoot,d,state)
   ];
 
   const safeMarginCm=Math.max(1,Number(state.marginCm)||2.54);
@@ -182,29 +186,46 @@ export async function exportDocx(state,paper){
 }
 
 export async function exportPdf(state,paper){
-  const clone=paper.cloneNode(true);
-  const marginCm=Math.max(1,Number(state.marginCm)||2.54);
-  const marginMm=marginCm*10;
-  const contentWidthMm=Math.max(120,210-(marginMm*2));
+  const pages=[...paper.querySelectorAll(".document-page")];
+  if(!pages.length) throw new Error("No hay páginas para exportar.");
 
-  clone.style.transform="none";
-  clone.style.margin="0";
-  clone.style.boxShadow="none";
-  clone.style.border="0";
-  clone.style.borderRadius="0";
-  clone.style.padding="0";
-  clone.style.width=`${contentWidthMm}mm`;
-  clone.style.minHeight="0";
-  clone.querySelectorAll(".block-actions,.quick-add,.page-markers,.page-auto-note").forEach(el=>el.remove());
-  clone.querySelectorAll("[contenteditable]").forEach(el=>el.removeAttribute("contenteditable"));
+  const wrapper=document.createElement("div");
+  wrapper.className="pdf-page-stack";
+  wrapper.style.margin="0";
+  wrapper.style.padding="0";
+  wrapper.style.background="#fff";
+  wrapper.style.setProperty("--page-margin",`${Math.max(10,(Number(state.marginCm)||2.54)*10)}mm`);
+  wrapper.style.setProperty("--doc-font",`"${state.fontFamily}", Arial, sans-serif`);
+  wrapper.style.setProperty("--doc-size",`${Number(state.fontSize)||11}pt`);
+  wrapper.style.setProperty("--doc-line",String(Number(state.lineHeight)||1.5));
+
+  pages.forEach((page,index)=>{
+    const clone=page.cloneNode(true);
+    clone.style.transform="none";
+    clone.style.margin="0";
+    clone.style.boxShadow="none";
+    clone.style.border="0";
+    clone.style.borderRadius="0";
+    clone.style.width="210mm";
+    clone.style.height="297mm";
+    clone.style.minHeight="297mm";
+    clone.style.maxHeight="297mm";
+    clone.style.setProperty("overflow","hidden","important");
+    clone.style.pageBreakAfter=index<pages.length-1?"always":"auto";
+    clone.style.breakAfter=index<pages.length-1?"page":"auto";
+    clone.querySelectorAll(".block-actions,.quick-add,.sheet-number,.page-auto-note,.page-break-block").forEach(el=>el.remove());
+    clone.querySelectorAll(".selected,.oversize-block").forEach(el=>el.classList.remove("selected","oversize-block"));
+    clone.querySelectorAll("[contenteditable]").forEach(el=>el.removeAttribute("contenteditable"));
+    wrapper.appendChild(clone);
+  });
 
   const opt={
-    margin:[marginMm,marginMm,marginMm,marginMm],
+    margin:0,
     filename:`${safe(state.docTitle||state.formatName)}_${safe(state.docNumber||"")}.pdf`,
-    image:{type:"jpeg",quality:.98},
+    image:{type:"jpeg",quality:.99},
     html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff",windowWidth:1200},
     jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
-    pagebreak:{mode:["css","legacy"],avoid:["table",".article-row",".kpi-grid",".signature-box",".institutional-header",".institutional-footer"]}
+    pagebreak:{mode:["css","legacy"]}
   };
-  await window.html2pdf().set(opt).from(clone).save();
+  await window.html2pdf().set(opt).from(wrapper).save();
 }

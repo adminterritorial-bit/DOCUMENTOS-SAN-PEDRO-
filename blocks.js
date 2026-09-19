@@ -60,8 +60,13 @@ export function insertBlock(root,type,after=null,data={}){
   const tpl=document.createElement("template");
   tpl.innerHTML=blockHtml(type,data).trim();
   const node=tpl.content.firstElementChild;
-  if(after?.parentElement===root) after.insertAdjacentElement("afterend",node);
-  else root.appendChild(node);
+  if(after && root.contains(after)){
+    after.insertAdjacentElement("afterend",node);
+  }else{
+    const pages=[...root.querySelectorAll(".page-blocks")];
+    const container=pages[pages.length-1]||root;
+    container.appendChild(node);
+  }
   return node;
 }
 
@@ -70,9 +75,17 @@ export function activateBlockControls(root,onChange){
     const action=e.target.closest("[data-block-action]");
     if(action){
       const block=action.closest(".doc-block");
+      const ordered=[...root.querySelectorAll(".doc-block")];
+      const index=ordered.indexOf(block);
       if(action.dataset.blockAction==="delete") block.remove();
-      if(action.dataset.blockAction==="up" && block.previousElementSibling) block.parentElement.insertBefore(block,block.previousElementSibling);
-      if(action.dataset.blockAction==="down" && block.nextElementSibling) block.parentElement.insertBefore(block.nextElementSibling,block);
+      if(action.dataset.blockAction==="up" && index>0){
+        const prev=ordered[index-1];
+        prev.parentElement.insertBefore(block,prev);
+      }
+      if(action.dataset.blockAction==="down" && index>=0 && index<ordered.length-1){
+        const next=ordered[index+1];
+        next.parentElement.insertBefore(block,next.nextSibling);
+      }
       if(action.dataset.blockAction==="duplicate"){
         const copy=block.cloneNode(true); copy.id=id(); block.insertAdjacentElement("afterend",copy);
       }

@@ -3,14 +3,20 @@ import {TEMPLATES,longDate} from "./templates.js";
 import {insertBlock,activateBlockControls} from "./blocks.js";
 import {exportDocx,exportPdf} from "./exporters.js";
 import {initGuidance} from "./guide.js";
+import {initWordPagination} from "./pagination.js";
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+
 const paper=$("#paper");
-let root=$("#blockRoot");
+const pagination=initWordPagination(paper,{logoUrl:LOGO_DATA_URL});
+let root=paper;
 let selectedBlock=null;
 let dirty=false;
 let saveTimer=null;
+
+const DRAFT_KEY="san-pedro-document-draft-v3";
+const LEGACY_DRAFT_KEY="san-pedro-document-draft-v2";
 
 const fieldIds=[
   "docNumber","docDate","trdCode","fontFamily","fontSize","lineHeight","marginPreset",
@@ -25,37 +31,45 @@ const ordinalWords=[
 ];
 
 function toast(message){
-  const el=$("#toast"); el.textContent=message; el.classList.add("show");
-  clearTimeout(el._timer); el._timer=setTimeout(()=>el.classList.remove("show"),2200);
+  const el=$("#toast");
+  if(!el)return;
+  el.textContent=message;el.classList.add("show");
+  clearTimeout(el._timer);
+  el._timer=setTimeout(()=>el.classList.remove("show"),2400);
 }
 
 function getState(){
   const values={};
   fieldIds.forEach(id=>values[id]=$("#"+id)?.value??"");
+  const first=pagination.firstPage();
   return {
+    version:3,
     docType:$("#docType").value,
     values,
     identity:{
-      title:$("#docTitleText").innerHTML,
-      token:$("#docNumberToken").innerHTML,
-      date:$("#docDateText").innerHTML
+      title:$("#docTitleText")?.innerHTML||"",
+      token:$("#docNumberToken")?.innerHTML||"",
+      date:$("#docDateText")?.innerHTML||""
     },
-    blocks:root.innerHTML,
-    header:$(".institutional-header",paper).innerHTML,
-    footer:$(".institutional-footer",paper).innerHTML
+    blocks:pagination.serializeBlocks(),
+    header:$(".institutional-header",first)?.innerHTML||"",
+    trd:$(".trd-line",first)?.innerHTML||"",
+    footer:$(".institutional-footer",first)?.innerHTML||""
   };
 }
 
 function saveLocal(silent=false){
-  localStorage.setItem("san-pedro-document-draft-v2",JSON.stringify(getState()));
+  localStorage.setItem(DRAFT_KEY,JSON.stringify(getState()));
   dirty=false;
-  $("#saveStatus").innerHTML="<i></i> Guardado local";
+  const status=$("#saveStatus");
+  if(status) status.innerHTML="<i></i> Guardado local";
   if(!silent) toast("Borrador guardado");
 }
 
 function queueSave(){
   dirty=true;
-  $("#saveStatus").innerHTML="<i style='background:#e3ae39'></i> Guardando…";
+  const status=$("#saveStatus");
+  if(status) status.innerHTML="<i style='background:#e3ae39'></i> Guardando…";
   clearTimeout(saveTimer);
   saveTimer=setTimeout(()=>saveLocal(true),700);
 }
@@ -66,19 +80,22 @@ function applyDocumentStyle(){
   const line=Number($("#lineHeight").value)||1.5;
   const margin=Number($("#marginPreset").value)||2.54;
   const pageMarginMm=Math.max(10,margin*10).toFixed(1);
+
   paper.style.setProperty("--doc-font",`"${font}", Arial, sans-serif`);
   paper.style.setProperty("--doc-size",`${size}pt`);
   paper.style.setProperty("--doc-line",line);
   paper.style.setProperty("--page-margin",`${pageMarginMm}mm`);
-  paper.style.padding=`${pageMarginMm}mm`;
   paper.dataset.pageMarginCm=margin.toFixed(2);
+  pagination.scheduleReflow();
 }
 
 function updateDateLabel(){
   const t=TEMPLATES[$("#docType").value];
   const prefix=t?.datePrefix||"";
   const value=$("#docDate").value;
-  $("#docDateText").textContent=value ? `${prefix}${longDate(value).toUpperCase()}` : "";
+  const label=$("#docDateText");
+  if(label) label.textContent=value ? `${prefix}${longDate(value).toUpperCase()}` : "";
+  pagination.scheduleReflow();
 }
 
 function syncFieldToDocument(id){
@@ -87,17 +104,20 @@ function syncFieldToDocument(id){
   if(id==="docDate") updateDateLabel();
   if(id==="docNumber") updateWorkspaceLabels();
   if(["fontFamily","fontSize","lineHeight","marginPreset"].includes(id)) applyDocumentStyle();
+  pagination.syncAllRepeatingFromFirst();
   updateFlowProgress();
-  updatePageCount(); queueSave();
+  updatePageCount();
+  queueSave();
 }
 
 function syncDocumentToField(target){
-  const bind=target.closest?.("[data-bind]")?.dataset.bind;
-  if(!bind) return;
+  const bound=target.closest?.("[data-bind]");
+  const bind=bound?.dataset.bind;
+  if(!bind)return;
   const field=$("#"+bind);
   if(field){
-    field.value=target.closest("[data-bind]").innerText.replace(/\n/g," ").trim();
-    if(bind==="docNumber") field.value=target.closest("[data-bind]").innerText.trim();
+    field.value=bound.innerText.replace(/\n/g," ").trim();
+    if(bind==="docNumber") field.value=bound.innerText.trim();
   }
   queueSave();
 }
@@ -132,16 +152,17 @@ function populateTemplates(){
 }
 
 function resetBlocks(){
-  root=$("#blockRoot");
-  root.innerHTML="";
+  pagination.resetBlocks();
+  selectedBlock=null;
+  updateSelectedBlockInfo(null);
 }
 
 function updateFlowProgress(){
-  const steps=$("#simpleFlow [data-guide-target]");
-  if(!steps.length) return;
+  const steps=$$("#simpleFlow [data-guide-target]");
+  if(!steps.length)return;
   const basics=Boolean($("#docType")?.value);
   const metadata=Boolean($("#docNumber")?.value?.trim() && $("#docDate")?.value && $("#trdCode")?.value?.trim());
-  const hasContent=root?.children?.length>0;
+  const hasContent=pagination.getBlocks().length>0;
   steps[0]?.classList.toggle("done",basics);
   steps[1]?.classList.toggle("done",metadata);
   steps[2]?.classList.toggle("done",hasContent);
@@ -160,7 +181,7 @@ function updateWorkspaceLabels(){
 
 function updateSelectedBlockInfo(block){
   const box=$("#selectedBlockInfo");
-  if(!box) return;
+  if(!box)return;
   if(!block){
     box.innerHTML="<strong>Documento</strong><span>Selecciona un bloque para ubicarte y trabajar con precisión.</span>";
     return;
@@ -177,17 +198,18 @@ function updateSelectedBlockInfo(block){
 
 function applyTemplate(type,{announce=true}={}){
   const t=TEMPLATES[type];
-  if(!t) return;
+  if(!t)return;
   $("#docType").value=type;
   $("#formatName").value=t.formatName;
   updateWorkspaceLabels();
   $("#docTitleText").textContent=t.title;
   $("#docNumberToken").textContent=t.numberToken;
   resetBlocks();
+
   t.blocks.forEach(([kind,data])=>insertBlock(root,kind,null,data));
   bindRootInteractions();
   renumberArticles(true);
-  paper.classList.toggle("free-mode",type==="libre");
+  pagination.setFreeMode(type==="libre");
   syncFieldToDocument("formatName");
   updateDateLabel();
   updateToc();
@@ -199,11 +221,18 @@ function applyTemplate(type,{announce=true}={}){
 }
 
 function bindRootInteractions(){
-  if(root.dataset.bound==="1") return;
+  if(root.dataset.bound==="1")return;
   root.dataset.bound="1";
+
   activateBlockControls(root,()=>{
-    renumberArticles(false); updateToc(); updateOutline(); updatePageCount(); queueSave();
+    renumberArticles(false);
+    updateToc();
+    updateOutline();
+    updateFlowProgress();
+    updatePageCount();
+    queueSave();
   });
+
   root.addEventListener("click",e=>{
     const b=e.target.closest(".doc-block");
     if(b){
@@ -213,24 +242,28 @@ function bindRootInteractions(){
       updateSelectedBlockInfo(b);
     }
   });
-  root.addEventListener("focusin",e=>{
-    const b=e.target.closest(".doc-block"); if(b){ selectedBlock=b; updateSelectedBlockInfo(b); }
-  });
-  root.addEventListener("input",()=>{
-    updateToc(); updateOutline(); updatePageCount(); queueSave();
-  });
-}
 
-function nextArticleName(){
-  const n=$$('.doc-block[data-block="article"]',root).length;
-  return ordinalWords[Math.min(n,ordinalWords.length-1)] || String(n+1);
+  root.addEventListener("focusin",e=>{
+    const b=e.target.closest(".doc-block");
+    if(b){selectedBlock=b;updateSelectedBlockInfo(b);}
+  });
+
+  root.addEventListener("input",e=>{
+    if(e.target.closest(".institutional-header,.trd-line,.institutional-footer")){
+      pagination.syncRepeatingRegion(e.target);
+    }
+    updateToc();
+    updateOutline();
+    updatePageCount();
+    queueSave();
+  });
 }
 
 function renumberArticles(force=false){
   const articles=$$('.doc-block[data-block="article"]',root);
   articles.forEach((b,i)=>{
     const label=$(".article-label",b);
-    if(!label) return;
+    if(!label)return;
     const current=label.innerText.trim();
     if(force || /^ARTÍCULO(\s+[A-ZÁÉÍÓÚÑ]+){1,3}\.$/i.test(current)){
       label.textContent=`ARTÍCULO ${ordinalWords[i]||String(i+1)}.`;
@@ -244,86 +277,110 @@ function addBlock(type){
   if(type==="resolutiva") data={text:$("#docType").value==="decreto"?"DECRETA":"RESUELVE"};
   const node=insertBlock(root,type,selectedBlock,data);
   selectedBlock=node;
+
   if(type==="article"){
     const articles=$$('.doc-block[data-block="article"]',root);
     const label=$(".article-label",node);
-    label.textContent=`ARTÍCULO ${ordinalWords[Math.min(articles.indexOf(node),ordinalWords.length-1)]||articles.indexOf(node)+1}.`;
+    const index=articles.indexOf(node);
+    if(label) label.textContent=`ARTÍCULO ${ordinalWords[Math.min(index,ordinalWords.length-1)]||index+1}.`;
   }
-  updateToc();updateOutline();updateFlowProgress();updatePageCount();queueSave();
-  node.querySelector("[contenteditable=true]")?.focus();
+
+  updateToc();
+  updateOutline();
+  updateFlowProgress();
+  updatePageCount();
+  queueSave();
+  requestAnimationFrame(()=>node.querySelector("[contenteditable=true]")?.focus());
 }
 
 function updateToc(){
-  const headings=$$(".doc-block[data-block='title'] .block-title,.doc-block[data-block='subtitle'] .block-subtitle",root)
-    .map(el=>el.innerText.trim()).filter(Boolean);
-  $$(".toc-items",root).forEach(box=>{
-    box.innerHTML=headings.length?headings.map((h,i)=>`<div class="toc-line"><span>${h}</span><span>${i+1}</span></div>`).join(""):"Agrega títulos o subtítulos para generar el índice.";
+  const headings=$(".doc-block[data-block='title'] .block-title,.doc-block[data-block='subtitle'] .block-subtitle",root)
+    .filter(el=>el.innerText.trim());
+  $(".toc-items",root).forEach(box=>{
+    box.innerHTML=headings.length
+      ? headings.map(el=>{
+          const title=el.innerText.trim();
+          const page=el.closest(".document-page")?.dataset.page||"1";
+          return `<div class="toc-line"><span>${title}</span><span>${page}</span></div>`;
+        }).join("")
+      : "Agrega títulos o subtítulos para generar el índice.";
   });
 }
 
 function updateOutline(){
   const box=$("#outline");
+  if(!box)return;
   const headings=$$(".doc-block[data-block='title'] .block-title,.doc-block[data-block='subtitle'] .block-subtitle",root);
   box.innerHTML=headings.length?"":"<span style='font-size:9px;color:#8293a1'>Sin títulos todavía.</span>";
   headings.forEach((h,i)=>{
     const b=document.createElement("button");
-    b.textContent=h.innerText.trim()||`Sección ${i+1}`;
+    const page=h.closest(".document-page")?.dataset.page;
+    b.textContent=`${page?"Pág. "+page+" · ":""}${h.innerText.trim()||`Sección ${i+1}`}`;
     b.onclick=()=>h.scrollIntoView({behavior:"smooth",block:"center"});
     box.appendChild(b);
   });
 }
 
 function updatePageCount(){
-  requestAnimationFrame(()=>{
-    const pxPerMm=paper.offsetWidth/210;
-    const pagePx=297*pxPerMm;
-    const pages=Math.max(1,Math.ceil(paper.scrollHeight/pagePx));
-    $("#pageCount").textContent=pages;
-    $$(".auto-page-total",paper).forEach(x=>x.textContent=pages);
-    $$(".auto-page-current",paper).forEach(x=>x.textContent=1);
-
-    // La vista web es un lienzo continuo; estos marcadores muestran dónde cae
-    // cada hoja. En Word se usan campos PAGE / NUMPAGES reales y automáticos.
-    const markers=$("#pageMarkers");
-    if(markers){
-      markers.innerHTML=Array.from({length:pages},(_,i)=>{
-        const top=Math.max(92,(i*pagePx)+118);
-        return `<span class="page-marker" style="top:${top}px">Página ${i+1} de ${pages}</span>`;
-      }).join("");
-    }
+  cancelAnimationFrame(updatePageCount._raf);
+  updatePageCount._raf=requestAnimationFrame(()=>{
+    const pages=pagination.reflow();
+    const counter=$("#pageCount");
+    if(counter) counter.textContent=String(pages);
+    updateToc();
+    updateOutline();
   });
 }
 
 function restoreDraft(){
-  const raw=localStorage.getItem("san-pedro-document-draft-v2");
-  if(!raw) return false;
+  const raw=localStorage.getItem(DRAFT_KEY)||localStorage.getItem(LEGACY_DRAFT_KEY);
+  if(!raw)return false;
+
   try{
     const data=JSON.parse(raw);
     $("#docType").value=data.docType||"decreto";
-    paper.classList.toggle("free-mode",(data.docType||"decreto")==="libre");
-    Object.entries(data.values||{}).forEach(([id,v])=>{const el=$("#"+id);if(el)el.value=v;});
-    if(data.header) $(".institutional-header",paper).innerHTML=data.header;
-    if(data.footer) $(".institutional-footer",paper).innerHTML=data.footer;
-    if(!$("#pageMarkers",paper)){
-      const markerLayer=document.createElement("div");
-      markerLayer.id="pageMarkers"; markerLayer.className="page-markers"; markerLayer.contentEditable="false";
-      paper.prepend(markerLayer);
-    }
-    root.innerHTML=data.blocks||"";
+    Object.entries(data.values||{}).forEach(([id,v])=>{
+      const el=$("#"+id);
+      if(el)el.value=v;
+    });
+
+    const first=pagination.firstPage();
+    if(data.header && $(".institutional-header",first)) $(".institutional-header",first).innerHTML=data.header;
+    if(data.trd && $(".trd-line",first)) $(".trd-line",first).innerHTML=data.trd;
+    if(data.footer && $(".institutional-footer",first)) $(".institutional-footer",first).innerHTML=data.footer;
+
+    pagination.restoreBlocks(data.blocks||"");
+
     if(data.identity){
-      $("#docTitleText").innerHTML=data.identity.title||"";
-      $("#docNumberToken").innerHTML=data.identity.token||"";
-      $("#docDateText").innerHTML=data.identity.date||"";
+      if($("#docTitleText")) $("#docTitleText").innerHTML=data.identity.title||"";
+      if($("#docNumberToken")) $("#docNumberToken").innerHTML=data.identity.token||"";
+      if($("#docDateText")) $("#docDateText").innerHTML=data.identity.date||"";
     }
-    $("#documentLogo").src=LOGO_DATA_URL;
-    bindRootInteractions();applyDocumentStyle();updateToc();updateOutline();updatePageCount();
-    fieldIds.forEach(id=>{ if(!["fontFamily","fontSize","lineHeight","marginPreset"].includes(id)) {
-      const v=$("#"+id)?.value; if(v!=null) $$("[data-bind='"+id+"']",paper).forEach(el=>el.textContent=v);
-    }});
+
+    pagination.setLogos();
+    pagination.setFreeMode((data.docType||"decreto")==="libre");
+    pagination.syncAllRepeatingFromFirst();
+    bindRootInteractions();
+    applyDocumentStyle();
+    updateToc();
+    updateOutline();
+    updatePageCount();
+
+    fieldIds.forEach(id=>{
+      if(!["fontFamily","fontSize","lineHeight","marginPreset"].includes(id)){
+        const v=$("#"+id)?.value;
+        if(v!=null) $$("[data-bind='"+id+"']",paper).forEach(el=>el.textContent=v);
+      }
+    });
+
     updateDateLabel();
     updateWorkspaceLabels();
+    updateFlowProgress();
     return true;
-  }catch(e){ console.error(e); return false; }
+  }catch(e){
+    console.error(e);
+    return false;
+  }
 }
 
 function showPanel(name){
@@ -338,51 +395,64 @@ function collectExportState(){
   return {
     ...v,
     docType:$("#docType").value,
-    docTitle:$("#docTitleText").innerText.trim(),
-    numberToken:$("#docNumberToken").innerText.trim(),
-    dateText:$("#docDateText").innerText.trim(),
+    docTitle:$("#docTitleText")?.innerText.trim()||"",
+    numberToken:$("#docNumberToken")?.innerText.trim()||"",
+    dateText:$("#docDateText")?.innerText.trim()||"",
     fontFamily:$("#fontFamily").value,
     fontSize:Number($("#fontSize").value)||11,
     lineHeight:Number($("#lineHeight").value)||1.5,
     marginCm:Number($("#marginPreset").value)||2.54,
-    pageCount:Number($("#pageCount").textContent)||1
+    pageCount:pagination.pageCount()
   };
 }
 
 populateTemplates();
+pagination.setLogos();
 $("#topLogo").src=LOGO_DATA_URL;
-$("#documentLogo").src=LOGO_DATA_URL;
 $("#docDate").value=new Date().toISOString().slice(0,10);
 
 fieldIds.forEach(id=>{
-  const el=$("#"+id); if(!el) return;
+  const el=$("#"+id);
+  if(!el)return;
   el.addEventListener("input",()=>syncFieldToDocument(id));
   el.addEventListener("change",()=>syncFieldToDocument(id));
 });
 
 paper.addEventListener("input",e=>{
   syncDocumentToField(e.target);
-  updatePageCount();updateOutline();updateToc();queueSave();
+  if(e.target.closest(".institutional-header,.trd-line,.institutional-footer")){
+    pagination.syncRepeatingRegion(e.target);
+  }
+  updatePageCount();
+  updateOutline();
+  updateToc();
+  queueSave();
 });
 
-$("#docType").addEventListener("change",()=>{applyTemplate($("#docType").value);updateWorkspaceLabels();});
+$("#docType").addEventListener("change",()=>{
+  applyTemplate($("#docType").value);
+  updateWorkspaceLabels();
+});
 
 $("#editorRibbon").addEventListener("click",e=>{
   const cmd=e.target.closest("[data-cmd]")?.dataset.cmd;
-  if(cmd){document.execCommand(cmd,false,null);paper.focus();queueSave();return;}
+  if(cmd){
+    document.execCommand(cmd,false,null);
+    queueSave();
+    updatePageCount();
+    return;
+  }
   const type=e.target.closest("[data-add]")?.dataset.add;
-  if(type) addBlock(type);
+  if(type)addBlock(type);
 });
 
 $("#sidebarBlockPalette")?.addEventListener("click",e=>{
   const type=e.target.closest("[data-add]")?.dataset.add;
-  if(type) addBlock(type);
+  if(type)addBlock(type);
 });
 
 $$("[data-side-group] .side-group-title").forEach(btn=>{
-  btn.addEventListener("click",()=>{
-    btn.closest("[data-side-group]")?.classList.toggle("open");
-  });
+  btn.addEventListener("click",()=>btn.closest("[data-side-group]")?.classList.toggle("open"));
 });
 
 $("#collapseDocumentSidebar")?.addEventListener("click",()=>{
@@ -399,8 +469,7 @@ $("#focusConfig")?.addEventListener("click",()=>{
   sidebar?.classList.remove("collapsed");
   layout?.classList.remove("sidebar-collapsed");
   sidebar?.scrollIntoView({behavior:"smooth",block:"start"});
-  const first=$("[data-side-group]",sidebar);
-  first?.classList.add("open");
+  $("[data-side-group]",sidebar)?.classList.add("open");
 });
 
 $("#templateGrid").addEventListener("click",e=>{
@@ -411,41 +480,63 @@ $("#templateGrid").addEventListener("click",e=>{
 $$(".rail-btn[data-panel]").forEach(b=>b.onclick=()=>showPanel(b.dataset.panel));
 $("#railHome").onclick=()=>showPanel("editor");
 $("#saveDraft").onclick=()=>saveLocal();
+
 $("#resetDraft").onclick=()=>{
   if(confirm("¿Crear un documento nuevo? Se reemplazará el borrador local actual.")){
-    localStorage.removeItem("san-pedro-document-draft-v2");
+    localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(LEGACY_DRAFT_KEY);
     applyTemplate($("#docType").value);
     toast("Nuevo documento creado");
   }
 };
 
 $("#zoom").addEventListener("input",e=>{
-  const z=Number(e.target.value);$("#zoomLabel").textContent=z+"%";
+  const z=Number(e.target.value);
+  $("#zoomLabel").textContent=z+"%";
   paper.style.transform=`scale(${z/100})`;
   paper.style.marginBottom=`-${Math.max(0,(1-z/100)*paper.scrollHeight)}px`;
 });
 
 $("#exportDocx").onclick=async()=>{
-  try{saveLocal(true);await exportDocx(collectExportState(),paper);toast("Word generado");}
-  catch(e){console.error(e);toast("No fue posible generar Word");}
+  try{
+    pagination.reflow();
+    saveLocal(true);
+    await exportDocx(collectExportState(),paper);
+    toast("Word generado");
+  }catch(e){
+    console.error(e);
+    toast("No fue posible generar Word");
+  }
 };
+
 $("#exportPdf").onclick=async()=>{
-  try{saveLocal(true);await exportPdf(collectExportState(),paper);toast("PDF generado");}
-  catch(e){console.error(e);toast("No fue posible generar PDF");}
+  try{
+    pagination.reflow();
+    saveLocal(true);
+    await exportPdf(collectExportState(),paper);
+    toast("PDF generado");
+  }catch(e){
+    console.error(e);
+    toast("No fue posible generar PDF");
+  }
 };
 
 window.addEventListener("resize",updatePageCount);
-window.addEventListener("beforeunload",()=>{if(dirty) saveLocal(true);});
+window.addEventListener("beforeunload",()=>{if(dirty)saveLocal(true);});
 
 if(!restoreDraft()){
   applyTemplate("decreto",{announce:false});
   syncFieldToDocument("trdCode");
   fieldIds.forEach(id=>syncFieldToDocument(id));
 }
+
+bindRootInteractions();
 applyDocumentStyle();
 updateWorkspaceLabels();
 updateFlowProgress();
 initGuidance();
-setTimeout(updatePageCount,250);
+setTimeout(updatePageCount,180);
 
-if("serviceWorker" in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});}
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
+}
