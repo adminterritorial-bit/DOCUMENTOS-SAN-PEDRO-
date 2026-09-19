@@ -955,3 +955,86 @@ body.easy-mode .doc-block:hover>.quick-add{opacity:1}
   }
   .sheet-number,.block-actions,.quick-add{display:none!important}
 }
+
+
+/* =========================================================
+   INSTITUTIONAL HEADER + FOOTER REGIONS V7
+   Header and footer are structural page regions, never body content.
+   ========================================================= */
+.document-stack>.document-page .page-inner{
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr) auto!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  align-items:stretch!important;
+  height:100%!important;
+  padding:var(--page-margin)!important;
+  overflow:hidden!important;
+}
+.document-page .institutional-header{
+  grid-row:1!important;
+  width:100%!important;
+  align-self:start!important;
+  margin:0!important;
+  padding:0!important;
+  position:relative!important;
+  z-index:3!important;
+}
+.document-page .institutional-header table{
+  width:100%!important;
+  min-height:30mm;
+  margin:0!important;
+  border-collapse:collapse!important;
+  table-layout:fixed!important;
+}
+.document-page .institutional-header tr{
+  height:10mm;
+}
+.document-page .institutional-header td{
+  vertical-align:middle!important;
+}
+.document-page .institutional-header .logo-cell{
+  width:24%!important;
+}
+.document-page .institutional-header .meta-cell{
+  width:55%!important;
+}
+.document-page .institutional-header .side-cell{
+  width:21%!important;
+}
+.document-page .institutional-header .logo-cell img{
+  width:auto!important;
+  height:18mm!important;
+  max-height:18mm!important;
+  object-fit:contain!important;
+}
+.document-page .trd-line{
+  grid-row:2!important;
+  width:100%!important;
+  align-self:start!important;
+  margin:1.3mm 0 2.5mm!important;
+}
+.document-page .page-content{
+  grid-row:3!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+.document-page .institutional-footer{
+  grid-row:4!important;
+  width:100%!important;
+  align-self:end!important;
+  margin:4mm 0 0!important;
+  padding:0!important;
+  position:relative!important;
+  z-index:3!important;
+}
+@media print{
+  .document-stack>.document-page .page-inner{
+    display:grid!important;
+    grid-template-rows:auto auto minmax(0,1fr) auto!important;
+  }
+  .document-page .institutional-header,
+  .document-page .institutional-footer{
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+}
