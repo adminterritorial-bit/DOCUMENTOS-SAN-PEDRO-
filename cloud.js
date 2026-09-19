@@ -677,31 +677,236 @@ async function loadDashboard(){
     if($("#sentSignatureList"))$("#sentSignatureList").innerHTML='<div class="signature-empty signature-error">No fue posible cargar las solicitudes enviadas.</div>';
   }
 }
-async function openSigner(signerId){
-  if(!session){openModal("authOverlay");return;}
+function escapeHtml(value){
+  return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[ch]));
+}
+function signatureMarkSvg(mark){
+  const strokes=Array.isArray(mark?.strokes)?mark.strokes:[];
+  if(!strokes.length)return "";
+  const polylines=strokes.slice(0,24).map(stroke=>{
+    const points=(Array.isArray(stroke)?stroke:[]).slice(0,260).map(point=>{
+      const x=Math.max(0,Math.min(1,Number(point?.[0])||0))*1000;
+      const y=Math.max(0,Math.min(1,Number(point?.[1])||0))*300;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(" ");
+    return points?`<polyline points="${points}" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>`:"";
+  }).join("");
+  return polylines?`<svg class="drawn-signature-svg" viewBox="0 0 1000 300" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${polylines}</svg>`:"";
+}
+async function loadRequestSignatureData(requestId){
+  const [signersOut,fieldsOut]=await Promise.all([
+    supabase.from("docsys_signers")
+      .select("id,request_id,signer_order,signer_name,signer_email,signer_role,status,evidence_code,signed_at,signature_mark")
+      .eq("request_id",requestId)
+      .order("signer_order",{ascending:true}),
+    supabase.from("docsys_signature_fields")
+      .select("id,request_id,signer_id,page_number,x_pct,y_pct,width_pct,height_pct,field_type")
+      .eq("request_id",requestId)
+      .order("page_number",{ascending:true})
+  ]);
+  if(signersOut.error)throw signersOut.error;
+  if(fieldsOut.error)throw fieldsOut.error;
+  const signerMap=new Map((signersOut.data||[]).map(s=>[s.id,s]));
+  const fields=(fieldsOut.data||[]).map(field=>({...field,signer:signerMap.get(field.signer_id)||null}));
+  return {signers:signersOut.data||[],fields};
+}
+function clearRuntimeSignatureFields(){
+  qsa(".signature-field-runtime",ctx.paper).forEach(el=>el.remove());
+}
+function renderRuntimeSignatureFields(fields,{interactiveSignerId=null}={}){
+  clearRuntimeSignatureFields();
+  fields.forEach(field=>{
+    const signer=field.signer;
+    if(!signer)return;
+    const page=qsa(".document-page",ctx.paper).find(p=>Number(p.dataset.page)===Number(field.page_number));
+    if(!page)return;
+
+    const signed=signer.status==="signed";
+    const interactive=!signed&&interactiveSignerId===signer.id;
+    const el=document.createElement("div");
+    el.className=`signature-field-runtime ${signed?"signed":"pending"} ${interactive?"interactive":""}`;
+    el.dataset.signatureField=field.id;
+    el.dataset.signerId=signer.id;
+    el.style.left=Number(field.x_pct)+"%";
+    el.style.top=Number(field.y_pct)+"%";
+    el.style.width=Number(field.width_pct)+"%";
+    el.style.height=Number(field.height_pct)+"%";
+
+    if(signed){
+      const svg=signatureMarkSvg(signer.signature_mark);
+      el.innerHTML=`<div class="signature-field-mark">${svg}<strong>${escapeHtml(signer.signer_name)}</strong><small>${escapeHtml(signer.signer_role||"Firmante")}</small><code>${escapeHtml(signer.evidence_code||"")}</code></div>`;
+    }else if(interactive){
+      el.innerHTML=`<button type="button" class="signature-field-action" data-sign-field-action="${field.id}"><span>✍</span><strong>FIRMAR AQUÍ</strong><small>${escapeHtml(signer.signer_name)}</small></button>`;
+    }else{
+      el.innerHTML=`<div class="signature-field-pending"><span>⌛</span><strong>Firma pendiente</strong><small>${escapeHtml(signer.signer_name)}</small></div>`;
+    }
+    page.appendChild(el);
+  });
+}
+function resetSignaturePad(){
+  signaturePadStrokes=[];
+  signaturePadCurrent=null;
+  redrawSignaturePad();
+  updateSignatureConfirmState();
+}
+function redrawSignaturePad(){
+  const canvas=$("#signaturePadCanvas");
+  if(!canvas)return;
+  const rect=canvas.getBoundingClientRect();
+  if(!rect.width||!rect.height)return;
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const expectedW=Math.round(rect.width*dpr);
+  const expectedH=Math.round(rect.height*dpr);
+  if(canvas.width!==expectedW||canvas.height!==expectedH){
+    canvas.width=expectedW;
+    canvas.height=expectedH;
+  }
+  const g=canvas.getContext("2d");
+  g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,rect.width,rect.height);
+  g.lineWidth=2.2;
+  g.lineCap="round";
+  g.lineJoin="round";
+  g.strokeStyle="#15384f";
+  signaturePadStrokes.forEach(stroke=>{
+    if(!stroke.length)return;
+    g.beginPath();
+    stroke.forEach((p,i)=>{
+      const x=p[0]*rect.width;
+      const y=p[1]*rect.height;
+      if(i===0)g.moveTo(x,y);else g.lineTo(x,y);
+    });
+    g.stroke();
+  });
+  $("#signaturePadHint")?.classList.toggle("hidden",signaturePadStrokes.some(s=>s.length>1));
+}
+function signatureMarkPayload(){
+  const strokes=signaturePadStrokes
+    .filter(s=>s.length>1)
+    .slice(0,24)
+    .map(stroke=>stroke.slice(0,260).map(([x,y])=>[
+      Number(Math.max(0,Math.min(1,x)).toFixed(4)),
+      Number(Math.max(0,Math.min(1,y)).toFixed(4))
+    ]));
+  if(!strokes.length)throw new Error("Dibuja tu firma dentro del recuadro asignado.");
+  return {type:"drawn",version:1,strokes};
+}
+function updateSignatureConfirmState(){
+  const btn=$("#confirmElectronicSignature");
+  if(!btn)return;
+  const hasMark=signaturePadStrokes.some(s=>s.length>1);
+  btn.disabled=!($("#signatureConsent")?.checked&&hasMark);
+}
+function bindSignaturePad(){
+  const canvas=$("#signaturePadCanvas");
+  if(!canvas||canvas.dataset.bound==="1")return;
+  canvas.dataset.bound="1";
+
+  const point=e=>{
+    const rect=canvas.getBoundingClientRect();
+    return [
+      Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width)),
+      Math.max(0,Math.min(1,(e.clientY-rect.top)/rect.height))
+    ];
+  };
+  canvas.addEventListener("pointerdown",e=>{
+    e.preventDefault();
+    canvas.setPointerCapture?.(e.pointerId);
+    signaturePadCurrent=[point(e)];
+    signaturePadStrokes.push(signaturePadCurrent);
+    redrawSignaturePad();
+  });
+  canvas.addEventListener("pointermove",e=>{
+    if(!signaturePadCurrent)return;
+    e.preventDefault();
+    const p=point(e);
+    const last=signaturePadCurrent[signaturePadCurrent.length-1];
+    const dx=p[0]-last[0],dy=p[1]-last[1];
+    if(Math.hypot(dx,dy)<0.003)return;
+    if(signaturePadCurrent.length<260)signaturePadCurrent.push(p);
+    redrawSignaturePad();
+    updateSignatureConfirmState();
+  });
+  const stop=e=>{
+    if(signaturePadCurrent&&signaturePadCurrent.length===1){
+      const p=signaturePadCurrent[0];
+      signaturePadCurrent.push([Math.min(1,p[0]+0.002),Math.min(1,p[1]+0.002)]);
+    }
+    signaturePadCurrent=null;
+    redrawSignaturePad();
+    updateSignatureConfirmState();
+    try{canvas.releasePointerCapture?.(e.pointerId);}catch{}
+  };
+  canvas.addEventListener("pointerup",stop);
+  canvas.addEventListener("pointercancel",stop);
+  window.addEventListener("resize",()=>redrawSignaturePad());
+}
+async function prepareSignerField(signerId){
   const {data,error}=await supabase.from("docsys_signers")
-    .select("id,request_id,signer_order,signer_name,signer_email,signer_role,status,evidence_code,docsys_signature_requests(id,status,expires_at,signing_mode,document_id,docsys_documents(id,title,document_type,document_number,trd_code,status,document_sha256,content_snapshot))")
+    .select("id,request_id,signer_order,signer_name,signer_email,signer_role,status,evidence_code,signature_mark,docsys_signature_requests(id,status,expires_at,signing_mode,document_id,docsys_documents(id,title,document_type,document_number,trd_code,status,document_sha256,content_snapshot))")
     .eq("id",signerId).single();
-  if(error){ctx.toast("No tienes acceso a esta solicitud");return;}
+  if(error)throw error;
   activeSignerId=signerId;
-  const d=data.docsys_signature_requests?.docsys_documents||{};
-  if(d.id && d.content_snapshot && sessionStorage.getItem("docsys-opened-cloud-document")!==d.id){
+  const request=data.docsys_signature_requests||{};
+  const d=request.docsys_documents||{};
+
+  if(d.id&&d.content_snapshot&&sessionStorage.getItem("docsys-opened-cloud-document")!==d.id){
     localStorage.setItem("san-pedro-document-draft-v3",JSON.stringify(d.content_snapshot));
     sessionStorage.setItem("docsys-opened-cloud-document",d.id);
-    location.reload();
-    return;
+    const url=new URL(location.href);
+    url.searchParams.set("sign",signerId);
+    location.href=url.toString();
+    return null;
   }
+
   setEditorLocked(true,d.status||"signing");
-  $("#signDocumentInfo").innerHTML=`
-    <div><span>Documento</span><strong>${d.title||"Documento institucional"}</strong></div>
-    <div><span>Firmante</span><strong>${data.signer_name}</strong><small>${data.signer_role||data.signer_email}</small></div>
-    <div><span>Hash SHA-256</span><code>${d.document_sha256||"—"}</code></div>
-  `;
-  $("#signIdentityStatus").textContent="Sesión verificada: "+session.user.email;
-  $("#signatureOtpCode").value="";
-  $("#signatureConsent").checked=false;
-  $("#confirmElectronicSignature").disabled=true;
-  openModal("signDocumentModal");
+  ctx.showPanel("editor");
+  const signatureData=await loadRequestSignatureData(request.id);
+  renderRuntimeSignatureFields(signatureData.fields,{interactiveSignerId:data.status==="pending"?signerId:null});
+
+  const field=signatureData.fields.find(f=>f.signer_id===signerId);
+  if(!field)throw new Error("Este documento no tiene un campo de firma asignado para tu usuario.");
+  activeSignatureFieldId=field.id;
+
+  const marker=$(`[data-signature-field="${field.id}"]`,ctx.paper);
+  marker?.scrollIntoView({behavior:"smooth",block:"center"});
+  return {signer:data,document:d,request,field,signatureData};
+}
+async function openSigner(signerId){
+  if(!session){openModal("authOverlay");return;}
+  try{
+    const prepared=await prepareSignerField(signerId);
+    if(!prepared)return;
+    if(prepared.signer.status==="signed"){
+      ctx.toast("Este documento ya fue firmado por ti.");
+      return;
+    }
+    ctx.toast("Revisa el documento. Solo puedes firmar en el recuadro azul marcado «FIRMAR AQUÍ».");
+  }catch(error){
+    console.error("openSigner failed",error);
+    ctx.toast(error.message||"No tienes acceso a esta solicitud");
+  }
+}
+async function openSignatureModalFromField(fieldId){
+  if(!activeSignerId)return;
+  try{
+    const prepared=await prepareSignerField(activeSignerId);
+    if(!prepared||prepared.field.id!==fieldId)return;
+    const {signer,d}= {signer:prepared.signer,d:prepared.document};
+    $("#signDocumentInfo").innerHTML=`
+      <div><span>Documento</span><strong>${d.title||"Documento institucional"}</strong></div>
+      <div><span>Firmante</span><strong>${signer.signer_name}</strong><small>${signer.signer_role||signer.signer_email}</small></div>
+      <div><span>Ubicación</span><strong>Página ${prepared.field.page_number}</strong><small>Campo asignado por quien envió el documento</small></div>
+    `;
+    $("#signIdentityStatus").textContent="Sesión verificada: "+session.user.email;
+    $("#signatureOtpCode").value="";
+    $("#signatureConsent").checked=false;
+    resetSignaturePad();
+    openModal("signDocumentModal");
+    requestAnimationFrame(()=>redrawSignaturePad());
+  }catch(error){
+    ctx.toast(error.message||"No fue posible abrir el campo de firma");
+  }
 }
 async function requestOtp(){
   const btn=$("#requestSignatureOtp");
@@ -709,7 +914,7 @@ async function requestOtp(){
     setBusy(btn,true,"Enviando…");
     const out=await supabase.functions.invoke(DOCSYS_SIGNATURE_FUNCTION,{body:{action:"request_otp",signer_id:activeSignerId}});
     if(out.error||out.data?.ok===false)throw new Error(out.data?.error||out.error?.message||"No fue posible enviar el código");
-    ctx.toast("Código enviado al correo institucional");
+    ctx.toast("Código enviado al correo de la cuenta firmante");
   }catch(e){ctx.toast(e.message||"No fue posible enviar el código")}finally{setBusy(btn,false)}
 }
 async function confirmSignature(){
@@ -717,18 +922,39 @@ async function confirmSignature(){
   const code=normalize($("#signatureOtpCode").value);
   if(!/^\d{6}$/.test(code)){ctx.toast("Ingresa el código de 6 dígitos");return;}
   if(!$("#signatureConsent").checked){ctx.toast("Debes aceptar la declaración de firma");return;}
+  let signatureMark;
+  try{
+    signatureMark=signatureMarkPayload();
+  }catch(error){
+    ctx.toast(error.message);
+    return;
+  }
   try{
     setBusy(btn,true,"Firmando…");
-    const out=await supabase.functions.invoke(DOCSYS_SIGNATURE_FUNCTION,{body:{action:"verify_otp",signer_id:activeSignerId,code}});
+    const out=await supabase.functions.invoke(DOCSYS_SIGNATURE_FUNCTION,{body:{
+      action:"verify_otp",
+      signer_id:activeSignerId,
+      code,
+      signature_mark:signatureMark
+    }});
     if(out.error||out.data?.ok===false)throw new Error(out.data?.error||out.error?.message||"No fue posible firmar");
     closeModal("signDocumentModal");
     ctx.toast("Firma registrada · "+out.data.evidence_code);
     await loadDashboard();
     await hydrateOpenedCloudDocument();
-  }catch(e){ctx.toast(e.message||"No fue posible registrar la firma")}finally{setBusy(btn,false)}
+  }catch(e){
+    ctx.toast(e.message||"No fue posible registrar la firma");
+  }finally{
+    setBusy(btn,false);
+    updateSignatureConfirmState();
+  }
 }
-async function applyProofs(signers,docHash){
+async function applyProofs(signers,docHash,fields=[]){
   qsa(".signature-proof-runtime",ctx.paper).forEach(x=>x.remove());
+  const signerMap=new Map(signers.map(s=>[s.id,s]));
+  const hydratedFields=fields.map(field=>({...field,signer:field.signer||signerMap.get(field.signer_id)||null}));
+  if(hydratedFields.length)renderRuntimeSignatureFields(hydratedFields,{interactiveSignerId:null});
+
   const footer=$(".institutional-footer",ctx.paper.querySelector(".document-page:last-child")||ctx.paper);
   if(!footer)return;
   const ordered=[...signers].sort((a,b)=>a.signer_order-b.signer_order);
@@ -738,21 +964,24 @@ async function applyProofs(signers,docHash){
     try{qr=await QRCode.toDataURL(verifyUrl,{width:92,margin:0,errorCorrectionLevel:"M"});}catch{}
     return '<div class="proof-item">'+
       (qr?'<img class="proof-qr" src="'+qr+'" alt="QR de verificación">':'<span class="proof-check">✓</span>')+
-      '<div><strong>'+s.signer_name+'</strong><small>'+(s.signer_role||"Firmante")+'</small><code>'+(s.evidence_code||"")+'</code><small>'+formatDate(s.signed_at)+'</small></div></div>';
+      '<div><strong>'+escapeHtml(s.signer_name)+'</strong><small>'+escapeHtml(s.signer_role||"Firmante")+'</small><code>'+escapeHtml(s.evidence_code||"")+'</code><small>'+formatDate(s.signed_at)+'</small></div></div>';
   }));
   const strip=document.createElement("div");
   strip.className="signature-proof-runtime";
   strip.innerHTML='<div class="proof-title">DOCUMENTO FIRMADO ELECTRÓNICAMENTE · VERIFICACIÓN PÚBLICA · SHA-256 '+docHash.slice(0,12)+'…</div>'+proofItems.join("");
   footer.appendChild(strip);
 
-  const boxes=$(".signature-box",ctx.paper);
-  ordered.forEach((s,i)=>{
-    const box=boxes[i];if(!box)return;
-    let p=$(".signature-inline-proof",box);
-    if(!p){p=document.createElement("div");p.className="signature-inline-proof";box.appendChild(p);}
-    p.innerHTML='<strong>FIRMADO ELECTRÓNICAMENTE</strong><br><span>Código '+(s.evidence_code||"")+' · '+formatDate(s.signed_at)+'</span>';
-  });
+  if(!hydratedFields.length){
+    const boxes=qsa(".signature-box",ctx.paper);
+    ordered.forEach((s,i)=>{
+      const box=boxes[i];if(!box)return;
+      let p=$(".signature-inline-proof",box);
+      if(!p){p=document.createElement("div");p.className="signature-inline-proof";box.appendChild(p);}
+      p.innerHTML='<strong>FIRMADO ELECTRÓNICAMENTE</strong><br><span>Código '+escapeHtml(s.evidence_code||"")+' · '+formatDate(s.signed_at)+'</span>';
+    });
+  }
 }
+
 async function archiveDocument(documentId,button){
   try{
     setBusy(button,true,"Archivando…");
