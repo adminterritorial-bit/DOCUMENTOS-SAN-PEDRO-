@@ -1846,3 +1846,40 @@ body.easy-mode .doc-block:hover>.quick-add{opacity:1}
   .cloud-lock-banner{align-items:flex-start;flex-direction:column}
 }
 @media print{.cloud-lock-banner{display:none!important}}
+
+
+/* auth/integration diagnostics */
+.auth-provider-status{
+  display:flex;align-items:center;gap:9px;margin:0 0 12px;padding:10px 11px;
+  border:1px solid #dbe7ed;border-radius:12px;background:#f8fbfc
+}
+.auth-provider-status>span{
+  width:10px;height:10px;flex:0 0 10px;border-radius:50%;background:#a9b8c1;
+  box-shadow:0 0 0 5px rgba(169,184,193,.12)
+}
+.auth-provider-status strong,.auth-provider-status small{display:block}
+.auth-provider-status strong{font-size:9.5px;color:#34566b}
+.auth-provider-status small{font-size:8px;color:#7b909e;margin-top:2px;line-height:1.4}
+.auth-provider-status.is-ready{border-color:#cde5d8;background:#f2faf5}
+.auth-provider-status.is-ready>span{background:#3aa269;box-shadow:0 0 0 5px rgba(58,162,105,.11)}
+.auth-provider-status.is-blocked{border-color:#ecd7a4;background:#fffaf0}
+.auth-provider-status.is-blocked>span{background:#d7a428;box-shadow:0 0 0 5px rgba(215,164,40,.11)}
+.auth-provider-status.is-warning{border-color:#efc7c7;background:#fff6f6}
+.auth-provider-status.is-warning>span{background:#c95d5d;box-shadow:0 0 0 5px rgba(201,93,93,.10)}
+
+.integration-rule{align-items:flex-start!important;flex-wrap:wrap!important}
+.integration-rule>.btn{margin-left:auto}
+.integration-readiness{width:100%;display:grid;gap:7px;margin-top:10px}
+.integration-readiness>div{
+  display:flex;align-items:center;gap:9px;padding:9px 10px;border:1px solid #dfe9ee;border-radius:10px;background:#f9fbfc
+}
+.integration-readiness>div>span{
+  width:24px;height:24px;display:grid;place-items:center;border-radius:8px;font-size:9px;font-weight:900
+}
+.integration-readiness>div div{display:grid;gap:2px}
+.integration-readiness strong{font-size:9px;color:#2d5268}
+.integration-readiness small{font-size:7.8px;color:#7a8f9c;line-height:1.35}
+.integration-readiness .ok{border-color:#d2e8dc;background:#f3faf6}
+.integration-readiness .ok>span{background:#def2e6;color:#27794d}
+.integration-readiness .pending{border-color:#eadab3;background:#fffaf1}
+.integration-readiness .pending>span{background:#f8eac4;color:#8d6811}
