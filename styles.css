@@ -1920,3 +1920,78 @@ body.easy-mode .doc-block:hover>.quick-add{opacity:1}
   .auth-method-divider:before{left:0;right:0;top:50%;bottom:auto;width:auto;height:1px}
   .auth-method-divider span{padding:0 8px}
 }
+
+
+/* existing-user signer directory */
+.selected-signer-count{
+  min-width:54px;height:30px;padding:0 10px;display:inline-grid;place-items:center;border-radius:10px;
+  background:#eaf7fc;color:#0a6f9f;font-size:9px;font-weight:900;border:1px solid #cae5ef
+}
+.signer-directory-shell,.selected-signers-shell{margin:0 20px 13px}
+.signer-directory-tools{
+  display:grid;grid-template-columns:1fr auto;gap:9px;align-items:end;margin-bottom:9px
+}
+.signer-directory-tools label>span{display:block;margin-bottom:5px;font-size:8.5px;font-weight:800;color:#657e8e}
+.signer-directory-tools input{
+  width:100%;min-height:42px;padding:9px 10px;border:1px solid #cfdfe7;border-radius:10px;background:#fff;
+  color:#21465d;font-size:10.5px;outline:none
+}
+.signer-directory-tools input:focus{border-color:#5bb2d7;box-shadow:0 0 0 4px rgba(55,166,214,.10)}
+.signer-directory-list{
+  max-height:260px;overflow:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;
+  padding:3px 2px 3px 0
+}
+.signer-directory-card{
+  min-width:0;min-height:64px;padding:9px;display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:9px;align-items:center;
+  border:1px solid #d8e6ed;border-radius:13px;background:#fff;color:#23485f;text-align:left;
+  transition:border-color .15s ease,background .15s ease,box-shadow .15s ease,transform .15s ease
+}
+.signer-directory-card:hover:not(:disabled){transform:translateY(-1px);border-color:#80c3df;background:#f5fbfe;box-shadow:0 7px 16px rgba(7,98,148,.08)}
+.signer-directory-card.selected{border-color:#58afd4;background:linear-gradient(145deg,#edf9fd,#f8fdff);box-shadow:0 7px 18px rgba(7,104,155,.09)}
+.signer-directory-card:disabled{opacity:.48;cursor:not-allowed}
+.directory-avatar{
+  width:38px;height:38px;display:grid;place-items:center;border-radius:11px;background:linear-gradient(145deg,#e9f6fb,#dbeef7);
+  color:#0b6e9f;font-size:9px;font-weight:900;border:1px solid #cce4ee
+}
+.directory-user-copy{min-width:0}
+.directory-user-copy strong,.directory-user-copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.directory-user-copy strong{font-size:9.8px;color:#234960}
+.directory-user-copy small{margin-top:3px;font-size:7.6px;color:#7c909d}
+.directory-user-state{
+  align-self:center;padding:5px 7px;border-radius:8px;background:#f2f7f9;color:#628092;font-size:7px;font-weight:900;white-space:nowrap
+}
+.signer-directory-card.selected .directory-user-state{background:#dff3ea;color:#28774f}
+.selected-signers-shell{
+  padding:11px;border:1px solid #dce8ee;border-radius:14px;background:linear-gradient(145deg,#fbfdfe,#f5f9fb)
+}
+.selected-signers-title{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:8px}
+.selected-signers-title strong,.selected-signers-title small{display:block}
+.selected-signers-title strong{font-size:9.8px;color:#294e65}
+.selected-signers-title small{font-size:7.8px;color:#7d919e}
+.selected-signer-list{display:grid;gap:7px}
+.signature-empty.compact{padding:14px}
+.selected-signer-card{
+  display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:8px;align-items:center;
+  padding:8px 9px;border:1px solid #dce8ee;border-radius:11px;background:#fff
+}
+.selected-order{
+  width:29px;height:29px;display:grid;place-items:center;border-radius:9px;background:#0b76ac;color:#fff;font-size:9px;font-weight:900
+}
+.selected-signer-copy{min-width:0}
+.selected-signer-copy strong,.selected-signer-copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.selected-signer-copy strong{font-size:9px;color:#294e64}
+.selected-signer-copy small{margin-top:2px;font-size:7.5px;color:#8194a0}
+.selected-signer-actions{display:flex;gap:4px}
+.selected-signer-actions button{
+  width:28px;height:28px;border:1px solid #d7e5ec;border-radius:8px;background:#f8fbfc;color:#37637a;font-size:11px;font-weight:900
+}
+.selected-signer-actions button:hover:not(:disabled){background:#eaf7fc;border-color:#8cc8e0;color:#0b72a6}
+.selected-signer-actions button[data-remove-signer]{background:#fff6f6;border-color:#efd3d3;color:#a44848}
+.selected-signer-actions button:disabled{opacity:.34;cursor:not-allowed}
+.signature-error{border-color:#edc9c9!important;background:#fff5f5!important;color:#984d4d!important}
+
+@media(max-width:760px){
+  .signer-directory-list{grid-template-columns:1fr}
+  .signer-directory-tools{grid-template-columns:1fr}
+  .selected-signers-title{align-items:flex-start;flex-direction:column}
+}
