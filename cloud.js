@@ -236,6 +236,7 @@ async function ensureProfile(){
     full_name:session.user.user_metadata?.full_name||session.user.user_metadata?.name||session.user.email,
     role:(session.user.email||"").toLowerCase()===DOCSYS_ADMIN_EMAIL?"admin":"user"
   };
+  await loadSavedSignature();
   return profile;
 }
 function renderAuth(){
@@ -336,6 +337,11 @@ async function signInPassword(){
 async function signOut(){
   await supabase.auth.signOut();
   session=null;profile=null;
+  savedSignatureArtifact=null;
+  savedSignatureLoaded=false;
+  currentSignatureArtifact=null;
+  currentSignatureSource="drawn";
+  renderSavedSignatureStatus();
   renderAuth();
   ctx.toast("Sesión cerrada");
 }
@@ -885,6 +891,9 @@ function setSignatureInputMode(mode){
     currentSignatureArtifact=drawnArtifactFromPad();
     if(currentSignatureArtifact)renderSignatureArtifactPreview(currentSignatureArtifact,"Firma dibujada","SPSIG1 · trazos vectoriales");
     else renderSignatureArtifactPreview(null);
+  }else if(mode==="uploaded"){
+    if(currentSignatureArtifact)renderSignatureArtifactPreview(currentSignatureArtifact,"Firma convertida","SPSIG1 · imagen normalizada, fondo removido");
+    else renderSignatureArtifactPreview(null);
   }
   $("#saveCurrentSignature")?.classList.toggle("hidden",mode==="saved"||!currentSignatureArtifact);
   updateSignatureConfirmState();
@@ -1223,6 +1232,13 @@ async function openSignatureModalFromField(fieldId){
     $("#signatureOtpCode").value="";
     $("#signatureConsent").checked=false;
     resetSignaturePad();
+    await loadSavedSignature();
+    if(savedSignatureArtifact){
+      currentSignatureArtifact=savedSignatureArtifact;
+      setSignatureInputMode("saved");
+    }else{
+      setSignatureInputMode("drawn");
+    }
     openModal("signDocumentModal");
     requestAnimationFrame(()=>redrawSignaturePad());
   }catch(error){
@@ -1256,7 +1272,8 @@ async function confirmSignature(){
       action:"verify_otp",
       signer_id:activeSignerId,
       code,
-      signature_mark:signatureMark
+      signature_mark:signatureMark,
+      signature_source:currentSignatureSource
     }});
     if(out.error||out.data?.ok===false)throw new Error(out.data?.error||out.error?.message||"No fue posible firmar");
     closeModal("signDocumentModal");
@@ -1491,6 +1508,38 @@ function bindEvents(){
   $("#confirmSendToSignatures")?.addEventListener("click",sendToSignatures);
   $("#requestSignatureOtp")?.addEventListener("click",requestOtp);
   $("#clearSignaturePad")?.addEventListener("click",resetSignaturePad);
+  qsa("[data-signature-source-mode]").forEach(btn=>btn.addEventListener("click",()=>{
+    const mode=btn.dataset.signatureSourceMode;
+    if(mode==="saved"&&!savedSignatureArtifact)return;
+    setSignatureInputMode(mode);
+    if(mode==="drawn")requestAnimationFrame(()=>redrawSignaturePad());
+  }));
+  $("#signatureImageInput")?.addEventListener("change",async e=>{
+    const input=e.currentTarget;
+    const file=input.files?.[0];
+    if(!file)return;
+    try{
+      const label=document.querySelector('label[for="signatureImageInput"]');
+      label?.classList.add("is-busy");
+      const artifact=await imageFileToSignatureArtifact(file);
+      currentSignatureArtifact=artifact;
+      currentSignatureSource="uploaded";
+      setSignatureInputMode("uploaded");
+      $("#saveCurrentSignature")?.classList.remove("hidden");
+      ctx.toast("Imagen convertida a formato interno SPSIG1");
+    }catch(error){
+      ctx.toast(error.message||"No fue posible procesar la imagen");
+    }finally{
+      const label=document.querySelector('label[for="signatureImageInput"]');
+      label?.classList.remove("is-busy");
+      input.value="";
+    }
+  });
+  $("#saveCurrentSignature")?.addEventListener("click",saveCurrentSignatureToVault);
+  $("#deleteSavedSignature")?.addEventListener("click",deleteSavedSignatureFromVault);
+  $("#deleteMySavedSignature")?.addEventListener("click",()=>{
+    if(confirm("¿Eliminar tu firma guardada del aplicativo?"))deleteSavedSignatureFromVault();
+  });
   $("#confirmElectronicSignature")?.addEventListener("click",confirmSignature);
   $("#signatureConsent")?.addEventListener("change",updateSignatureConfirmState);
   bindSignaturePad();
