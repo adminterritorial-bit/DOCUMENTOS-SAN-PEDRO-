@@ -1692,3 +1692,135 @@ body.easy-mode .doc-block:hover>.quick-add{opacity:1}
 @media print{
   .workspace-nav,.floating-new-document{display:none!important}
 }
+
+
+/* =========================================================
+   CLOUD + SIGNATURE EXPERIENCE V11
+   Google institutional access, evidence workflow and archive.
+   ========================================================= */
+.workspace-nav-btn{display:inline-flex;align-items:center;gap:6px}
+.nav-badge{min-width:18px;height:18px;padding:0 5px;display:inline-grid;place-items:center;border-radius:999px;background:#dbeef8;color:#075e8c;font-size:8px;font-weight:900}
+.workspace-nav-btn.active .nav-badge{background:#0b79b3;color:#fff}
+.signature-send-btn{
+  color:#6a4c00!important;background:linear-gradient(135deg,#fff5d2,#ffe69a)!important;
+  border:1px solid #e7c55c!important;box-shadow:0 7px 18px rgba(194,143,21,.12)!important
+}
+.signature-send-btn:hover{border-color:#d8af35!important;background:linear-gradient(135deg,#fff2c2,#ffde78)!important}
+.auth-user-chip{
+  min-height:40px;max-width:230px;padding:5px 9px 5px 5px;display:flex;align-items:center;gap:8px;
+  border:1px solid #d7e5ed;border-radius:12px;background:#fff;color:#244b63;box-shadow:0 4px 13px rgba(8,49,77,.04)
+}
+.auth-user-chip>span:last-child{min-width:0;text-align:left}.auth-user-chip strong,.auth-user-chip small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.auth-user-chip strong{font-size:9.5px}.auth-user-chip small{font-size:7.5px;color:#7c91a0;margin-top:2px}
+.auth-avatar{
+  width:30px;height:30px;flex:0 0 30px;display:grid!important;place-items:center;border-radius:9px;
+  background:linear-gradient(145deg,#0c86c2,#0a5f94);color:#fff;font-size:9px!important;font-weight:900;
+}
+
+/* authentication gate */
+.auth-overlay{
+  position:fixed;inset:0;z-index:180;display:grid;place-items:center;padding:22px;
+  background:radial-gradient(circle at 25% 10%,rgba(34,167,220,.20),transparent 30%),linear-gradient(150deg,#062f50,#0a527d 60%,#07324f);
+}
+.auth-card{
+  width:min(500px,100%);padding:30px;border:1px solid rgba(255,255,255,.32);border-radius:24px;background:rgba(250,253,255,.97);
+  box-shadow:0 35px 90px rgba(1,25,42,.35);color:#17394e
+}
+.auth-brand{display:flex;align-items:center;gap:14px}.auth-brand-mark{width:54px;height:54px;display:grid;place-items:center;border-radius:17px;background:linear-gradient(145deg,#17a2da,#0872aa);color:#fff;font-weight:900;box-shadow:0 13px 28px rgba(7,112,168,.24)}
+.auth-brand h2{margin:4px 0 0;font-size:22px}.auth-card>p{font-size:12px;line-height:1.6;color:#607788;margin:18px 0}
+.google-login-btn{
+  width:100%;min-height:52px;display:flex;align-items:center;justify-content:center;gap:11px;border:1px solid #cadde8;border-radius:14px;background:#fff;color:#24475d;font-size:12px
+}
+.google-login-btn span{width:28px;height:28px;display:grid;place-items:center;border-radius:50%;background:#f5f7f8;border:1px solid #e0e5e8;font-weight:900;color:#4285f4}
+.google-login-btn:hover{border-color:#8fc7df;box-shadow:0 10px 22px rgba(8,90,137,.09)}
+.auth-security-note{display:flex;gap:10px;margin-top:15px;padding:12px;border:1px solid #d9eadf;border-radius:13px;background:#f4faf6}
+.auth-security-note>span{width:24px;height:24px;display:grid;place-items:center;border-radius:50%;background:#dff3e7;color:#2a8655;font-weight:900}
+.auth-security-note strong,.auth-security-note small{display:block}.auth-security-note strong{font-size:10px;color:#315e45}.auth-security-note small{font-size:8.5px;line-height:1.45;color:#71877a;margin-top:2px}
+.auth-error{margin-top:12px;padding:10px 12px;border-radius:10px;border:1px solid #efbaba;background:#fff1f1;color:#9a3d3d;font-size:10px}
+
+/* modal system */
+.modal-shell{
+  position:fixed;inset:0;z-index:165;display:grid;place-items:center;padding:22px;background:rgba(4,31,49,.48);backdrop-filter:blur(7px)
+}
+.modal-card{
+  width:min(780px,100%);max-height:calc(100vh - 44px);overflow:auto;border:1px solid #d2e3eb;border-radius:22px;background:#fbfdfe;
+  box-shadow:0 32px 85px rgba(4,30,48,.30)
+}
+.modal-head{position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 20px;border-bottom:1px solid #dfeaf0;background:rgba(251,253,254,.96);backdrop-filter:blur(14px)}
+.modal-head h2{margin:3px 0 0;font-size:20px;color:#173d55}
+.modal-close{width:36px;height:36px;border:1px solid #d7e4ec;border-radius:11px;background:#fff;color:#4a697b;font-size:22px}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;padding:16px 20px;border-top:1px solid #e0e9ee;background:#f7fafb}
+
+/* request setup */
+.signature-request-card{width:min(900px,100%)}
+.signature-document-summary{display:grid;grid-template-columns:2fr 1fr 1.3fr;gap:9px;padding:17px 20px}
+.signature-document-summary>div{padding:11px;border:1px solid #deeaef;border-radius:12px;background:#fff}.signature-document-summary span,.signature-document-summary strong{display:block}.signature-document-summary span{font-size:8px;color:#748a99;text-transform:uppercase;font-weight:800}.signature-document-summary strong{font-size:10.5px;color:#244a62;margin-top:4px}
+.signature-mode-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px 16px}
+.signature-mode-row label>span,.signer-row label>span,.otp-panel label>span{display:block;font-size:8.5px;font-weight:800;color:#667f8f;margin-bottom:5px}
+.signature-mode-row select,.signer-row input,.otp-panel input{width:100%;min-height:42px;border:1px solid #ccdee7;border-radius:10px;background:#fff;padding:9px 10px;color:#21465d;outline:none}
+.signature-mode-row select:focus,.signer-row input:focus,.otp-panel input:focus{border-color:#5fb4d8;box-shadow:0 0 0 4px rgba(55,166,214,.10)}
+.signature-integrity{padding:10px 12px;border:1px solid #cfe5ef;border-radius:12px;background:#eef9fd}.signature-integrity span,.signature-integrity code{display:block}.signature-integrity span{font-size:8px;color:#4b7d96;font-weight:900}.signature-integrity code{margin-top:5px;font-size:9px;color:#075e8d;word-break:break-all}
+.signer-editor-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 20px 9px}.signer-editor-head strong,.signer-editor-head small{display:block}.signer-editor-head strong{font-size:12px;color:#183f57}.signer-editor-head small{font-size:8.5px;color:#788f9e;margin-top:2px}
+.signer-rows{display:grid;gap:8px;padding:0 20px}
+.signer-row{display:grid;grid-template-columns:34px 1.2fr 1.2fr 1fr 34px;gap:8px;align-items:end;padding:10px;border:1px solid #dce8ee;border-radius:13px;background:#fff}
+.signer-order{width:30px;height:30px;display:grid;place-items:center;border-radius:9px;background:#eaf7fc;color:#0c73a7;font-size:10px;font-weight:900;align-self:center}
+.signer-remove{width:32px;height:32px;border:1px solid #efd3d3;border-radius:9px;background:#fff7f7;color:#a54747;font-size:18px;margin-bottom:4px}
+.signature-legal-note{display:grid;gap:4px;margin:14px 20px 18px;padding:12px 13px;border-left:4px solid #caa13d;border-radius:8px 12px 12px 8px;background:#fff9e9}.signature-legal-note strong{font-size:10px;color:#654d13}.signature-legal-note span{font-size:8.5px;line-height:1.5;color:#776a49}
+
+/* signature center */
+.signatures-screen{max-width:1500px!important}
+.signatures-heading{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.signature-dashboard{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.signature-lane{min-height:380px;padding:15px;border:1px solid #d8e5ed;border-radius:18px;background:rgba(255,255,255,.86);box-shadow:0 10px 30px rgba(8,49,77,.055)}
+.signature-lane-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.signature-lane-head h3{margin:3px 0 0;font-size:15px;color:#173d55}.signature-count{min-width:31px;height:31px;display:grid;place-items:center;border-radius:10px;background:#e9f7fc;color:#0873a9;font-size:11px;font-weight:900}
+.signature-list{display:grid;gap:9px}.signature-empty{padding:28px 16px;text-align:center;border:1px dashed #cadde7;border-radius:13px;background:#f8fbfc;color:#8194a1;font-size:10px}
+.signature-card{padding:14px;border:1px solid #d9e7ee;border-radius:14px;background:#fff;box-shadow:0 6px 18px rgba(8,49,77,.045)}
+.signature-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.signature-card-kicker{font-size:7px;color:#7a90a0;font-weight:900;letter-spacing:.1em}.signature-card h4{margin:4px 0 0;font-size:12px;color:#173e56}
+.signature-status{display:inline-flex;align-items:center;justify-content:center;min-height:24px;padding:4px 8px;border-radius:999px;font-size:7.5px;font-weight:900;white-space:nowrap}
+.status-pending,.status-sent{background:#fff6d9;color:#76570c}.status-signed,.status-completed,.status-archived{background:#e7f7ee;color:#27774d}.status-in_progress{background:#e9f6fd;color:#116a98}.status-rejected,.status-expired{background:#fff0f0;color:#9b4141}
+.signature-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.signature-meta span{padding:6px 8px;border-radius:8px;background:#f5f9fb;color:#718795;font-size:8px}.signature-meta b{color:#365b71}
+.signature-card-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}.signature-card-actions .btn{min-height:34px;font-size:9px;padding:7px 10px}.drive-link{text-decoration:none;display:inline-flex;align-items:center}
+.evidence-chip{padding:7px 9px;border-radius:9px;background:#eef8f3;border:1px solid #d5eadf;color:#347455;font-size:8px;font-weight:800}
+.signature-progress-list{display:grid;gap:6px;margin-top:11px}.signature-progress-list>div{display:grid;grid-template-columns:26px 1fr auto;gap:8px;align-items:center;padding:7px 8px;border-radius:10px;background:#f7fafb;border:1px solid #e5edf1}.mini-order{width:24px;height:24px;display:grid;place-items:center;border-radius:7px;background:#eaf6fb;color:#126f9b;font-size:8px;font-weight:900}.signature-progress-list strong,.signature-progress-list small{display:block}.signature-progress-list strong{font-size:9px;color:#294e65}.signature-progress-list small{font-size:7.5px;color:#81929e;margin-top:1px}
+
+/* signer confirmation */
+.sign-document-card{width:min(690px,100%)}.sign-document-info{display:grid;grid-template-columns:1.2fr 1fr 1.5fr;gap:8px;padding:16px 20px}.sign-document-info>div{padding:10px;border:1px solid #dbe8ef;border-radius:11px;background:#fff}.sign-document-info span,.sign-document-info strong,.sign-document-info small,.sign-document-info code{display:block}.sign-document-info span{font-size:7.5px;color:#7a909d;font-weight:900;text-transform:uppercase}.sign-document-info strong{font-size:10px;color:#294c62;margin-top:4px}.sign-document-info small{font-size:8px;color:#80939f;margin-top:2px}.sign-document-info code{font-size:7px;color:#0b678f;margin-top:4px;word-break:break-all}
+.signature-verification-box{display:grid;gap:7px;padding:0 20px 14px}.verification-step{display:flex;gap:10px;align-items:center;padding:9px 10px;border:1px solid #dce8ee;border-radius:11px;background:#f9fcfd}.verification-step>span{width:28px;height:28px;display:grid;place-items:center;border-radius:9px;background:#e9f7fd;color:#0a76ab;font-size:9px;font-weight:900}.verification-step strong,.verification-step small{display:block}.verification-step strong{font-size:9.5px;color:#294f66}.verification-step small{font-size:8px;color:#7a8f9d;margin-top:2px}
+.otp-panel{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:end;padding:0 20px 14px}.otp-panel input{font-size:18px;letter-spacing:.28em;text-align:center;font-weight:900}
+.signature-consent{margin:0 20px 16px;padding:11px;border:1px solid #d8e7de;border-radius:11px;background:#f5faf7}.signature-consent label{display:flex;align-items:flex-start;gap:8px}.signature-consent span{font-size:8.5px;line-height:1.5;color:#527060}
+
+/* evidence rendered into final PDF */
+.signature-proof-runtime{
+  margin-top:1.5mm;padding:1.2mm 1.5mm;border:0.3mm solid #7aa8bf;border-radius:1.5mm;
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1mm;background:#f7fbfd;
+  font-family:"Century Gothic",Arial,sans-serif
+}
+.signature-proof-runtime .proof-title{grid-column:1/-1;font-size:5pt;font-weight:800;color:#24536d;letter-spacing:.03em}
+.proof-item{display:flex;align-items:center;gap:1mm;min-width:0}.proof-item>span{width:4mm;height:4mm;display:grid;place-items:center;border-radius:50%;background:#dff1e7;color:#2a7a50;font-size:6pt;font-weight:900}.proof-item strong,.proof-item small{display:block;line-height:1.12}.proof-item strong{font-size:5.5pt;color:#254a60}.proof-item small{font-size:4.7pt;color:#617986;white-space:normal}
+.signature-inline-proof{margin-top:3px;font-size:6pt;font-weight:800;color:#2b6b50}
+
+/* verification */
+.verify-signature-card{width:min(630px,100%)}.verify-result{padding:18px 20px}.verify-valid,.verify-invalid{display:flex;gap:11px;align-items:center;padding:13px;border-radius:13px}.verify-valid{border:1px solid #cde6d8;background:#eff9f3}.verify-invalid{border:1px solid #efc8c8;background:#fff3f3}.verify-valid>span{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:#d8f0e2;color:#2b7b50;font-weight:900}.verify-valid strong,.verify-valid small,.verify-invalid strong,.verify-invalid span{display:block}.verify-valid strong{font-size:12px;color:#295f43}.verify-valid small{font-size:8.5px;color:#678073;margin-top:2px}.verify-result dl{display:grid;gap:7px;margin:13px 0 0}.verify-result dl>div{display:grid;grid-template-columns:120px 1fr;gap:10px;padding:8px 9px;border-bottom:1px solid #e5edf1}.verify-result dt{font-size:8px;font-weight:900;color:#7b909d;text-transform:uppercase}.verify-result dd{margin:0;font-size:9px;color:#294c62;word-break:break-word}.verify-result code{font-size:7.5px}
+.button-spinner{width:13px;height:13px;display:inline-block;margin-right:7px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-2px;animation:docsysSpin .75s linear infinite}@keyframes docsysSpin{to{transform:rotate(360deg)}}
+
+@media(max-width:1180px){
+  .signature-dashboard{grid-template-columns:1fr}
+  .auth-user-chip{max-width:170px}
+}
+@media(max-width:900px){
+  .signature-send-btn{position:fixed;right:74px;bottom:14px;z-index:89;min-width:52px;width:52px;height:52px;padding:0!important;border-radius:17px!important;font-size:0!important}
+  .signature-send-btn span{font-size:18px}
+  .auth-user-chip{display:none!important}
+  .signer-row{grid-template-columns:32px 1fr 32px}.signer-row label{grid-column:2}.signer-remove{grid-column:3;grid-row:1;align-self:center}.signer-order{grid-column:1;grid-row:1;align-self:center}
+  .signature-mode-row,.signature-document-summary,.sign-document-info{grid-template-columns:1fr}
+}
+@media(max-width:620px){
+  .modal-shell{padding:7px}.modal-card{max-height:calc(100vh - 14px);border-radius:16px}.modal-head{padding:14px}
+  .signature-document-summary,.signature-mode-row,.signer-rows,.sign-document-info,.signature-verification-box,.otp-panel{padding-left:14px;padding-right:14px}
+  .signature-legal-note,.signature-consent{margin-left:14px;margin-right:14px}
+  .otp-panel{grid-template-columns:1fr}
+  .signatures-heading{align-items:flex-start;flex-direction:column}
+}
+@media print{
+  .auth-overlay,.modal-shell,.signature-send-btn,.auth-user-chip{display:none!important}
+}
