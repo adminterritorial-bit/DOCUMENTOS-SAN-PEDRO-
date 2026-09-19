@@ -2,6 +2,7 @@ import {LOGO_DATA_URL} from "./assets.js";
 import {TEMPLATES,longDate} from "./templates.js";
 import {insertBlock,activateBlockControls} from "./blocks.js";
 import {exportDocx,exportPdf} from "./exporters.js";
+import {initGuidance} from "./guide.js";
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -86,6 +87,7 @@ function syncFieldToDocument(id){
   if(id==="docDate") updateDateLabel();
   if(id==="docNumber") updateWorkspaceLabels();
   if(["fontFamily","fontSize","lineHeight","marginPreset"].includes(id)) applyDocumentStyle();
+  updateFlowProgress();
   updatePageCount(); queueSave();
 }
 
@@ -134,6 +136,17 @@ function resetBlocks(){
   root.innerHTML="";
 }
 
+function updateFlowProgress(){
+  const steps=$("#simpleFlow [data-guide-target]");
+  if(!steps.length) return;
+  const basics=Boolean($("#docType")?.value);
+  const metadata=Boolean($("#docNumber")?.value?.trim() && $("#docDate")?.value && $("#trdCode")?.value?.trim());
+  const hasContent=root?.children?.length>0;
+  steps[0]?.classList.toggle("done",basics);
+  steps[1]?.classList.toggle("done",metadata);
+  steps[2]?.classList.toggle("done",hasContent);
+}
+
 function updateWorkspaceLabels(){
   const type=$("#docType")?.value;
   const t=TEMPLATES[type];
@@ -179,6 +192,7 @@ function applyTemplate(type,{announce=true}={}){
   updateDateLabel();
   updateToc();
   updateOutline();
+  updateFlowProgress();
   updatePageCount();
   queueSave();
   if(announce) toast(`Plantilla ${t.label} aplicada`);
@@ -235,7 +249,7 @@ function addBlock(type){
     const label=$(".article-label",node);
     label.textContent=`ARTÍCULO ${ordinalWords[Math.min(articles.indexOf(node),ordinalWords.length-1)]||articles.indexOf(node)+1}.`;
   }
-  updateToc();updateOutline();updatePageCount();queueSave();
+  updateToc();updateOutline();updateFlowProgress();updatePageCount();queueSave();
   node.querySelector("[contenteditable=true]")?.focus();
 }
 
@@ -430,6 +444,8 @@ if(!restoreDraft()){
 }
 applyDocumentStyle();
 updateWorkspaceLabels();
+updateFlowProgress();
+initGuidance();
 setTimeout(updatePageCount,250);
 
 if("serviceWorker" in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});}
