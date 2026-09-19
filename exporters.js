@@ -225,7 +225,7 @@ export async function exportDocx(state,paper){
   setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
 
-export async function exportPdf(state,paper){
+export async function buildPdfBlob(state,paper){
   const pages=[...paper.querySelectorAll(".document-page")];
   if(!pages.length) throw new Error("No hay páginas para exportar.");
   if(typeof window.html2canvas!=="function") throw new Error("No se cargó el motor de renderizado PDF.");
@@ -294,9 +294,19 @@ export async function exportPdf(state,paper){
       pdf.addImage(imgData,"PNG",0,0,210,297,undefined,"FAST");
     }
 
-    pdf.save(`${safe(state.docTitle||state.formatName)}_${safe(state.docNumber||"")}.pdf`);
+    return pdf.output("blob");
   }finally{
     host.remove();
   }
+}
+
+export async function exportPdf(state,paper){
+  const blob=await buildPdfBlob(state,paper);
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=`${safe(state.docTitle||state.formatName)}_${safe(state.docNumber||"")}.pdf`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
 
