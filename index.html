@@ -46,7 +46,7 @@
               <span class="eyebrow">CONFIGURACIÓN DEL DOCUMENTO</span>
               <h2>Documento y formato</h2>
             </div>
-            <button class="link-btn" id="toggleAdvanced">Mostrar configuración institucional</button>
+            <button class="link-btn" id="toggleAdvanced">Ocultar configuración institucional</button>
           </div>
 
           <div class="config-grid primary-config">
@@ -68,7 +68,7 @@
             </label>
           </div>
 
-          <div class="advanced-config" id="advancedConfig">
+          <div id="advancedConfig" class="advanced-config open">
             <div class="advanced-title"><span>Datos del encabezado y pie</span><small>Todos se pueden editar también haciendo clic directamente sobre el documento.</small></div>
             <div class="config-grid">
               <label><span>Nombre del formato</span><input id="formatName" value="ACTO ADMINISTRATIVO"></label>
@@ -126,13 +126,13 @@
           <div class="canvas-column">
             <div class="canvas-topline">
               <div>
-                <strong>Edición directa</strong>
-                <span>Haz clic sobre cualquier texto del encabezado, contenido o pie para modificarlo.</span>
+                <strong>Editor institucional directo</strong>
+                <span>Todo el texto visible puede editarse. La numeración de página es automática por hoja en Word/PDF.</span>
               </div>
               <div class="zoom-control"><span id="zoomLabel">90%</span><input id="zoom" type="range" min="65" max="110" value="90"></div>
             </div>
 
-            <article class="paper" id="paper">
+            <article class="paper" id="paper"><div id="pageMarkers" class="page-markers" contenteditable="false"></div>
               <header class="institutional-header">
                 <table>
                   <tr>
@@ -140,21 +140,21 @@
                       <img id="documentLogo" alt="Escudo Alcaldía de San Pedro">
                       <div class="municipality-caption editable" contenteditable="true">ALCALDÍA MUNICIPAL<br>DE SAN PEDRO, VALLE<br>NIT. <span data-bind="municipalityNit">800.100.526-3</span></div>
                     </td>
-                    <td class="meta-cell"><b>Nombre:</b> <span class="editable inline-edit" contenteditable="true" data-bind="formatName">ACTO ADMINISTRATIVO</span></td>
-                    <td class="side-cell"><b>Código:</b> <span class="editable inline-edit" contenteditable="true" data-bind="formatCode">GD-FT-10</span></td>
+                    <td class="meta-cell"><b class="editable-label" contenteditable="true">Nombre:</b> <span class="editable inline-edit" contenteditable="true" data-bind="formatName">ACTO ADMINISTRATIVO</span></td>
+                    <td class="side-cell"><b class="editable-label" contenteditable="true">Código:</b> <span class="editable inline-edit" contenteditable="true" data-bind="formatCode">GD-FT-10</span></td>
                   </tr>
                   <tr>
-                    <td class="meta-cell"><b>Proceso:</b> <span class="editable inline-edit" contenteditable="true" data-bind="processName">PLANEACIÓN Y DIRECCIONAMIENTO ESTRATÉGICO</span></td>
-                    <td class="side-cell"><b>Fecha de emisión:</b> <span class="editable inline-edit" contenteditable="true" data-bind="formatIssueDate">03/06/2016</span></td>
+                    <td class="meta-cell"><b class="editable-label" contenteditable="true">Proceso:</b> <span class="editable inline-edit" contenteditable="true" data-bind="processName">PLANEACIÓN Y DIRECCIONAMIENTO ESTRATÉGICO</span></td>
+                    <td class="side-cell"><b class="editable-label" contenteditable="true">Fecha de emisión:</b> <span class="editable inline-edit" contenteditable="true" data-bind="formatIssueDate">03/06/2016</span></td>
                   </tr>
                   <tr>
-                    <td class="meta-cell"><b>Responsable:</b> <span class="editable inline-edit" contenteditable="true" data-bind="responsibleName">LÍDER DEL PROCESO</span></td>
-                    <td class="side-cell"><b>Versión:</b> <span class="editable inline-edit" contenteditable="true" data-bind="formatVersion">2</span><br><b>Página:</b> <span class="auto-page-current">1</span> de <span class="auto-page-total">1</span></td>
+                    <td class="meta-cell"><b class="editable-label" contenteditable="true">Responsable:</b> <span class="editable inline-edit" contenteditable="true" data-bind="responsibleName">LÍDER DEL PROCESO</span></td>
+                    <td class="side-cell"><b class="editable-label" contenteditable="true">Versión:</b> <span class="editable inline-edit" contenteditable="true" data-bind="formatVersion">2</span><br><b class="editable-label" contenteditable="true">Página:</b> <span class="auto-page-current">1</span> de <span class="auto-page-total">1</span> <small class="page-auto-note">· automático</small></td>
                   </tr>
                 </table>
               </header>
 
-              <div class="trd-line"><b>CÓDIGO TRD:</b> <span class="editable inline-edit" contenteditable="true" data-bind="trdCode">200-11</span></div>
+              <div class="trd-line"><b class="editable-label" contenteditable="true">CÓDIGO TRD:</b> <span class="editable inline-edit" contenteditable="true" data-bind="trdCode">200-11</span></div>
               <div class="document-identity">
                 <div class="doc-number-line">
                   <span class="editable" contenteditable="true" id="docTitleText">DECRETO</span>
@@ -183,6 +183,11 @@
           </div>
 
           <aside class="inspector">
+            <div class="inspector-card inspector-highlight">
+              <span class="eyebrow">CONSTRUCTOR DEL DOCUMENTO</span>
+              <h3>Selecciona una sección y agrega lo que necesites</h3>
+              <p>Después de un título, subtítulo, texto o artículo puedes insertar texto, lista, KPI, tabla, matriz, cronograma, nota, artículo o parágrafo. Los bloques se pueden ordenar, duplicar y eliminar.</p>
+            </div>
             <div class="inspector-card">
               <span class="eyebrow">AYUDA RÁPIDA</span>
               <h3>Documento totalmente editable</h3>
