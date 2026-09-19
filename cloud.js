@@ -30,6 +30,10 @@ let savedSignatureArtifact=null;
 let savedSignatureLoaded=false;
 let currentSignatureArtifact=null;
 let currentSignatureSource="drawn";
+let archiveFolders=[];
+let archiveDocuments=[];
+let selectedArchiveFolderId=null;
+let activeArchiveTrace=null;
 
 const normalize=s=>(s||"").trim();
 const domainOf=email=>(email||"").toLowerCase().split("@")[1]||"";
@@ -1331,6 +1335,8 @@ async function confirmSignature(){
     if(out.error||out.data?.ok===false)throw new Error(out.data?.error||out.error?.message||"No fue posible firmar");
     closeModal("signDocumentModal");
     ctx.toast("Firma registrada · "+out.data.evidence_code);
+    archiveFolders=[];
+    archiveDocuments=[];
     await loadDashboard();
     await hydrateOpenedCloudDocument();
   }catch(e){
@@ -1401,7 +1407,10 @@ async function archiveDocument(documentId,button){
     }});
     if(out.error||out.data?.ok===false)throw new Error(out.data?.error||out.error?.message||"No fue posible archivar");
     ctx.toast("Documento archivado en Drive institucional");
+    archiveFolders=[];
+    archiveDocuments=[];
     await loadDashboard();
+    if(!$("#archivePanel")?.classList.contains("hidden"))await loadArchiveWorkspace(true);
   }catch(e){console.error(e);ctx.toast(e.message||"No fue posible archivar en Drive")}finally{setBusy(button,false)}
 }
 async function openCloudDocument(documentId){
@@ -1418,6 +1427,244 @@ async function openCloudDocument(documentId){
     location.href=location.origin+location.pathname;
   }catch(e){ctx.toast(e.message||"No fue posible abrir el documento")}
 }
+function archiveFolderChildren(parentId){
+  return archiveFolders.filter(folder=>(folder.parent_id||null)===(parentId||null));
+}
+function archiveDescendantFolderIds(folderId){
+  const ids=new Set([folderId]);
+  const walk=id=>{
+    archiveFolderChildren(id).forEach(child=>{
+      if(ids.has(child.id))return;
+      ids.add(child.id);
+      walk(child.id);
+    });
+  };
+  walk(folderId);
+  return ids;
+}
+function archiveFolderTotal(folderId){
+  const ids=archiveDescendantFolderIds(folderId);
+  return archiveDocuments.filter(doc=>ids.has(doc.folder_id)).length;
+}
+function archiveFolderPath(folderId){
+  const byId=new Map(archiveFolders.map(folder=>[folder.id,folder]));
+  const parts=[];
+  let current=byId.get(folderId);
+  let safety=0;
+  while(current&&safety++<8){
+    parts.unshift(current.name);
+    current=current.parent_id?byId.get(current.parent_id):null;
+  }
+  return parts.join(" / ");
+}
+function renderArchiveTree(){
+  const host=$("#archiveTree");
+  if(!host)return;
+
+  const renderNode=(folder,depth=0)=>{
+    const children=archiveFolderChildren(folder.id);
+    const total=archiveFolderTotal(folder.id);
+    const active=selectedArchiveFolderId===folder.id;
+    return `<div class="archive-tree-branch">
+      <button type="button" class="archive-folder-row ${active?"active":""}" data-archive-folder="${folder.id}" style="--archive-depth:${depth}">
+        <span class="archive-folder-icon">${folder.folder_kind==="root"?"▣":folder.folder_kind==="year"?"▤":"▱"}</span>
+        <span class="archive-folder-copy"><strong>${escapeHtml(folder.name)}</strong><small>${folder.folder_kind==="type"?"Serie documental":folder.folder_kind==="year"?"Año":"Archivo institucional"}</small></span>
+        <span class="archive-folder-count">${total}</span>
+      </button>
+      ${children.map(child=>renderNode(child,depth+1)).join("")}
+    </div>`;
+  };
+
+  const roots=archiveFolderChildren(null);
+  host.innerHTML=`<button type="button" class="archive-folder-row archive-all-row ${selectedArchiveFolderId===null?"active":""}" data-archive-folder="">
+      <span class="archive-folder-icon">⌂</span>
+      <span class="archive-folder-copy"><strong>Todos los expedientes</strong><small>Vista general</small></span>
+      <span class="archive-folder-count">${archiveDocuments.length}</span>
+    </button>`+
+    (roots.length?roots.map(root=>renderNode(root,0)).join(""):'<div class="signature-empty compact">Aún no existen carpetas digitales.</div>');
+}
+function archiveVisibleDocuments(){
+  const query=normalize($("#archiveSearch")?.value).toLowerCase();
+  const sort=$("#archiveSort")?.value||"order";
+  let docs=[...archiveDocuments];
+
+  if(selectedArchiveFolderId){
+    const ids=archiveDescendantFolderIds(selectedArchiveFolderId);
+    docs=docs.filter(doc=>ids.has(doc.folder_id));
+  }
+  if(query){
+    docs=docs.filter(doc=>[
+      doc.display_name,doc.trace_code,doc.document_number,doc.trd_code,doc.document_type,doc.title
+    ].filter(Boolean).join(" ").toLowerCase().includes(query));
+  }
+
+  docs.sort((a,b)=>{
+    if(sort==="name")return String(a.display_name||"").localeCompare(String(b.display_name||""),"es",{sensitivity:"base"});
+    if(sort==="date")return new Date(b.filed_at||0)-new Date(a.filed_at||0);
+    return Number(a.record_number||0)-Number(b.record_number||0);
+  });
+  return docs;
+}
+function renderArchiveDocuments(){
+  const host=$("#archiveDocumentList");
+  if(!host)return;
+  const docs=archiveVisibleDocuments();
+  const selected=selectedArchiveFolderId?archiveFolders.find(f=>f.id===selectedArchiveFolderId):null;
+  $("#archiveFolderTitle").textContent=selected?.name||"Todos los expedientes";
+  $("#archiveFolderMeta").textContent=selected
+    ? archiveFolderPath(selected.id)
+    : "Documentos firmados disponibles para consulta.";
+  $("#archiveDocumentCount").textContent=String(docs.length);
+
+  if(!docs.length){
+    host.innerHTML='<div class="signature-empty">No hay expedientes que coincidan con esta carpeta o búsqueda.</div>';
+    return;
+  }
+
+  host.innerHTML=docs.map(doc=>{
+    const selectedClass=activeArchiveTrace?.document?.id===doc.document_id?"selected":"";
+    const order=String(doc.record_number||0).padStart(6,"0");
+    return `<button type="button" class="archive-document-card ${selectedClass}" data-archive-document="${doc.document_id}">
+      <span class="archive-record-number">#${order}</span>
+      <span class="archive-document-copy">
+        <strong>${escapeHtml(doc.display_name||doc.title||"Documento")}</strong>
+        <small>${escapeHtml(doc.trace_code||"")} · TRD ${escapeHtml(doc.trd_code||"—")} · ${Number(doc.signer_count||0)} firma${Number(doc.signer_count||0)===1?"":"s"}</small>
+      </span>
+      <span class="archive-document-date">${formatDate(doc.filed_at)}</span>
+      <span class="archive-document-arrow">›</span>
+    </button>`;
+  }).join("");
+}
+function traceDetailText(detail){
+  const value=String(detail||"").trim();
+  if(!value||value==="{}"||value.startsWith("{"))return "";
+  return value;
+}
+function renderArchiveTrace(trace){
+  activeArchiveTrace=trace||null;
+  const empty=$("#archiveTraceEmpty");
+  const detail=$("#archiveTraceDetail");
+  if(!trace?.document){
+    empty?.classList.remove("hidden");
+    detail?.classList.add("hidden");
+    return;
+  }
+  empty?.classList.add("hidden");
+  detail?.classList.remove("hidden");
+
+  const d=trace.document;
+  const a=trace.archive||{};
+  $("#archiveTraceTitle").textContent=a.display_name||d.title||"Documento";
+  $("#archiveTraceCode").textContent=a.trace_code||"EXPEDIENTE";
+  $("#archiveTraceMeta").innerHTML=`
+    <div><span>Ruta</span><strong>${escapeHtml([a.root_folder,a.parent_folder,a.folder_name].filter(Boolean).join(" / "))}</strong></div>
+    <div><span>Orden</span><strong>#${String(a.record_number||0).padStart(6,"0")}</strong></div>
+    <div><span>TRD</span><strong>${escapeHtml(d.trd_code||"—")}</strong></div>
+    <div><span>Estado</span><strong>${d.status==="archived"?"Firmado y archivado":"Firmado"}</strong></div>
+    <div class="archive-meta-hash"><span>SHA-256 documento</span><code>${escapeHtml(d.document_sha256||"—")}</code></div>
+    ${d.final_sha256?`<div class="archive-meta-hash"><span>SHA-256 PDF final</span><code>${escapeHtml(d.final_sha256)}</code></div>`:""}
+  `;
+
+  const signers=trace.signers||[];
+  $("#archiveTraceSigners").innerHTML=`<div class="archive-subhead"><span class="eyebrow">FIRMANTES</span><strong>${signers.length} registro${signers.length===1?"":"s"}</strong></div>`+
+    (signers.length?signers.map(s=>`<div class="archive-signer-row">
+      <span class="archive-signer-order">${s.order}</span>
+      <div><strong>${escapeHtml(s.name||"Firmante")}</strong><small>${escapeHtml(s.role||s.email||"")}</small></div>
+      <div class="archive-signer-proof"><code>${escapeHtml(s.evidence_code||"Pendiente")}</code><small>${formatDate(s.signed_at)}</small></div>
+    </div>`).join(""):'<div class="signature-empty compact">Sin firmantes registrados.</div>');
+
+  const events=trace.events||[];
+  $("#archiveTimeline").innerHTML=`<div class="archive-subhead"><span class="eyebrow">TRAZABILIDAD</span><strong>${events.length} evento${events.length===1?"":"s"}</strong></div>`+
+    (events.length?events.map((event,index)=>{
+      const detailText=traceDetailText(event.detail);
+      return `<div class="archive-timeline-event">
+        <span class="archive-event-dot">${index+1}</span>
+        <div><strong>${escapeHtml(event.label||event.event_type||"Evento")}</strong><small>${formatDate(event.occurred_at)} · ${escapeHtml(event.actor||"Sistema Maestro Documental")}</small>${detailText?`<p>${escapeHtml(detailText)}</p>`:""}</div>
+      </div>`;
+    }).join(""):'<div class="signature-empty compact">Sin eventos disponibles.</div>');
+
+  renderArchiveDocuments();
+}
+async function openArchiveTrace(documentId){
+  try{
+    const {data,error}=await supabase.rpc("docsys_archive_trace",{p_document_id:documentId});
+    if(error)throw error;
+    if(!data)throw new Error("No se encontró el expediente digital.");
+    renderArchiveTrace(data);
+  }catch(error){
+    console.error("Archive trace error",error);
+    ctx.toast(error.message||"No fue posible abrir la trazabilidad");
+  }
+}
+async function loadArchiveWorkspace(force=false){
+  if(!session?.user)return;
+  try{
+    if(force||!archiveFolders.length){
+      const [foldersOut,documentsOut]=await Promise.all([
+        supabase.rpc("docsys_archive_tree"),
+        supabase.rpc("docsys_archive_list",{p_folder_id:null})
+      ]);
+      if(foldersOut.error)throw foldersOut.error;
+      if(documentsOut.error)throw documentsOut.error;
+      archiveFolders=foldersOut.data||[];
+      archiveDocuments=documentsOut.data||[];
+    }
+    renderArchiveTree();
+    renderArchiveDocuments();
+  }catch(error){
+    console.error("Digital archive load failed",error);
+    if($("#archiveTree"))$("#archiveTree").innerHTML='<div class="signature-empty signature-error">No fue posible cargar las carpetas digitales.</div>';
+    if($("#archiveDocumentList"))$("#archiveDocumentList").innerHTML='<div class="signature-empty signature-error">No fue posible cargar los expedientes.</div>';
+  }
+}
+function printArchiveTraceability(){
+  const trace=activeArchiveTrace;
+  if(!trace?.document){
+    ctx.toast("Selecciona primero un expediente");
+    return;
+  }
+  const d=trace.document;
+  const a=trace.archive||{};
+  const signers=trace.signers||[];
+  const events=trace.events||[];
+  const popup=window.open("","_blank","noopener,noreferrer");
+  if(!popup){
+    ctx.toast("El navegador bloqueó la ventana de impresión");
+    return;
+  }
+  const path=[a.root_folder,a.parent_folder,a.folder_name].filter(Boolean).join(" / ");
+  popup.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Trazabilidad ${escapeHtml(a.trace_code||"")}</title>
+    <style>
+      @page{size:A4;margin:18mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#18384b;margin:0;font-size:10.5pt}
+      header{border-bottom:2px solid #174f70;padding-bottom:12px;margin-bottom:16px}h1{font-size:17pt;margin:3px 0}h2{font-size:11pt;margin:18px 0 8px;color:#174f70}
+      .kicker{font-size:8pt;font-weight:700;letter-spacing:.08em;color:#5f7a8b}.code{font-family:monospace;font-weight:700;color:#0b6f9d}
+      .meta{display:grid;grid-template-columns:1fr 1fr;gap:7px}.meta div{border:1px solid #dbe5ea;border-radius:6px;padding:7px}.meta span{display:block;font-size:7.5pt;color:#6f8795}.meta strong,.meta code{display:block;margin-top:3px;word-break:break-word}
+      table{width:100%;border-collapse:collapse}th,td{border:1px solid #dbe5ea;padding:7px;text-align:left;vertical-align:top}th{background:#f3f7f9;font-size:8pt}
+      .event{display:grid;grid-template-columns:28px 1fr;gap:8px;margin:0 0 8px}.event b{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:#eaf4f8;color:#145f82}.event div{border-bottom:1px solid #e3eaee;padding-bottom:7px}.event strong,.event small{display:block}.event small{color:#718794;margin-top:2px}.event p{margin:4px 0 0}
+      footer{margin-top:18px;padding-top:10px;border-top:1px solid #ccdbe2;font-size:7.5pt;color:#6a818e}button{display:none}
+    </style></head><body>
+    <header><div class="kicker">ALCALDÍA MUNICIPAL DE SAN PEDRO · SISTEMA MAESTRO DOCUMENTAL</div><h1>Ficha de trazabilidad documental</h1><div class="code">${escapeHtml(a.trace_code||"")}</div></header>
+    <section class="meta">
+      <div><span>Documento</span><strong>${escapeHtml(a.display_name||d.title||"Documento")}</strong></div>
+      <div><span>Ruta digital</span><strong>${escapeHtml(path)}</strong></div>
+      <div><span>Orden institucional</span><strong>#${String(a.record_number||0).padStart(6,"0")}</strong></div>
+      <div><span>Código TRD</span><strong>${escapeHtml(d.trd_code||"—")}</strong></div>
+      <div><span>Fecha de incorporación</span><strong>${formatDate(a.filed_at)}</strong></div>
+      <div><span>Estado</span><strong>${d.status==="archived"?"Firmado y archivado":"Firmado"}</strong></div>
+      <div style="grid-column:1/-1"><span>SHA-256 documento</span><code>${escapeHtml(d.document_sha256||"—")}</code></div>
+      ${d.final_sha256?`<div style="grid-column:1/-1"><span>SHA-256 PDF final</span><code>${escapeHtml(d.final_sha256)}</code></div>`:""}
+    </section>
+    <h2>Firmantes</h2>
+    <table><thead><tr><th>Orden</th><th>Firmante</th><th>Calidad / cargo</th><th>Código de evidencia</th><th>Fecha</th></tr></thead><tbody>
+      ${signers.map(s=>`<tr><td>${s.order}</td><td>${escapeHtml(s.name||"")}</td><td>${escapeHtml(s.role||"")}</td><td class="code">${escapeHtml(s.evidence_code||"")}</td><td>${formatDate(s.signed_at)}</td></tr>`).join("")}
+    </tbody></table>
+    <h2>Línea de tiempo</h2>
+    ${events.map((event,index)=>`<div class="event"><b>${index+1}</b><div><strong>${escapeHtml(event.label||event.event_type||"Evento")}</strong><small>${formatDate(event.occurred_at)} · ${escapeHtml(event.actor||"Sistema Maestro Documental")}</small>${traceDetailText(event.detail)?`<p>${escapeHtml(traceDetailText(event.detail))}</p>`:""}</div></div>`).join("")}
+    <footer>Generado desde el Sistema Maestro Documental. Esta ficha es una representación de la trazabilidad registrada; los códigos de evidencia y hashes permiten verificar la correspondencia con los registros electrónicos del sistema.</footer>
+    <script>window.onload=()=>{window.print();}</script></body></html>`);
+  popup.document.close();
+}
+
 async function verifyPublicCode(code){
   openModal("verifySignatureModal");
   const box=$("#verifySignatureResult");
@@ -1600,6 +1847,30 @@ function bindEvents(){
   $("#signatureConsent")?.addEventListener("change",updateSignatureConfirmState);
   bindSignaturePad();
   $("#checkIntegrationsBtn")?.addEventListener("click",checkIntegrationReadiness);
+  qsa(".workspace-nav-btn[data-panel='archive']").forEach(btn=>btn.addEventListener("click",()=>loadArchiveWorkspace()));
+  $("#refreshArchive")?.addEventListener("click",async()=>{
+    const btn=$("#refreshArchive");
+    try{setBusy(btn,true,"↻");await loadArchiveWorkspace(true);}finally{setBusy(btn,false);}
+  });
+  $("#archiveTree")?.addEventListener("click",e=>{
+    const row=e.target.closest("[data-archive-folder]");
+    if(!row)return;
+    selectedArchiveFolderId=row.dataset.archiveFolder||null;
+    renderArchiveTree();
+    renderArchiveDocuments();
+  });
+  $("#archiveSearch")?.addEventListener("input",renderArchiveDocuments);
+  $("#archiveSort")?.addEventListener("change",renderArchiveDocuments);
+  $("#archiveDocumentList")?.addEventListener("click",e=>{
+    const card=e.target.closest("[data-archive-document]");
+    if(card)openArchiveTrace(card.dataset.archiveDocument);
+  });
+  $("#closeArchiveTrace")?.addEventListener("click",()=>renderArchiveTrace(null));
+  $("#openArchivedDocument")?.addEventListener("click",()=>{
+    const id=activeArchiveTrace?.document?.id;
+    if(id)openCloudDocument(id);
+  });
+  $("#printArchiveTrace")?.addEventListener("click",printArchiveTraceability);
   qsa("[data-close-modal]").forEach(btn=>btn.addEventListener("click",()=>{
     const id=btn.dataset.closeModal;
     closeModal(id);
@@ -1658,5 +1929,5 @@ export async function initCloud(options){
     if(sign)await openSigner(sign);
   }
 
-  return {supabase,loadDashboard,openSendModal};
+  return {supabase,loadDashboard,loadArchiveWorkspace,openSendModal};
 }
