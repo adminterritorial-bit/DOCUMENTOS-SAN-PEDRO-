@@ -264,10 +264,13 @@ function statusBadge(status){
 function mySignatureCard(s){
   const r=s.docsys_signature_requests||{};
   const d=r.docsys_documents||{};
+  const signedActions=s.status==="signed"
+    ? `<span class="evidence-chip">Código ${s.evidence_code||"registrado"}</span><button class="btn soft" data-open-cloud-doc="${d.id}">Abrir documento</button>${d.drive_url?`<a class="btn primary drive-link" href="${d.drive_url}" target="_blank" rel="noopener">Documento final</a>`:""}`
+    : "";
   return `<article class="signature-card">
     <div class="signature-card-top"><div><span class="signature-card-kicker">ORDEN ${s.signer_order}</span><h4>${d.title||"Documento institucional"}</h4></div>${statusBadge(s.status)}</div>
     <div class="signature-meta"><span>TRD <b>${d.trd_code||"—"}</b></span><span>Vence <b>${formatDate(r.expires_at)}</b></span></div>
-    <div class="signature-card-actions">${s.status==="pending"?`<button class="btn primary" data-open-sign="${s.id}">Revisar y firmar</button>`:`<span class="evidence-chip">Código ${s.evidence_code||"registrado"}</span>`}</div>
+    <div class="signature-card-actions">${s.status==="pending"?`<button class="btn primary" data-open-sign="${s.id}">Revisar y firmar</button>`:signedActions}</div>
   </article>`;
 }
 function sentRequestCard(r){
@@ -279,7 +282,7 @@ function sentRequestCard(r){
     <div class="signature-progress-list">${signers.map(s=>`<div><span class="mini-order">${s.signer_order}</span><span><strong>${s.signer_name}</strong><small>${s.signer_role||s.signer_email}</small></span>${statusBadge(s.status)}</div>`).join("")}</div>
     <div class="signature-card-actions">
       <button class="btn soft" data-open-cloud-doc="${d.id}">Abrir documento</button>
-      ${completed&&profile?.role==="admin"&&d.status!=="archived"?`<button class="btn primary" data-archive-doc="${d.id}">Archivar PDF en Drive</button>`:""}
+      ${completed&&d.status!=="archived"?`<button class="btn primary" data-archive-doc="${d.id}">Generar final y archivar en Drive</button>`:""}
       ${d.drive_url?`<a class="btn soft drive-link" href="${d.drive_url}" target="_blank" rel="noopener">Abrir en Drive</a>`:""}
     </div>
   </article>`;
@@ -437,7 +440,10 @@ function bindEvents(){
   $("[data-close-modal='signatureRequestModal']")?.addEventListener("click",()=>closeModal("signatureRequestModal"));
   $$("[data-close-modal]").forEach(btn=>btn.addEventListener("click",()=>closeModal(btn.dataset.closeModal)));
   $("#mySignatureList")?.addEventListener("click",e=>{
-    const id=e.target.closest("[data-open-sign]")?.dataset.openSign;if(id)openSigner(id);
+    const id=e.target.closest("[data-open-sign]")?.dataset.openSign;
+    if(id){openSigner(id);return;}
+    const open=e.target.closest("[data-open-cloud-doc]");
+    if(open)openCloudDocument(open.dataset.openCloudDoc);
   });
   $("#sentSignatureList")?.addEventListener("click",e=>{
     const open=e.target.closest("[data-open-cloud-doc]");if(open){openCloudDocument(open.dataset.openCloudDoc);return;}
