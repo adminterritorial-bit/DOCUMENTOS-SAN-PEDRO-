@@ -384,8 +384,9 @@ function restoreDraft(){
 }
 
 function showPanel(name){
+  closeStudioDrawers();
   ["editor","templates","settings"].forEach(p=>$("#"+p+"Panel").classList.toggle("hidden",p!==name));
-  $$(".rail-btn[data-panel]").forEach(b=>b.classList.toggle("active",b.dataset.panel===name));
+  $(".rail-btn[data-panel]").forEach(b=>b.classList.toggle("active",b.dataset.panel===name));
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
@@ -455,7 +456,30 @@ $$("[data-side-group] .side-group-title").forEach(btn=>{
   btn.addEventListener("click",()=>btn.closest("[data-side-group]")?.classList.toggle("open"));
 });
 
+function isCompactWorkspace(){
+  return window.matchMedia("(max-width: 1279px)").matches;
+}
+
+function closeStudioDrawers(){
+  document.body.classList.remove("config-drawer-open","inspector-drawer-open");
+  $("#focusConfig")?.setAttribute("aria-expanded","false");
+  $("#focusInspector")?.setAttribute("aria-expanded","false");
+}
+
+function toggleStudioDrawer(name){
+  if(!isCompactWorkspace()) return;
+  const config=name==="config";
+  document.body.classList.toggle("config-drawer-open",config && !document.body.classList.contains("config-drawer-open"));
+  document.body.classList.toggle("inspector-drawer-open",!config && !document.body.classList.contains("inspector-drawer-open"));
+  $("#focusConfig")?.setAttribute("aria-expanded",String(document.body.classList.contains("config-drawer-open")));
+  $("#focusInspector")?.setAttribute("aria-expanded",String(document.body.classList.contains("inspector-drawer-open")));
+}
+
 $("#collapseDocumentSidebar")?.addEventListener("click",()=>{
+  if(isCompactWorkspace()){
+    closeStudioDrawers();
+    return;
+  }
   const sidebar=$("#documentSidebar");
   const layout=$(".editor-layout");
   sidebar?.classList.toggle("collapsed");
@@ -468,9 +492,18 @@ $("#focusConfig")?.addEventListener("click",()=>{
   const layout=$(".editor-layout");
   sidebar?.classList.remove("collapsed");
   layout?.classList.remove("sidebar-collapsed");
-  sidebar?.scrollIntoView({behavior:"smooth",block:"start"});
   $("[data-side-group]",sidebar)?.classList.add("open");
+  if(isCompactWorkspace()){
+    toggleStudioDrawer("config");
+  }else{
+    sidebar?.scrollIntoView({behavior:"smooth",block:"start"});
+  }
 });
+
+$("#focusInspector")?.addEventListener("click",()=>toggleStudioDrawer("inspector"));
+$("#closeInspector")?.addEventListener("click",closeStudioDrawers);
+$("#studioBackdrop")?.addEventListener("click",closeStudioDrawers);
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeStudioDrawers();});
 
 $("#templateGrid").addEventListener("click",e=>{
   const type=e.target.closest("[data-use-template]")?.dataset.useTemplate;
@@ -490,11 +523,32 @@ $("#resetDraft").onclick=()=>{
   }
 };
 
-$("#zoom").addEventListener("input",e=>{
-  const z=Number(e.target.value);
-  $("#zoomLabel").textContent=z+"%";
+let zoomTouched=false;
+function applyWorkspaceZoom(value){
+  const z=Math.max(40,Math.min(115,Number(value)||90));
+  const control=$("#zoom");
+  if(control)control.value=String(z);
+  if($("#zoomLabel"))$("#zoomLabel").textContent=z+"%";
   paper.style.transform=`scale(${z/100})`;
   paper.style.marginBottom=`-${Math.max(0,(1-z/100)*paper.scrollHeight)}px`;
+}
+function fitWorkspaceZoom(force=false){
+  if(window.innerWidth>=900){
+    if(force&&!zoomTouched)applyWorkspaceZoom(90);
+    return;
+  }
+  if(zoomTouched&&!force)return;
+  requestAnimationFrame(()=>{
+    const stage=$(".paper-stage");
+    if(!stage)return;
+    const available=Math.max(300,stage.clientWidth-24);
+    const fit=Math.max(40,Math.min(78,Math.floor((available/794)*100)));
+    applyWorkspaceZoom(fit);
+  });
+}
+$("#zoom")?.addEventListener("input",e=>{
+  zoomTouched=true;
+  applyWorkspaceZoom(e.target.value);
 });
 
 $("#exportDocx").onclick=async()=>{
@@ -521,7 +575,11 @@ $("#exportPdf").onclick=async()=>{
   }
 };
 
-window.addEventListener("resize",updatePageCount);
+window.addEventListener("resize",()=>{
+  updatePageCount();
+  if(!isCompactWorkspace())closeStudioDrawers();
+  fitWorkspaceZoom(false);
+});
 window.addEventListener("beforeunload",()=>{if(dirty)saveLocal(true);});
 
 if(!restoreDraft()){
@@ -535,7 +593,10 @@ applyDocumentStyle();
 updateWorkspaceLabels();
 updateFlowProgress();
 initGuidance();
-setTimeout(updatePageCount,180);
+setTimeout(()=>{
+  updatePageCount();
+  fitWorkspaceZoom(true);
+},180);
 
 if("serviceWorker" in navigator){
   navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
