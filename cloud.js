@@ -436,9 +436,110 @@ function readSelectedSignerIds(){
   if(selectedSignerIds.length<1||selectedSignerIds.length>3)throw new Error("Selecciona entre 1 y 3 firmantes.");
   return [...selectedSignerIds];
 }
+function renderPlacementPanel(){
+  const list=$("#placementSignerList");
+  if(!list)return;
+  const ready=selectedSignerIds.filter(id=>signaturePlacements.has(id)).length;
+  if($("#placementProgress"))$("#placementProgress").textContent=`${ready} de ${selectedSignerIds.length} ubicaciones listas`;
+  list.innerHTML=selectedSignerIds.map((id,index)=>{
+    const user=signerDirectoryUser(id);
+    if(!user)return "";
+    const placement=signaturePlacements.get(id);
+    return `<button type="button" class="placement-signer-item ${activePlacementUserId===id?"active":""} ${placement?"ready":""}" data-placement-user="${id}">
+      <span class="placement-order">${index+1}</span>
+      <span><strong>${user.full_name}</strong><small>${placement?`Página ${placement.page_number} · marcado`:"Haz clic para seleccionar y luego ubica el campo"}</small></span>
+      <i>${placement?"✓":"⌖"}</i>
+    </button>`;
+  }).join("");
+}
+function clearPlacementMarkers(){
+  qsa(".signature-placement-marker",ctx.paper).forEach(el=>el.remove());
+}
+function renderPlacementMarkers(){
+  clearPlacementMarkers();
+  selectedSignerIds.forEach((id,index)=>{
+    const placement=signaturePlacements.get(id);
+    if(!placement)return;
+    const user=signerDirectoryUser(id);
+    const page=qsa(".document-page",ctx.paper).find(p=>Number(p.dataset.page)===Number(placement.page_number));
+    if(!page)return;
+    const marker=document.createElement("button");
+    marker.type="button";
+    marker.className="signature-placement-marker"+(activePlacementUserId===id?" active":"");
+    marker.dataset.placementUser=id;
+    marker.style.left=placement.x_pct+"%";
+    marker.style.top=placement.y_pct+"%";
+    marker.style.width=placement.width_pct+"%";
+    marker.style.height=placement.height_pct+"%";
+    marker.innerHTML=`<span class="placement-marker-index">${index+1}</span><span><strong>FIRMA · ${user?.full_name||"Firmante"}</strong><small>Haz clic en otro punto para mover este campo</small></span>`;
+    page.appendChild(marker);
+  });
+}
+function beginPlacementMode(userId=null){
+  if(!selectedSignerIds.length){
+    ctx.toast("Selecciona primero al menos un firmante");
+    return;
+  }
+  activePlacementUserId=userId&&selectedSignerIds.includes(userId)
+    ? userId
+    : selectedSignerIds.find(id=>!signaturePlacements.has(id))||selectedSignerIds[0];
+  placementModeActive=true;
+  document.body.classList.add("signature-placement-mode");
+  closeModal("signatureRequestModal");
+  $("#signaturePlacementPanel")?.classList.remove("hidden");
+  renderPlacementPanel();
+  renderPlacementMarkers();
+  const existing=signaturePlacements.get(activePlacementUserId);
+  if(existing){
+    qsa(".document-page",ctx.paper).find(p=>Number(p.dataset.page)===Number(existing.page_number))?.scrollIntoView({behavior:"smooth",block:"center"});
+  }else{
+    qsa(".document-page",ctx.paper)[0]?.scrollIntoView({behavior:"smooth",block:"center"});
+  }
+}
+function finishPlacementMode(){
+  placementModeActive=false;
+  document.body.classList.remove("signature-placement-mode");
+  $("#signaturePlacementPanel")?.classList.add("hidden");
+  renderPlacementMarkers();
+  openModal("signatureRequestModal");
+  renderSelectedSigners();
+}
+function placeSignatureField(event,page){
+  if(!placementModeActive||!activePlacementUserId)return;
+  const rect=page.getBoundingClientRect();
+  if(!rect.width||!rect.height)return;
+  const width=28;
+  const height=9;
+  const rawX=((event.clientX-rect.left)/rect.width)*100-width/2;
+  const rawY=((event.clientY-rect.top)/rect.height)*100-height/2;
+  const x=Math.max(1,Math.min(99-width,rawX));
+  const y=Math.max(1,Math.min(99-height,rawY));
+  signaturePlacements.set(activePlacementUserId,{
+    page_number:Number(page.dataset.page)||1,
+    x_pct:Number(x.toFixed(3)),
+    y_pct:Number(y.toFixed(3)),
+    width_pct:width,
+    height_pct:height
+  });
+  const next=selectedSignerIds.find(id=>!signaturePlacements.has(id));
+  if(next)activePlacementUserId=next;
+  renderPlacementPanel();
+  renderPlacementMarkers();
+  renderSelectedSigners();
+}
+function signatureFlowPayload(){
+  const ids=readSelectedSignerIds();
+  if(!placementComplete())throw new Error("Debes marcar en el documento dónde firma cada usuario.");
+  return ids.map(id=>{
+    const placement=signaturePlacements.get(id);
+    return {user_id:id,...placement};
+  });
+}
 async function openSendModal(){
   if(!session){openModal("authOverlay");return;}
   selectedSignerIds=[];
+  signaturePlacements=new Map();
+  activePlacementUserId=null;
   const meta=currentDocumentMeta();
   $("#signatureDocumentSummary").innerHTML=`
     <div><span>Documento</span><strong>${meta.title}</strong></div>
@@ -461,17 +562,17 @@ async function sendToSignatures(){
   const btn=$("#confirmSendToSignatures");
   try{
     setBusy(btn,true,"Creando solicitud…");
-    const signerIds=readSelectedSignerIds();
+    const signers=signatureFlowPayload();
     const {snapshot,hash}=await currentHash();
     const meta=currentDocumentMeta();
 
-    const {data:flow,error:flowError}=await supabase.rpc("docsys_start_signature_flow",{
+    const {data:flow,error:flowError}=await supabase.rpc("docsys_start_signature_flow_v2",{
       p_title:meta.title,
       p_document_type:meta.document_type,
       p_document_number:meta.document_number,
       p_trd_code:meta.trd_code,
       p_content_snapshot:snapshot,
-      p_signer_user_ids:signerIds,
+      p_signers:signers,
       p_signing_mode:$("#signatureMode").value
     });
     if(flowError){
@@ -488,6 +589,7 @@ async function sendToSignatures(){
     }
 
     closeModal("signatureRequestModal");
+    clearPlacementMarkers();
     sessionStorage.setItem("docsys-opened-cloud-document",flow.document_id);
     setEditorLocked(true,"signing");
     ctx.showPanel("signatures");
