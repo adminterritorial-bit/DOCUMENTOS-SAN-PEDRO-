@@ -397,7 +397,7 @@
       <div class="modal-head"><div><span class="eyebrow">FIRMA ELECTRÓNICA</span><h2 id="signDocumentTitle">Revisar y firmar documento</h2></div><button class="modal-close" data-close-modal="signDocumentModal" type="button">×</button></div>
       <div id="signDocumentInfo" class="sign-document-info"></div>
       <div class="signature-verification-box">
-        <div class="verification-step"><span>1</span><div><strong>Identidad Google institucional</strong><small id="signIdentityStatus">Se verificará con tu sesión.</small></div></div>
+        <div class="verification-step"><span>1</span><div><strong>Identidad de usuario autenticado</strong><small id="signIdentityStatus">Se verificará con tu sesión activa.</small></div></div>
         <div class="verification-step"><span>2</span><div><strong>Código de un solo uso</strong><small>Se enviará a tu correo institucional y vence en 10 minutos.</small></div></div>
         <div class="verification-step"><span>3</span><div><strong>Integridad SHA-256</strong><small>La firma solo se registra si el documento conserva exactamente el mismo hash.</small></div></div>
       </div>
@@ -406,7 +406,7 @@
         <label><span>Código de 6 dígitos</span><input id="signatureOtpCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000"></label>
       </div>
       <div class="signature-consent">
-        <label><input type="checkbox" id="signatureConsent"> <span>Declaro que revisé el documento, que el contenido corresponde a mi voluntad y que acepto utilizar el mecanismo institucional de <b>firma electrónica FE-1.0-2026</b>, basado en identidad Google institucional, código de un solo uso, integridad SHA-256 y registro de evidencia. Este mecanismo se implementa bajo la Ley 527 de 1999 y el régimen de firma electrónica compilado en el Decreto 1074 de 2015.</span></label>
+        <label><input type="checkbox" id="signatureConsent"> <span>Declaro que revisé el documento, que el contenido corresponde a mi voluntad y que acepto utilizar el mecanismo institucional de <b>firma electrónica FE-1.0-2026</b>, basado en una cuenta autenticada y habilitada, código de un solo uso, integridad SHA-256 y registro de evidencia. Este mecanismo se implementa bajo la Ley 527 de 1999 y el régimen de firma electrónica compilado en el Decreto 1074 de 2015.</span></label>
         <small class="signature-legal-caption">La aceptación, la identidad utilizada, el hash del documento, la fecha y el código de evidencia quedan vinculados al evento de firma.</small>
       </div>
       <div class="modal-actions"><button class="btn soft" data-close-modal="signDocumentModal" type="button">Cancelar</button><button class="btn primary" id="confirmElectronicSignature" type="button" disabled>Firmar documento</button></div>
