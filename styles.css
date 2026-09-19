@@ -1038,3 +1038,84 @@ body.easy-mode .doc-block:hover>.quick-add{opacity:1}
     page-break-inside:avoid!important;
   }
 }
+
+
+/* =========================================================
+   TRUE PAGE EDGE HEADER + FOOTER V8
+   Institutional header/footer live in the physical page margins.
+   The body remains between both regions and can never push them.
+   ========================================================= */
+.document-stack{
+  --institutional-header-edge:8mm;
+  --institutional-footer-edge:8mm;
+}
+.document-stack>.document-page .page-inner{
+  box-sizing:border-box!important;
+  width:100%!important;
+  height:100%!important;
+  padding:var(--institutional-header-edge) var(--page-margin) var(--institutional-footer-edge)!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  grid-template-rows:auto auto minmax(0,1fr) auto!important;
+  align-items:stretch!important;
+  overflow:hidden!important;
+}
+.document-page .institutional-header{
+  grid-row:1!important;
+  align-self:start!important;
+  width:100%!important;
+  margin:0!important;
+  padding:0!important;
+  position:relative!important;
+  top:auto!important;
+  bottom:auto!important;
+}
+.document-page .institutional-header table{
+  width:100%!important;
+  margin:0!important;
+  border-collapse:collapse!important;
+  table-layout:fixed!important;
+}
+.document-page .trd-line{
+  grid-row:2!important;
+  width:100%!important;
+  margin:1.4mm 0 2.8mm!important;
+  padding:0!important;
+}
+.document-page .page-content{
+  grid-row:3!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  margin:0!important;
+  padding:0!important;
+}
+.document-page .institutional-footer{
+  grid-row:4!important;
+  align-self:end!important;
+  width:100%!important;
+  margin:3mm 0 0!important;
+  padding:0!important;
+  position:relative!important;
+  top:auto!important;
+  bottom:auto!important;
+}
+.document-page .approval-table{
+  margin:0!important;
+}
+.document-page .contact-line{
+  margin-top:1.8mm!important;
+  margin-bottom:0!important;
+}
+@media print{
+  .document-stack>.document-page .page-inner{
+    padding:var(--institutional-header-edge) var(--page-margin) var(--institutional-footer-edge)!important;
+    display:grid!important;
+    grid-template-rows:auto auto minmax(0,1fr) auto!important;
+  }
+  .document-page .institutional-header{
+    align-self:start!important;
+  }
+  .document-page .institutional-footer{
+    align-self:end!important;
+  }
+}
