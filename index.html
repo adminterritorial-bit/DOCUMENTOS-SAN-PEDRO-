@@ -8,28 +8,37 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./styles.css">
 </head>
-<body>
+<body class="premium-v4">
   <div class="ambient ambient-a"></div>
   <div class="ambient ambient-b"></div>
 
-  <aside class="rail" aria-label="Navegación">
-    <button class="rail-brand" id="railHome" title="Sistema documental"><span>SP</span></button>
-    <button class="rail-btn active" data-panel="editor" title="Documento">▤</button>
-    <button class="rail-btn" data-panel="templates" title="Plantillas">▦</button>
-    <button class="rail-btn" data-panel="settings" title="Configuración">⚙</button>
+  <aside class="rail" aria-label="Navegación principal">
+    <button class="rail-brand" id="railHome" title="Editor documental">SP</button>
+    <button class="rail-btn active" data-panel="editor" title="Editor"><span>▤</span><small>Editor</small></button>
+    <button class="rail-btn" data-panel="templates" title="Plantillas"><span>▦</span><small>Plantillas</small></button>
+    <button class="rail-btn" data-panel="settings" title="Sistema"><span>⚙</span><small>Sistema</small></button>
     <div class="rail-spacer"></div>
-    <button class="rail-btn" id="resetDraft" title="Nuevo documento">＋</button>
+    <button class="rail-btn" id="resetDraft" title="Nuevo documento"><span>＋</span><small>Nuevo</small></button>
   </aside>
 
   <div class="app">
-    <header class="topbar">
+    <header class="topbar premium-topbar">
       <div class="product">
         <img id="topLogo" alt="Escudo de San Pedro">
         <div>
           <span class="product-kicker">ALCALDÍA MUNICIPAL DE SAN PEDRO · VALLE</span>
-          <h1>Sistema Maestro Documental</h1>
+          <div class="product-title-row">
+            <h1>Sistema Maestro Documental</h1>
+            <span class="premium-badge">DOCUMENT STUDIO</span>
+          </div>
         </div>
       </div>
+
+      <div class="top-center">
+        <span class="workspace-dot"></span>
+        <div><strong id="activeDocLabel">Documento en edición</strong><small>Autoguardado activo</small></div>
+      </div>
+
       <div class="status-cluster">
         <span class="save-status" id="saveStatus"><i></i> Guardado local</span>
         <button class="btn soft" id="saveDraft">Guardar</button>
@@ -38,194 +47,246 @@
       </div>
     </header>
 
-    <main>
-      <section id="editorPanel" class="panel-screen">
-        <div class="config-card">
-          <div class="config-head">
-            <div>
-              <span class="eyebrow">CONFIGURACIÓN DEL DOCUMENTO</span>
-              <h2>Documento y formato</h2>
-            </div>
-            <button class="link-btn" id="toggleAdvanced">Ocultar configuración institucional</button>
-          </div>
-
-          <div class="config-grid primary-config">
-            <label><span>Tipo de documento</span>
-              <select id="docType"></select>
-            </label>
-            <label><span>Número</span><input id="docNumber" value="001"></label>
-            <label><span>Fecha</span><input id="docDate" type="date"></label>
-            <label class="accent-field"><span>Código TRD</span><input id="trdCode" value="200-11"></label>
-            <label><span>Fuente</span>
-              <select id="fontFamily"><option>Century Gothic</option><option>Arial</option><option>Calibri</option><option>Times New Roman</option></select>
-            </label>
-            <label><span>Tamaño</span><input id="fontSize" type="number" min="9" max="16" step=".5" value="11"></label>
-            <label><span>Interlineado</span>
-              <select id="lineHeight"><option value="1.15">1.15</option><option value="1.5" selected>1.5</option><option value="2">2.0</option></select>
-            </label>
-            <label><span>Márgenes</span>
-              <select id="marginPreset"><option value="2.54">APA 7 · 2,54 cm</option><option value="2.5">Institucional · 2,5 cm</option><option value="3">Amplio · 3 cm</option></select>
-            </label>
-          </div>
-
-          <div id="advancedConfig" class="advanced-config open">
-            <div class="advanced-title"><span>Datos del encabezado y pie</span><small>Todos se pueden editar también haciendo clic directamente sobre el documento.</small></div>
-            <div class="config-grid">
-              <label><span>Nombre del formato</span><input id="formatName" value="ACTO ADMINISTRATIVO"></label>
-              <label><span>Proceso</span><input id="processName" value="PLANEACIÓN Y DIRECCIONAMIENTO ESTRATÉGICO"></label>
-              <label><span>Responsable</span><input id="responsibleName" value="LÍDER DEL PROCESO"></label>
-              <label><span>Código del formato</span><input id="formatCode" value="GD-FT-10"></label>
-              <label><span>Fecha de emisión</span><input id="formatIssueDate" value="03/06/2016"></label>
-              <label><span>Versión</span><input id="formatVersion" value="2"></label>
-              <label><span>NIT</span><input id="municipalityNit" value="800.100.526-3"></label>
-              <label><span>Proyectó</span><input id="projectedBy" value="Einar González Bedoya"></label>
-              <label><span>Revisó</span><input id="reviewedBy" value="Franklin Muriel García"></label>
-              <label><span>Aprobó</span><input id="approvedBy" value="Diego Fernando Mendoza Tascón"></label>
-              <label><span>Dirección</span><input id="address" value="Calle 5 # 3-85"></label>
-              <label><span>Teléfono</span><input id="phone" value="(602) 223 8356"></label>
-              <label><span>Sitio web</span><input id="website" value="www.sanpedro-valle.gov.co"></label>
-              <label><span>Correo</span><input id="email" value="alcaldia@sanpedro-valle.gov.co"></label>
-              <label><span>Código postal</span><input id="postalCode" value="763030"></label>
-            </div>
-          </div>
-        </div>
-
-        <div class="editor-ribbon" id="editorRibbon">
-          <div class="ribbon-group">
-            <span class="ribbon-label">Texto</span>
-            <button data-cmd="bold" title="Negrita"><b>N</b></button>
-            <button data-cmd="italic" title="Cursiva"><i>K</i></button>
-            <button data-cmd="underline" title="Subrayado"><u>S</u></button>
-            <button data-cmd="justifyLeft" title="Alinear a la izquierda">≡</button>
-            <button data-cmd="justifyCenter" title="Centrar">≣</button>
-            <button data-cmd="justifyFull" title="Justificar">☰</button>
-          </div>
-          <div class="ribbon-divider"></div>
-          <div class="ribbon-group grow">
-            <span class="ribbon-label">Insertar bloque</span>
-            <button data-add="title">Título</button>
-            <button data-add="subtitle">Subtítulo</button>
-            <button data-add="paragraph">Texto</button>
-            <button data-add="list">Lista</button>
-            <button data-add="table">Tabla</button>
-            <button data-add="kpi">KPI</button>
-            <button data-add="considerando">Considerando</button>
-            <button data-add="resolutiva">Decreta / Resuelve</button>
-            <button data-add="article">Artículo</button>
-            <button data-add="paragraph-article">Parágrafo</button>
-            <button data-add="toc">Índice</button>
-            <button data-add="timeline">Cronograma</button>
-            <button data-add="matrix">Matriz</button>
-            <button data-add="callout">Nota</button>
-            <button data-add="signature">Firma</button>
-            <button data-add="pagebreak">Salto</button>
-          </div>
-        </div>
-
-        <div class="workbench">
-          <div class="canvas-column">
-            <div class="canvas-topline">
+    <main class="premium-main">
+      <section id="editorPanel" class="panel-screen editor-screen">
+        <div class="editor-layout">
+          <aside class="document-sidebar" id="documentSidebar">
+            <div class="sidebar-head">
               <div>
-                <strong>Editor institucional directo</strong>
-                <span>Todo el texto visible puede editarse. La numeración de página es automática por hoja en Word/PDF.</span>
+                <span class="eyebrow">CONFIGURACIÓN</span>
+                <h2>Documento</h2>
               </div>
-              <div class="zoom-control"><span id="zoomLabel">90%</span><input id="zoom" type="range" min="65" max="110" value="90"></div>
+              <button class="sidebar-collapse" id="collapseDocumentSidebar" title="Contraer configuración">‹</button>
             </div>
 
-            <article class="paper" id="paper"><div id="pageMarkers" class="page-markers" contenteditable="false"></div>
-              <header class="institutional-header">
-                <table>
-                  <tr>
-                    <td class="logo-cell" rowspan="3">
-                      <img id="documentLogo" alt="Escudo Alcaldía de San Pedro">
-                      <div class="municipality-caption editable" contenteditable="true">ALCALDÍA MUNICIPAL<br>DE SAN PEDRO, VALLE<br>NIT. <span data-bind="municipalityNit">800.100.526-3</span></div>
-                    </td>
-                    <td class="meta-cell"><b class="editable-label" contenteditable="true">Nombre:</b> <span class="editable inline-edit" contenteditable="true" data-bind="formatName">ACTO ADMINISTRATIVO</span></td>
-                    <td class="side-cell"><b class="editable-label" contenteditable="true">Código:</b> <span class="editable inline-edit" contenteditable="true" data-bind="formatCode">GD-FT-10</span></td>
-                  </tr>
-                  <tr>
-                    <td class="meta-cell"><b class="editable-label" contenteditable="true">Proceso:</b> <span class="editable inline-edit" contenteditable="true" data-bind="processName">PLANEACIÓN Y DIRECCIONAMIENTO ESTRATÉGICO</span></td>
-                    <td class="side-cell"><b class="editable-label" contenteditable="true">Fecha de emisión:</b> <span class="editable inline-edit" contenteditable="true" data-bind="formatIssueDate">03/06/2016</span></td>
-                  </tr>
-                  <tr>
-                    <td class="meta-cell"><b class="editable-label" contenteditable="true">Responsable:</b> <span class="editable inline-edit" contenteditable="true" data-bind="responsibleName">LÍDER DEL PROCESO</span></td>
-                    <td class="side-cell"><b class="editable-label" contenteditable="true">Versión:</b> <span class="editable inline-edit" contenteditable="true" data-bind="formatVersion">2</span><br><b class="editable-label" contenteditable="true">Página:</b> <span class="auto-page-current">1</span> de <span class="auto-page-total">1</span> <small class="page-auto-note">· automático</small></td>
-                  </tr>
-                </table>
-              </header>
-
-              <div class="trd-line"><b class="editable-label" contenteditable="true">CÓDIGO TRD:</b> <span class="editable inline-edit" contenteditable="true" data-bind="trdCode">200-11</span></div>
-              <div class="document-identity">
-                <div class="doc-number-line">
-                  <span class="editable" contenteditable="true" id="docTitleText">DECRETO</span>
-                  <span class="editable" contenteditable="true" id="docNumberToken">No.</span>
-                  <span class="editable" contenteditable="true" data-bind="docNumber">001</span>
+            <div class="sidebar-scroll">
+              <div class="sidebar-summary">
+                <div class="summary-icon">DOC</div>
+                <div>
+                  <strong id="sidebarDocName">Documento institucional</strong>
+                  <span>Metadatos, formato y bloques</span>
                 </div>
-                <div class="editable doc-date-line" contenteditable="true" id="docDateText"></div>
               </div>
 
-              <div class="block-root" id="blockRoot"></div>
-
-              <footer class="institutional-footer">
-                <table class="approval-table">
-                  <tr>
-                    <td><b class="editable" contenteditable="true">PROYECTÓ:</b> <span class="editable inline-edit" contenteditable="true" data-bind="projectedBy">Einar González Bedoya</span></td>
-                    <td><b class="editable" contenteditable="true">REVISÓ:</b> <span class="editable inline-edit" contenteditable="true" data-bind="reviewedBy">Franklin Muriel García</span></td>
-                    <td><b class="editable" contenteditable="true">APROBÓ:</b> <span class="editable inline-edit" contenteditable="true" data-bind="approvedBy">Diego Fernando Mendoza Tascón</span></td>
-                  </tr>
-                </table>
-                <div class="contact-line editable" contenteditable="true">
-                  Dirección: <span data-bind="address">Calle 5 # 3-85</span>. Teléfono: <span data-bind="phone">(602) 223 8356</span>.<br>
-                  <span data-bind="website">www.sanpedro-valle.gov.co</span> / <span data-bind="email">alcaldia@sanpedro-valle.gov.co</span> - Código Postal: <span data-bind="postalCode">763030</span>
+              <section class="side-group open" data-side-group>
+                <button class="side-group-title" type="button"><span><i>01</i> Documento</span><b>⌄</b></button>
+                <div class="side-group-body">
+                  <label><span>Tipo de documento</span><select id="docType"></select></label>
+                  <div class="field-row">
+                    <label><span>Número</span><input id="docNumber" value="001"></label>
+                    <label><span>Fecha</span><input id="docDate" type="date"></label>
+                  </div>
+                  <label class="accent-field"><span>Código TRD</span><input id="trdCode" value="200-11"></label>
                 </div>
-              </footer>
-            </article>
+              </section>
+
+              <section class="side-group open" data-side-group>
+                <button class="side-group-title" type="button"><span><i>02</i> Formato y márgenes</span><b>⌄</b></button>
+                <div class="side-group-body">
+                  <label><span>Fuente</span>
+                    <select id="fontFamily"><option>Century Gothic</option><option>Arial</option><option>Calibri</option><option>Times New Roman</option></select>
+                  </label>
+                  <div class="field-row">
+                    <label><span>Tamaño</span><input id="fontSize" type="number" min="9" max="16" step=".5" value="11"></label>
+                    <label><span>Interlineado</span>
+                      <select id="lineHeight"><option value="1.15">1.15</option><option value="1.5" selected>1.5</option><option value="2">2.0</option></select>
+                    </label>
+                  </div>
+                  <label><span>Márgenes de página</span>
+                    <select id="marginPreset">
+                      <option value="2.54">APA 7 · 2,54 cm en los 4 lados</option>
+                      <option value="2.5">Institucional · 2,50 cm en los 4 lados</option>
+                      <option value="3">Amplio · 3,00 cm en los 4 lados</option>
+                    </select>
+                  </label>
+                  <div class="margin-lock"><span>✓</span><div><strong>Margen protegido</strong><small>Se aplica arriba, abajo, izquierda y derecha en todos los formatos y exportaciones.</small></div></div>
+                </div>
+              </section>
+
+              <section class="side-group" data-side-group>
+                <button class="side-group-title" type="button"><span><i>03</i> Encabezado</span><b>⌄</b></button>
+                <div class="side-group-body">
+                  <label><span>Nombre del formato</span><input id="formatName" value="ACTO ADMINISTRATIVO"></label>
+                  <label><span>Proceso</span><input id="processName" value="PLANEACIÓN Y DIRECCIONAMIENTO ESTRATÉGICO"></label>
+                  <label><span>Responsable</span><input id="responsibleName" value="LÍDER DEL PROCESO"></label>
+                  <div class="field-row">
+                    <label><span>Código</span><input id="formatCode" value="GD-FT-10"></label>
+                    <label><span>Versión</span><input id="formatVersion" value="2"></label>
+                  </div>
+                  <label><span>Fecha de emisión</span><input id="formatIssueDate" value="03/06/2016"></label>
+                  <label><span>NIT</span><input id="municipalityNit" value="800.100.526-3"></label>
+                </div>
+              </section>
+
+              <section class="side-group" data-side-group>
+                <button class="side-group-title" type="button"><span><i>04</i> Pie y aprobación</span><b>⌄</b></button>
+                <div class="side-group-body">
+                  <label><span>Proyectó</span><input id="projectedBy" value="Einar González Bedoya"></label>
+                  <label><span>Revisó</span><input id="reviewedBy" value="Franklin Muriel García"></label>
+                  <label><span>Aprobó</span><input id="approvedBy" value="Diego Fernando Mendoza Tascón"></label>
+                  <label><span>Dirección</span><input id="address" value="Calle 5 # 3-85"></label>
+                  <div class="field-row">
+                    <label><span>Teléfono</span><input id="phone" value="(602) 223 8356"></label>
+                    <label><span>Código postal</span><input id="postalCode" value="763030"></label>
+                  </div>
+                  <label><span>Sitio web</span><input id="website" value="www.sanpedro-valle.gov.co"></label>
+                  <label><span>Correo</span><input id="email" value="alcaldia@sanpedro-valle.gov.co"></label>
+                </div>
+              </section>
+
+              <section class="side-group open builder-group" data-side-group>
+                <button class="side-group-title" type="button"><span><i>＋</i> Insertar contenido</span><b>⌄</b></button>
+                <div class="side-group-body">
+                  <div class="block-palette" id="sidebarBlockPalette">
+                    <button data-add="title"><strong>T</strong><span>Título</span></button>
+                    <button data-add="subtitle"><strong>ST</strong><span>Subtítulo</span></button>
+                    <button data-add="paragraph"><strong>¶</strong><span>Texto</span></button>
+                    <button data-add="list"><strong>•</strong><span>Lista</span></button>
+                    <button data-add="table"><strong>▦</strong><span>Tabla</span></button>
+                    <button data-add="kpi"><strong>%</strong><span>KPI</span></button>
+                    <button data-add="considerando"><strong>C</strong><span>Considerando</span></button>
+                    <button data-add="resolutiva"><strong>R</strong><span>Resuelve</span></button>
+                    <button data-add="article"><strong>A</strong><span>Artículo</span></button>
+                    <button data-add="paragraph-article"><strong>P</strong><span>Parágrafo</span></button>
+                    <button data-add="toc"><strong>≡</strong><span>Índice</span></button>
+                    <button data-add="timeline"><strong>↔</strong><span>Cronograma</span></button>
+                    <button data-add="matrix"><strong>▥</strong><span>Matriz</span></button>
+                    <button data-add="callout"><strong>!</strong><span>Nota</span></button>
+                    <button data-add="signature"><strong>✎</strong><span>Firma</span></button>
+                    <button data-add="pagebreak"><strong>↧</strong><span>Salto</span></button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </aside>
+
+          <div class="editor-center">
+            <div class="editor-ribbon premium-ribbon" id="editorRibbon">
+              <div class="ribbon-context">
+                <span class="context-dot"></span>
+                <div><strong>Edición directa</strong><small>Selecciona texto o un bloque</small></div>
+              </div>
+              <div class="ribbon-divider"></div>
+              <div class="ribbon-group">
+                <span class="ribbon-label">Texto</span>
+                <button data-cmd="bold" title="Negrita"><b>N</b></button>
+                <button data-cmd="italic" title="Cursiva"><i>K</i></button>
+                <button data-cmd="underline" title="Subrayado"><u>S</u></button>
+                <button data-cmd="justifyLeft" title="Izquierda">≡</button>
+                <button data-cmd="justifyCenter" title="Centrar">≣</button>
+                <button data-cmd="justifyFull" title="Justificar">☰</button>
+              </div>
+              <div class="ribbon-divider"></div>
+              <div class="ribbon-group ribbon-shortcuts">
+                <button data-add="paragraph">+ Texto</button>
+                <button data-add="table">+ Tabla</button>
+                <button data-add="article">+ Artículo</button>
+                <button data-add="title">+ Sección</button>
+              </div>
+            </div>
+
+            <div class="canvas-topline premium-canvasbar">
+              <div class="canvas-breadcrumb"><span>Documento</span><b>›</b><strong id="canvasDocType">Editor</strong></div>
+              <div class="canvas-tools">
+                <button class="mini-action" id="focusConfig">Configuración</button>
+                <div class="zoom-control"><span id="zoomLabel">90%</span><input id="zoom" type="range" min="65" max="110" value="90"></div>
+              </div>
+            </div>
+
+            <div class="paper-stage">
+              <article class="paper" id="paper">
+                <div id="pageMarkers" class="page-markers" contenteditable="false"></div>
+                <header class="institutional-header">
+                  <table>
+                    <tr>
+                      <td class="logo-cell" rowspan="3">
+                        <img id="documentLogo" alt="Escudo Alcaldía de San Pedro">
+                        <div class="municipality-caption editable" contenteditable="true">ALCALDÍA MUNICIPAL<br>DE SAN PEDRO, VALLE<br>NIT. <span data-bind="municipalityNit">800.100.526-3</span></div>
+                      </td>
+                      <td class="meta-cell"><b class="editable-label" contenteditable="true">Nombre:</b> <span class="editable inline-edit" contenteditable="true" data-bind="formatName">ACTO ADMINISTRATIVO</span></td>
+                      <td class="side-cell"><b class="editable-label" contenteditable="true">Código:</b> <span class="editable inline-edit" contenteditable="true" data-bind="formatCode">GD-FT-10</span></td>
+                    </tr>
+                    <tr>
+                      <td class="meta-cell"><b class="editable-label" contenteditable="true">Proceso:</b> <span class="editable inline-edit" contenteditable="true" data-bind="processName">PLANEACIÓN Y DIRECCIONAMIENTO ESTRATÉGICO</span></td>
+                      <td class="side-cell"><b class="editable-label" contenteditable="true">Fecha de emisión:</b> <span class="editable inline-edit" contenteditable="true" data-bind="formatIssueDate">03/06/2016</span></td>
+                    </tr>
+                    <tr>
+                      <td class="meta-cell"><b class="editable-label" contenteditable="true">Responsable:</b> <span class="editable inline-edit" contenteditable="true" data-bind="responsibleName">LÍDER DEL PROCESO</span></td>
+                      <td class="side-cell"><b class="editable-label" contenteditable="true">Versión:</b> <span class="editable inline-edit" contenteditable="true" data-bind="formatVersion">2</span><br><b class="editable-label" contenteditable="true">Página:</b> <span class="auto-page-current">1</span> de <span class="auto-page-total">1</span> <small class="page-auto-note">· automático</small></td>
+                    </tr>
+                  </table>
+                </header>
+
+                <div class="trd-line"><b class="editable-label" contenteditable="true">CÓDIGO TRD:</b> <span class="editable inline-edit" contenteditable="true" data-bind="trdCode">200-11</span></div>
+                <div class="document-identity">
+                  <div class="doc-number-line">
+                    <span class="editable" contenteditable="true" id="docTitleText">DECRETO</span>
+                    <span class="editable" contenteditable="true" id="docNumberToken">No.</span>
+                    <span class="editable" contenteditable="true" data-bind="docNumber">001</span>
+                  </div>
+                  <div class="editable doc-date-line" contenteditable="true" id="docDateText"></div>
+                </div>
+
+                <div class="block-root" id="blockRoot"></div>
+
+                <footer class="institutional-footer">
+                  <table class="approval-table">
+                    <tr>
+                      <td><b class="editable" contenteditable="true">PROYECTÓ:</b> <span class="editable inline-edit" contenteditable="true" data-bind="projectedBy">Einar González Bedoya</span></td>
+                      <td><b class="editable" contenteditable="true">REVISÓ:</b> <span class="editable inline-edit" contenteditable="true" data-bind="reviewedBy">Franklin Muriel García</span></td>
+                      <td><b class="editable" contenteditable="true">APROBÓ:</b> <span class="editable inline-edit" contenteditable="true" data-bind="approvedBy">Diego Fernando Mendoza Tascón</span></td>
+                    </tr>
+                  </table>
+                  <div class="contact-line editable" contenteditable="true">
+                    Dirección: <span data-bind="address">Calle 5 # 3-85</span>. Teléfono: <span data-bind="phone">(602) 223 8356</span>.<br>
+                    <span data-bind="website">www.sanpedro-valle.gov.co</span> / <span data-bind="email">alcaldia@sanpedro-valle.gov.co</span> - Código Postal: <span data-bind="postalCode">763030</span>
+                  </div>
+                </footer>
+              </article>
+            </div>
           </div>
 
-          <aside class="inspector">
-            <div class="inspector-card inspector-highlight">
-              <span class="eyebrow">CONSTRUCTOR DEL DOCUMENTO</span>
-              <h3>Selecciona una sección y agrega lo que necesites</h3>
-              <p>Después de un título, subtítulo, texto o artículo puedes insertar texto, lista, KPI, tabla, matriz, cronograma, nota, artículo o parágrafo. Los bloques se pueden ordenar, duplicar y eliminar.</p>
-            </div>
-            <div class="inspector-card">
-              <span class="eyebrow">AYUDA RÁPIDA</span>
-              <h3>Documento totalmente editable</h3>
-              <p>Selecciona un texto y escribe directamente. Los bloques se pueden mover, duplicar o eliminar al pasar el cursor sobre ellos.</p>
-            </div>
-            <div class="inspector-card">
-              <span class="eyebrow">PÁGINAS</span>
-              <div class="page-stat"><strong id="pageCount">1</strong><span>página(s) estimadas</span></div>
-              <p>En Word la numeración se genera con campos automáticos de página y total de páginas.</p>
-            </div>
-            <div class="inspector-card">
-              <span class="eyebrow">ESTRUCTURA</span>
-              <div id="outline" class="outline"></div>
+          <aside class="inspector premium-inspector">
+            <div class="inspector-sticky">
+              <div class="inspector-card selected-card">
+                <span class="eyebrow">SELECCIÓN ACTUAL</span>
+                <div id="selectedBlockInfo" class="selected-block-info"><strong>Documento</strong><span>Selecciona un bloque para ubicarte y trabajar con precisión.</span></div>
+              </div>
+              <div class="inspector-card">
+                <div class="inspector-card-head"><span class="eyebrow">PÁGINAS</span><span class="status-pill">AUTO</span></div>
+                <div class="page-stat"><strong id="pageCount">1</strong><span>página(s) estimadas</span></div>
+                <p>La exportación Word usa campos automáticos PAGE / NUMPAGES.</p>
+              </div>
+              <div class="inspector-card outline-card">
+                <div class="inspector-card-head"><span class="eyebrow">NAVEGACIÓN</span><span class="status-pill subtle">ÍNDICE</span></div>
+                <h3>Estructura del documento</h3>
+                <div id="outline" class="outline"></div>
+              </div>
+              <div class="inspector-card tips-card">
+                <span class="eyebrow">FLUJO</span>
+                <p>Configura → estructura → revisa → exporta. La configuración permanece siempre disponible en la izquierda.</p>
+              </div>
             </div>
           </aside>
         </div>
       </section>
 
       <section id="templatesPanel" class="panel-screen hidden">
-        <div class="section-heading">
-          <div><span class="eyebrow">BIBLIOTECA</span><h2>Plantillas institucionales</h2><p>Selecciona una base; después todo el contenido queda editable.</p></div>
+        <div class="section-heading premium-section-heading">
+          <div><span class="eyebrow">BIBLIOTECA INSTITUCIONAL</span><h2>Plantillas documentales</h2><p>Selecciona una base estructurada. Todo queda editable después.</p></div>
         </div>
-        <div id="templateGrid" class="template-grid"></div>
+        <div id="templateGrid" class="template-grid premium-template-grid"></div>
       </section>
 
       <section id="settingsPanel" class="panel-screen hidden">
-        <div class="section-heading">
-          <div><span class="eyebrow">PREFERENCIAS</span><h2>Configuración institucional</h2><p>Los datos principales se administran desde el panel del documento para mantenerlos siempre visibles.</p></div>
+        <div class="section-heading premium-section-heading">
+          <div><span class="eyebrow">SISTEMA</span><h2>Reglas de trabajo</h2><p>El editor está diseñado para mantener formato, TRD, estructura y márgenes bajo control.</p></div>
         </div>
-        <div class="settings-surface">
-          <h3>Reglas activas del sistema</h3>
-          <ul>
-            <li>Asuntos presentados automáticamente entre comillas tipográficas.</li>
-            <li>TRD, nombre, proceso, responsable, código, emisión, versión y pie completamente editables.</li>
-            <li>Paginación automática en la exportación Word.</li>
-            <li>Plantillas modulares para documentos administrativos, planes, políticas y formato libre.</li>
-            <li>Borrador local automático para evitar pérdida de trabajo.</li>
-          </ul>
+        <div class="settings-surface premium-settings">
+          <div class="system-rule"><strong>Márgenes</strong><span>Se aplican de forma uniforme en los cuatro lados en vista, Word y PDF.</span></div>
+          <div class="system-rule"><strong>Paginación</strong><span>Automática en Word y estimada visualmente en el editor.</span></div>
+          <div class="system-rule"><strong>Estructura</strong><span>Contenido modular por títulos, textos, listas, tablas, KPI, matrices, artículos y más.</span></div>
+          <div class="system-rule"><strong>Edición</strong><span>Metadatos y contenido editables desde la barra lateral o directamente sobre la hoja.</span></div>
         </div>
       </section>
     </main>
