@@ -73,6 +73,31 @@ function authMessage(message){
   box.textContent=message||"";
   box.classList.toggle("hidden",!message);
 }
+function renderProviderStatus(state,message,detail){
+  const box=$("#authProviderStatus");
+  if(!box)return;
+  box.className="auth-provider-status "+state;
+  box.innerHTML=`<span></span><div><strong>${message}</strong><small>${detail||""}</small></div>`;
+}
+async function getGoogleProviderStatus(){
+  try{
+    const res=await fetch(SUPABASE_URL+"/auth/v1/settings",{
+      headers:{apikey:SUPABASE_PUBLISHABLE_KEY,"x-client-info":"documentos-san-pedro"}
+    });
+    if(!res.ok)throw new Error("No fue posible leer la configuración de Auth");
+    const data=await res.json();
+    const enabled=Boolean(data?.external?.google);
+    renderProviderStatus(
+      enabled?"is-ready":"is-blocked",
+      enabled?"Google OAuth habilitado":"Google OAuth pendiente",
+      enabled?"Supabase Auth acepta el proveedor Google.":"Activa Google en Authentication → Providers y guarda Client ID + Client Secret."
+    );
+    return {enabled,data};
+  }catch(error){
+    renderProviderStatus("is-warning","No se pudo verificar Google OAuth",error.message||"Revisa la conexión.");
+    return {enabled:null,error};
+  }
+}
 function documentLabel(){
   const type=$("#docTitleText")?.innerText.trim()||$("#formatName")?.value||"Documento";
   const number=$("#docNumber")?.value?.trim();
@@ -198,17 +223,29 @@ async function validateSession(){
   return session;
 }
 async function signInGoogle(){
+  const btn=$("#googleLoginBtn");
   authMessage("");
-  const redirectTo=location.origin+location.pathname+location.search;
-  const {error}=await supabase.auth.signInWithOAuth({
-    provider:"google",
-    options:{
-      redirectTo,
-      scopes:"openid email profile",
-      queryParams:{hd:DOCSYS_ALLOWED_DOMAIN,prompt:"select_account"}
+  try{
+    setBusy(btn,true,"Verificando…");
+    const provider=await getGoogleProviderStatus();
+    if(provider.enabled===false){
+      throw new Error("Google todavía no está habilitado en este proyecto de Supabase. El código del aplicativo ya está correcto; falta activar el proveedor y guardar las credenciales OAuth en Supabase Auth.");
     }
-  });
-  if(error)authMessage(error.message);
+    const redirectTo=location.origin+location.pathname+location.search;
+    const {error}=await supabase.auth.signInWithOAuth({
+      provider:"google",
+      options:{
+        redirectTo,
+        scopes:"openid email profile",
+        queryParams:{hd:DOCSYS_ALLOWED_DOMAIN,prompt:"select_account"}
+      }
+    });
+    if(error)throw error;
+  }catch(error){
+    authMessage(error.message||"No fue posible iniciar con Google.");
+  }finally{
+    setBusy(btn,false);
+  }
 }
 async function signOut(){
   await supabase.auth.signOut();
@@ -516,6 +553,38 @@ async function verifyPublicCode(code){
       <div><dt>Estado</dt><dd>${data.document_status==="archived"?"Firmado y archivado":data.document_status}</dd></div>
     </dl>`;
 }
+async function checkIntegrationReadiness(){
+  const btn=$("#checkIntegrationsBtn");
+  const box=$("#integrationReadiness");
+  try{
+    setBusy(btn,true,"Verificando…");
+    const provider=await getGoogleProviderStatus();
+    const rows=[{
+      label:"Google OAuth",
+      ok:provider.enabled===true,
+      detail:provider.enabled===true?"Habilitado en Supabase Auth":"Pendiente de activar en Authentication → Providers"
+    }];
+
+    if(session?.user){
+      const out=await supabase.functions.invoke(DOCSYS_SIGNATURE_FUNCTION,{body:{action:"readiness"}});
+      const data=out.data||{};
+      rows.push(
+        {label:"API de firmas",ok:!out.error&&data.ok!==false,detail:out.error?.message||data.error||"Edge Function disponible"},
+        {label:"Correo institucional",ok:Boolean(data.gmail_ready),detail:data.gmail_ready?"Delegación Gmail verificada":"Falta o falla GOOGLE_SERVICE_ACCOUNT_JSON / Domain-Wide Delegation"},
+        {label:"Google Drive",ok:Boolean(data.drive_ready),detail:data.drive_ready?"Delegación Drive verificada":"Falta o falla GOOGLE_SERVICE_ACCOUNT_JSON / Domain-Wide Delegation"}
+      );
+    }else{
+      rows.push({label:"Correo y Drive",ok:false,detail:"Inicia sesión para ejecutar la prueba segura del backend."});
+    }
+
+    if(box)box.innerHTML=rows.map(r=>`<div class="${r.ok?"ok":"pending"}"><span>${r.ok?"✓":"!"}</span><div><strong>${r.label}</strong><small>${r.detail}</small></div></div>`).join("");
+  }catch(error){
+    if(box)box.innerHTML=`<div class="pending"><span>!</span><div><strong>No fue posible completar el diagnóstico</strong><small>${error.message||error}</small></div></div>`;
+  }finally{
+    setBusy(btn,false);
+  }
+}
+
 function bindEvents(){
   $("#googleLoginBtn")?.addEventListener("click",signInGoogle);
   $("#authUserChip")?.addEventListener("click",()=>{if(confirm("¿Cerrar la sesión institucional?"))signOut();});
@@ -526,6 +595,7 @@ function bindEvents(){
   $("#requestSignatureOtp")?.addEventListener("click",requestOtp);
   $("#confirmElectronicSignature")?.addEventListener("click",confirmSignature);
   $("#signatureConsent")?.addEventListener("change",e=>{$("#confirmElectronicSignature").disabled=!e.target.checked;});
+  $("#checkIntegrationsBtn")?.addEventListener("click",checkIntegrationReadiness);
   $("[data-close-modal='signatureRequestModal']")?.addEventListener("click",()=>closeModal("signatureRequestModal"));
   $$("[data-close-modal]").forEach(btn=>btn.addEventListener("click",()=>closeModal(btn.dataset.closeModal)));
   $("#mySignatureList")?.addEventListener("click",e=>{
@@ -543,6 +613,7 @@ function bindEvents(){
 export async function initCloud(options){
   ctx=options;
   bindEvents();
+  await getGoogleProviderStatus();
   await validateSession();
   supabase.auth.onAuthStateChange(async(_event,newSession)=>{
     session=newSession;
