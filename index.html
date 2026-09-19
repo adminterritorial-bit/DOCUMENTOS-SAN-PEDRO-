@@ -7,7 +7,7 @@
   <title>Sistema Maestro Documental · San Pedro</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=20260919-v10">
-  <link rel="stylesheet" href="./styles.css?v=20260919-v13">
+  <link rel="stylesheet" href="./styles.css?v=20260919-v14">
 </head>
 <body class="premium-v4 premium-v9 premium-v10">
   <div class="ambient ambient-a"></div>
@@ -354,10 +354,25 @@
   <div class="auth-overlay hidden" id="authOverlay" role="dialog" aria-modal="true" aria-labelledby="authTitle">
     <div class="auth-card">
       <div class="auth-brand"><div class="auth-brand-mark">SP</div><div><span class="eyebrow">ALCALDÍA DE SAN PEDRO</span><h2 id="authTitle">Sistema Maestro Documental</h2></div></div>
-      <p>Acceso institucional protegido. Solo cuentas Google del dominio <b>@sanpedro-valle.gov.co</b>.</p>
-      <div class="auth-provider-status is-checking" id="authProviderStatus"><span></span><div><strong>Verificando Google OAuth…</strong><small>Comprobando la configuración de Supabase Auth.</small></div></div>
-      <button class="google-login-btn" id="googleLoginBtn" type="button"><span>G</span><strong>Continuar con Google</strong></button>
-      <div class="auth-security-note"><span>✓</span><div><strong>Acceso restringido</strong><small>El aplicativo no admite cuentas personales ni autenticación por contraseña.</small></div></div>
+      <p>Acceso protegido al sistema documental. Para la demostración puedes ingresar con un <b>usuario y contraseña creados en Supabase Auth</b>; Google institucional seguirá disponible cuando se active mañana.</p>
+      <div class="auth-login-grid">
+        <section class="auth-login-method password-method">
+          <span class="auth-method-kicker">DEMOSTRACIÓN</span>
+          <h3>Usuario y contraseña</h3>
+          <label><span>Correo</span><input id="passwordLoginEmail" type="email" autocomplete="username" placeholder="usuario@sanpedro-valle.gov.co"></label>
+          <label><span>Contraseña</span><input id="passwordLoginPassword" type="password" autocomplete="current-password" placeholder="••••••••"></label>
+          <button class="password-login-btn" id="passwordLoginBtn" type="button"><span>↳</span><strong>Iniciar sesión</strong></button>
+          <small class="auth-method-note">No hay registro público. Los usuarios deben existir previamente en Supabase Auth.</small>
+        </section>
+        <div class="auth-method-divider"><span>o</span></div>
+        <section class="auth-login-method google-method">
+          <span class="auth-method-kicker">INSTITUCIONAL</span>
+          <h3>Google Workspace</h3>
+          <div class="auth-provider-status is-checking" id="authProviderStatus"><span></span><div><strong>Verificando Google OAuth…</strong><small>Comprobando la configuración de Supabase Auth.</small></div></div>
+          <button class="google-login-btn" id="googleLoginBtn" type="button"><span>G</span><strong>Continuar con Google</strong></button>
+        </section>
+      </div>
+      <div class="auth-security-note"><span>✓</span><div><strong>Acceso controlado</strong><small>Se permiten cuentas municipales del dominio @sanpedro-valle.gov.co y, si hiciera falta para pruebas, correos externos añadidos expresamente a la lista de usuarios habilitados.</small></div></div>
       <div class="auth-error hidden" id="authError"></div>
     </div>
   </div>
@@ -439,6 +454,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script type="module" src="./app.js?v=20260919-v13"></script>
+  <script type="module" src="./app.js?v=20260919-v14"></script>
 </body>
 </html>
