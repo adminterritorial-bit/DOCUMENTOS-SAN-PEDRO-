@@ -8,8 +8,9 @@ import {
   DOCSYS_SIGNATURE_FUNCTION
 } from "./supabase-config.js";
 
-const $=(s,r=document)=>r.querySelector(s);
-const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const resolveRoot=r=>typeof r==="string"?document.querySelector(r):r;
+const $=(s,r=document)=>resolveRoot(r)?.querySelector(s)||null;
+const $=(s,r=document)=>[...(resolveRoot(r)?.querySelectorAll(s)||[])];
 const supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{
   auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
 });
