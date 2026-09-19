@@ -1,6 +1,6 @@
 export const TEMPLATE_DEFS = {
 decreto:{
-  label:"Decreto",description:"Acto administrativo con considerandos, parte resolutiva, artículos y firma.",
+  label:"Decreto",numberToken:"No.",datePrefix:"DEL ",description:"Acto administrativo con considerandos, parte resolutiva, artículos y firma.",
   subject:"POR MEDIO DEL CUAL SE ADOPTAN DISPOSICIONES ADMINISTRATIVAS Y SE DICTAN OTRAS DISPOSICIONES.",
   body:`
     <p>El Alcalde Municipal de San Pedro Valle del Cauca, en uso de sus atribuciones constitucionales y legales, y en especial las conferidas por las normas aplicables,</p>
@@ -15,7 +15,7 @@ decreto:{
     <h2 class="section-title">COMUNÍQUESE Y CÚMPLASE</h2>`
 },
 resolucion:{
-  label:"Resolución",description:"Resolución administrativa con motivación, artículos, notificación y cumplimiento.",
+  label:"Resolución",numberToken:"Nro.",datePrefix:"",description:"Resolución administrativa con motivación, artículos, notificación y cumplimiento.",
   subject:"POR MEDIO DE LA CUAL SE ADOPTA UNA DECISIÓN ADMINISTRATIVA.",
   body:`
     <p>El Alcalde del Municipio de San Pedro Valle del Cauca, en ejercicio de sus atribuciones constitucionales y legales,</p>
@@ -29,13 +29,13 @@ resolucion:{
     <p class="article"><strong>ARTÍCULO TERCERO.</strong> La presente resolución rige a partir de la fecha de su expedición.</p>
     <h2 class="section-title">NOTIFÍQUESE Y CÚMPLASE</h2>`
 },
-acta:{label:"Acta",description:"Acta de reunión con asistentes, agenda, desarrollo, compromisos y firmas.",subject:"ACTA DE REUNIÓN",body:`
+acta:{label:"Acta",numberToken:"No.",datePrefix:"",description:"Acta de reunión con asistentes, agenda, desarrollo, compromisos y firmas.",subject:"ACTA DE REUNIÓN",body:`
   <h2 class="section-title">DATOS DE LA REUNIÓN</h2><p><strong>Fecha:</strong> [Fecha] &nbsp; <strong>Hora:</strong> [Hora] &nbsp; <strong>Lugar:</strong> [Lugar]</p>
   <h2 class="section-title">ASISTENTES</h2><p>[Relación de asistentes]</p><h2 class="section-title">ORDEN DEL DÍA</h2><p>1. Verificación de asistencia.<br>2. Desarrollo de temas.<br>3. Compromisos y cierre.</p>
   <h2 class="section-title">DESARROLLO</h2><p>[Redacte el desarrollo de la reunión.]</p><h2 class="section-title">COMPROMISOS</h2><table><tr><th>Compromiso</th><th>Responsable</th><th>Fecha</th></tr><tr><td>[Actividad]</td><td>[Responsable]</td><td>[Fecha]</td></tr></table>`},
-circular:{label:"Circular",description:"Comunicación general interna o externa con destinatario, asunto y lineamientos.",subject:"ASUNTO DE LA CIRCULAR",body:`<p><strong>PARA:</strong> [Destinatarios]</p><p><strong>DE:</strong> [Dependencia]</p><p><strong>ASUNTO:</strong> [Asunto]</p><p>Por medio de la presente se comunican los siguientes lineamientos:</p><p>[Contenido de la circular]</p>`},
-oficio:{label:"Oficio",description:"Comunicación formal dirigida a una persona o entidad.",subject:"ASUNTO DEL OFICIO",body:`<p>Señor(a)<br><strong>[Nombre del destinatario]</strong><br>[Cargo / Entidad]<br>[Ciudad]</p><p><strong>Asunto:</strong> [Asunto]</p><p>Cordial saludo,</p><p>[Contenido del oficio]</p><p>Atentamente,</p>`},
-constancia:{label:"Constancia",description:"Constancia institucional con hechos verificables, fecha y firma.",subject:"CONSTANCIA",body:`<p>La Alcaldía Municipal de San Pedro, Valle del Cauca, hace constar que:</p><p>[Contenido de la constancia]</p><p>La presente se expide a solicitud de la parte interesada para los fines pertinentes.</p>`}
+circular:{label:"Circular",numberToken:"No.",datePrefix:"",description:"Comunicación general interna o externa con destinatario, asunto y lineamientos.",subject:"ASUNTO DE LA CIRCULAR",body:`<p><strong>PARA:</strong> [Destinatarios]</p><p><strong>DE:</strong> [Dependencia]</p><p><strong>ASUNTO:</strong> [Asunto]</p><p>Por medio de la presente se comunican los siguientes lineamientos:</p><p>[Contenido de la circular]</p>`},
+oficio:{label:"Oficio",numberToken:"No.",datePrefix:"",description:"Comunicación formal dirigida a una persona o entidad.",subject:"ASUNTO DEL OFICIO",body:`<p>Señor(a)<br><strong>[Nombre del destinatario]</strong><br>[Cargo / Entidad]<br>[Ciudad]</p><p><strong>Asunto:</strong> [Asunto]</p><p>Cordial saludo,</p><p>[Contenido del oficio]</p><p>Atentamente,</p>`},
+constancia:{label:"Constancia",numberToken:"No.",datePrefix:"",description:"Constancia institucional con hechos verificables, fecha y firma.",subject:"CONSTANCIA",body:`<p>La Alcaldía Municipal de San Pedro, Valle del Cauca, hace constar que:</p><p>[Contenido de la constancia]</p><p>La presente se expide a solicitud de la parte interesada para los fines pertinentes.</p>`}
 };
 
 export function formatDateLong(value){
