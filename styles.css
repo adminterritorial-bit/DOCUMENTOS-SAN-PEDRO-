@@ -788,3 +788,170 @@ body.high-contrast .paper{border-color:#748fa1}
 .quick-add button{font-size:9.5px!important;min-height:28px;padding:5px 8px!important}
 body.easy-mode .quick-add{opacity:.72}
 body.easy-mode .doc-block:hover>.quick-add{opacity:1}
+
+
+/* =========================================================
+   WORD-LIKE PHYSICAL PAGINATION V6
+   Every document type renders as separate A4 sheets.
+   ========================================================= */
+.document-stack{
+  --page-margin:25.4mm;
+  position:relative;
+  width:210mm;
+  margin:0 auto;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:24px;
+  transform-origin:top center;
+  font-family:var(--doc-font);
+  font-size:var(--doc-size);
+  line-height:var(--doc-line);
+  transition:transform .18s ease;
+  overflow:visible;
+}
+.document-stack>.document-page{
+  position:relative;
+  width:210mm!important;
+  height:297mm!important;
+  min-height:297mm!important;
+  max-height:297mm!important;
+  flex:0 0 297mm;
+  box-sizing:border-box!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:visible!important;
+  background:#fff;
+  color:#111;
+  border:1px solid rgba(71,105,130,.15);
+  border-radius:3px;
+  box-shadow:0 30px 78px rgba(6,38,62,.18),0 4px 15px rgba(6,38,62,.08);
+}
+.document-stack>.document-page:before,
+.document-stack>.document-page::before{display:none!important;content:none!important}
+.page-inner{
+  width:100%;
+  height:100%;
+  box-sizing:border-box;
+  padding:var(--page-margin);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  background:#fff;
+}
+.document-page .institutional-header,
+.document-page .trd-line,
+.document-page .institutional-footer{flex:0 0 auto}
+.document-page .page-content{
+  position:relative;
+  flex:1 1 auto;
+  min-height:0;
+  overflow:hidden;
+}
+.document-page .page-blocks{
+  min-height:0;
+  width:100%;
+}
+.document-page .document-identity{flex:0 0 auto}
+.document-page .institutional-footer{
+  margin-top:5mm;
+}
+.document-stack.free-mode .document-identity,
+.document-page.free-mode .document-identity{display:none!important}
+.sheet-number{
+  position:absolute;
+  left:calc(100% + 12px);
+  top:12px;
+  min-width:68px;
+  padding:6px 8px;
+  border-radius:9px;
+  background:rgba(6,47,79,.93);
+  color:#fff;
+  font-family:"Century Gothic",Arial,sans-serif;
+  font-size:8px;
+  font-weight:800;
+  text-align:center;
+  box-shadow:0 6px 15px rgba(5,39,66,.15);
+  pointer-events:none;
+  z-index:5;
+}
+.sheet-number:before{
+  content:"";
+  position:absolute;
+  right:100%;
+  top:50%;
+  transform:translateY(-50%);
+  border-width:5px 7px 5px 0;
+  border-style:solid;
+  border-color:transparent rgba(6,47,79,.93) transparent transparent;
+}
+.document-page+.document-page:after{
+  content:"";
+  position:absolute;
+  left:12%;
+  right:12%;
+  top:-13px;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(68,103,128,.18),transparent);
+}
+.document-page .page-auto-note{display:none}
+.document-page .doc-block.oversize-block{
+  outline:2px solid #d85f5f!important;
+  outline-offset:4px!important;
+  background:linear-gradient(145deg,rgba(255,240,240,.38),transparent)!important;
+}
+.document-page .doc-block.oversize-block:after{
+  content:"Este bloque es más alto que una hoja. Divídelo en dos bloques para conservar la paginación.";
+  display:block;
+  margin:7px 0 2px;
+  padding:7px 9px;
+  border-radius:8px;
+  background:#fff0f0;
+  border:1px solid #efb7b7;
+  color:#9e3434;
+  font-family:"Century Gothic",Arial,sans-serif;
+  font-size:8px;
+  font-weight:700;
+  line-height:1.35;
+}
+.document-page .manual-pagebreak{
+  margin:8px 0 0;
+  height:14px;
+  opacity:.72;
+}
+.paper-stage{
+  align-items:flex-start;
+}
+@media(max-width:900px){
+  .document-stack{
+    margin-left:0;
+    margin-right:0;
+  }
+  .sheet-number{display:none}
+}
+@media print{
+  .document-stack{
+    display:block!important;
+    width:210mm!important;
+    margin:0!important;
+    gap:0!important;
+    transform:none!important;
+  }
+  .document-stack>.document-page{
+    width:210mm!important;
+    height:297mm!important;
+    min-height:297mm!important;
+    max-height:297mm!important;
+    margin:0!important;
+    border:0!important;
+    box-shadow:none!important;
+    border-radius:0!important;
+    page-break-after:always!important;
+    break-after:page!important;
+  }
+  .document-stack>.document-page:last-child{
+    page-break-after:auto!important;
+    break-after:auto!important;
+  }
+  .sheet-number,.block-actions,.quick-add{display:none!important}
+}
