@@ -7,7 +7,7 @@
   <title>Sistema Maestro Documental · San Pedro</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=20260919-v10">
-  <link rel="stylesheet" href="./styles.css?v=20260919-v18">
+  <link rel="stylesheet" href="./styles.css?v=20260919-v20">
 </head>
 <body class="premium-v4 premium-v9 premium-v10">
   <div class="ambient ambient-a"></div>
@@ -396,8 +396,12 @@
       <div class="selected-signers-shell">
         <div class="selected-signers-title"><strong>Orden de los firmantes</strong><small>En modo secuencial este será el orden 1 → 2 → 3.</small></div>
         <div class="selected-signer-list" id="selectedSignerList"><div class="signature-empty compact">Aún no has seleccionado firmantes.</div></div>
+        <div class="signature-placement-setup">
+          <div><span class="eyebrow">PASO OBLIGATORIO</span><strong>Marcar dónde firma cada persona</strong><small>Cada firmante debe tener una ubicación exacta dentro del documento antes del envío.</small></div>
+          <button class="btn primary" id="startPlacementMode" type="button" disabled>Marcar lugares de firma</button>
+        </div>
       </div>
-      <div class="signature-legal-note"><strong>Firma electrónica con trazabilidad.</strong><span>El documento queda bloqueado al enviarse. Cada firmante valida identidad institucional, recibe un código de un solo uso y genera un código de evidencia único asociado al hash del documento.</span></div>
+      <div class="signature-legal-note"><strong>Firma electrónica con trazabilidad.</strong><span>El documento queda bloqueado al enviarse. Cada firmante solo puede actuar en el campo de firma que le fue asignado; el resto del contenido permanece en modo lectura.</span></div>
       <div class="modal-actions"><button class="btn soft" data-close-modal="signatureRequestModal" type="button">Cancelar</button><button class="btn primary" id="confirmSendToSignatures" type="button">Crear solicitud y notificar</button></div>
     </div>
   </div>
@@ -406,6 +410,10 @@
     <div class="modal-card sign-document-card">
       <div class="modal-head"><div><span class="eyebrow">FIRMA ELECTRÓNICA</span><h2 id="signDocumentTitle">Revisar y firmar documento</h2></div><button class="modal-close" data-close-modal="signDocumentModal" type="button">×</button></div>
       <div id="signDocumentInfo" class="sign-document-info"></div>
+      <div class="signature-pad-section">
+        <div class="signature-pad-head"><div><span class="eyebrow">TU FIRMA</span><strong>Dibuja tu firma dentro del recuadro</strong><small>Esta representación visual se insertará exactamente en el lugar marcado por quien envió el documento.</small></div><button class="btn soft" id="clearSignaturePad" type="button">Limpiar</button></div>
+        <div class="signature-pad-wrap"><canvas id="signaturePadCanvas" aria-label="Área para dibujar la firma"></canvas><span id="signaturePadHint">Firma aquí con el mouse, lápiz o dedo</span></div>
+      </div>
       <div class="signature-verification-box">
         <div class="verification-step"><span>1</span><div><strong>Identidad de usuario autenticado</strong><small id="signIdentityStatus">Se verificará con tu sesión activa.</small></div></div>
         <div class="verification-step"><span>2</span><div><strong>Código de un solo uso</strong><small>Se enviará a tu correo institucional y vence en 10 minutos.</small></div></div>
@@ -422,6 +430,20 @@
       <div class="modal-actions"><button class="btn soft" data-close-modal="signDocumentModal" type="button">Cancelar</button><button class="btn primary" id="confirmElectronicSignature" type="button" disabled>Firmar documento</button></div>
     </div>
   </div>
+
+  <aside class="signature-placement-panel hidden" id="signaturePlacementPanel" aria-live="polite">
+    <div class="placement-panel-head">
+      <div><span class="eyebrow">UBICACIÓN DE FIRMAS</span><h3>Marca dónde firma cada usuario</h3></div>
+      <button id="exitPlacementMode" type="button" aria-label="Volver al envío">×</button>
+    </div>
+    <p>Selecciona un firmante y haz clic dentro de una página. Puedes volver a hacer clic para mover su campo.</p>
+    <div class="placement-progress" id="placementProgress">0 de 0 ubicaciones listas</div>
+    <div class="placement-signer-list" id="placementSignerList"></div>
+    <div class="placement-panel-actions">
+      <button class="btn soft" id="clearPlacements" type="button">Limpiar ubicaciones</button>
+      <button class="btn primary" id="finishPlacements" type="button">Volver al envío</button>
+    </div>
+  </aside>
 
   <div class="modal-shell hidden" id="verifySignatureModal" role="dialog" aria-modal="true" aria-labelledby="verifySignatureTitle">
     <div class="modal-card verify-signature-card">
@@ -464,6 +486,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script type="module" src="./app.js?v=20260919-v19"></script>
+  <script type="module" src="./app.js?v=20260919-v20"></script>
 </body>
 </html>
