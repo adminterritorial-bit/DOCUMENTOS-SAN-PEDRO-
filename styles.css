@@ -846,7 +846,7 @@ body.easy-mode .doc-block:hover>.quick-add{opacity:1}
   position:relative;
   flex:1 1 auto;
   min-height:0;
-  overflow:hidden;
+  overflow:visible;
 }
 .document-page .page-blocks{
   min-height:0;
