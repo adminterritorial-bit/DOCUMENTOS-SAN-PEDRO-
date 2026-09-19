@@ -421,6 +421,7 @@ async function confirmSignature(){
     closeModal("signDocumentModal");
     ctx.toast("Firma registrada · "+out.data.evidence_code);
     await loadDashboard();
+    await hydrateOpenedCloudDocument();
   }catch(e){ctx.toast(e.message||"No fue posible registrar la firma")}finally{setBusy(btn,false)}
 }
 async function applyProofs(signers,docHash){
