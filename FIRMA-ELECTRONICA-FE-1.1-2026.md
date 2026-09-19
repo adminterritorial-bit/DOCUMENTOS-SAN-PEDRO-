@@ -17,7 +17,7 @@ El mecanismo toma como referentes:
 
 - Ley 527 de 1999, especialmente el artículo 7 sobre el requisito de firma en mensajes de datos.
 - Decreto 1074 de 2015, artículos 2.2.2.47.1 a 2.2.2.47.8 sobre firma electrónica, confiabilidad y acuerdo sobre el mecanismo.
-- Decreto 1789 de 2021, que adicionó los artículos 2.2.2.47.9 y 2.2.2.47.10 sobre uso de firmas electrónicas y digitales en la actividad pública y determinación del grado de confianza requerido.
+- Decreto 1789 de 2021, que adicionó los artículos 2.2.2.47.9 y 2.2.2.47.10 sobre uso de firmas electrónicas y digitales en la actividad pública y determinación del grado de confianza requerido.\n- Ley 1581 de 2012 y sus principios aplicables al tratamiento de datos personales.
 
 ### 3. Formato visual interno SPSIG1
 
@@ -36,7 +36,7 @@ La imagen original suministrada por el usuario:
 - se convierte a una máscara binaria compacta;
 - **no se almacena como fotografía original en Supabase**.
 
-El formato SPSIG1 no se presenta como certificado digital, clave privada, dato biométrico certificado ni firma digital.
+El formato SPSIG1 no se presenta como certificado digital, clave privada, dato biométrico certificado ni firma digital. El aplicativo no realiza reconocimiento biométrico ni compara el trazo contra patrones para autenticar automáticamente a una persona.
 
 ### 4. Firma guardada
 
@@ -128,7 +128,7 @@ Los documentos o procedimientos clasificados con requerimientos de confianza sup
 
 La firma visual guardada se considera un activo personal sensible de seguridad documental dentro del sistema.
 
-Reglas mínimas:
+El guardado exige una acción y autorización expresa del titular dentro de la interfaz. El sistema ofrece consulta del estado y eliminación de la firma guardada.\n\nReglas mínimas:
 
 - no mostrarla en directorios públicos;
 - no permitir que un administrador la aplique en nombre del usuario;
