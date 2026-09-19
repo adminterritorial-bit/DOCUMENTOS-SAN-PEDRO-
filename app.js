@@ -1,74 +1,349 @@
-import {TEMPLATE_DEFS,formatDateLong} from "./templates.js";
-import {exportWord,exportPdf} from "./exporters.js";
+import {LOGO_DATA_URL} from "./assets.js";
+import {TEMPLATES,longDate} from "./templates.js";
+import {insertBlock,activateBlockControls} from "./blocks.js";
+import {exportDocx,exportPdf} from "./exporters.js";
 
-const $=s=>document.querySelector(s);
-const paper=$("#documentPage");
-const fields=["docType","docNumber","docDate","trdCode","fontFamily","fontSize","lineHeight","marginPreset","docSubject","projectedBy","reviewedBy","approvedBy","formatName","formatCode","processName","responsibleName","formatIssueDate","formatVersion","municipalityNit","address","phone","website","email","postalCode"];
-const today=new Date(); $("#docDate").value=today.toISOString().slice(0,10);
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const paper=$("#paper");
+let root=$("#blockRoot");
+let selectedBlock=null;
+let dirty=false;
+let saveTimer=null;
 
-function state(){
-  const type=$("#docType").value;
+const fieldIds=[
+  "docNumber","docDate","trdCode","fontFamily","fontSize","lineHeight","marginPreset",
+  "formatName","processName","responsibleName","formatCode","formatIssueDate","formatVersion",
+  "municipalityNit","projectedBy","reviewedBy","approvedBy","address","phone","website","email","postalCode"
+];
+
+const ordinalWords=[
+  "PRIMERO","SEGUNDO","TERCERO","CUARTO","QUINTO","SEXTO","SÉPTIMO","OCTAVO","NOVENO","DÉCIMO",
+  "DÉCIMO PRIMERO","DÉCIMO SEGUNDO","DÉCIMO TERCERO","DÉCIMO CUARTO","DÉCIMO QUINTO",
+  "DÉCIMO SEXTO","DÉCIMO SÉPTIMO","DÉCIMO OCTAVO","DÉCIMO NOVENO","VIGÉSIMO"
+];
+
+function toast(message){
+  const el=$("#toast"); el.textContent=message; el.classList.add("show");
+  clearTimeout(el._timer); el._timer=setTimeout(()=>el.classList.remove("show"),2200);
+}
+
+function getState(){
+  const values={};
+  fieldIds.forEach(id=>values[id]=$("#"+id)?.value??"");
   return {
-    docType:type,typeLabel:TEMPLATE_DEFS[type].label,docNumber:$("#docNumber").value,docDate:$("#docDate").value,trdCode:$("#trdCode").value,
-    fontFamily:$("#fontFamily").value,fontSize:Number($("#fontSize").value)||11,lineHeight:Number($("#lineHeight").value)||1.5,
-    marginCm:$("#marginPreset").value==="apa"?2.54:$("#marginPreset").value==="institutional"?2.5:2.54,
-    subject:$("#docSubject").value,numberToken:TEMPLATE_DEFS[type].numberToken||"No.",datePrefix:TEMPLATE_DEFS[type].datePrefix||"",
-    projectedBy:$("#projectedBy").value,reviewedBy:$("#reviewedBy").value,approvedBy:$("#approvedBy").value,
-    formatName:$("#formatName").value,formatCode:$("#formatCode").value,processName:$("#processName").value,responsibleName:$("#responsibleName").value,
-    formatIssueDate:$("#formatIssueDate").value,formatVersion:$("#formatVersion").value,municipalityNit:$("#municipalityNit").value,
-    address:$("#address").value,phone:$("#phone").value,website:$("#website").value,email:$("#email").value,postalCode:$("#postalCode").value
+    docType:$("#docType").value,
+    values,
+    identity:{
+      title:$("#docTitleText").innerHTML,
+      token:$("#docNumberToken").innerHTML,
+      date:$("#docDateText").innerHTML
+    },
+    blocks:root.innerHTML,
+    header:$(".institutional-header",paper).innerHTML,
+    footer:$(".institutional-footer",paper).innerHTML
+  };
+}
+
+function saveLocal(silent=false){
+  localStorage.setItem("san-pedro-document-draft-v2",JSON.stringify(getState()));
+  dirty=false;
+  $("#saveStatus").innerHTML="<i></i> Guardado local";
+  if(!silent) toast("Borrador guardado");
+}
+
+function queueSave(){
+  dirty=true;
+  $("#saveStatus").innerHTML="<i style='background:#e3ae39'></i> Guardando…";
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>saveLocal(true),700);
+}
+
+function applyDocumentStyle(){
+  const font=$("#fontFamily").value;
+  const size=Number($("#fontSize").value)||11;
+  const line=Number($("#lineHeight").value)||1.5;
+  const margin=Number($("#marginPreset").value)||2.54;
+  paper.style.setProperty("--doc-font",`"${font}", Arial, sans-serif`);
+  paper.style.setProperty("--doc-size",`${size}pt`);
+  paper.style.setProperty("--doc-line",line);
+  paper.style.padding=`15mm ${Math.max(12,margin*10).toFixed(1)}mm 17mm`;
+}
+
+function updateDateLabel(){
+  const t=TEMPLATES[$("#docType").value];
+  const prefix=t?.datePrefix||"";
+  const value=$("#docDate").value;
+  $("#docDateText").textContent=value ? `${prefix}${longDate(value).toUpperCase()}` : "";
+}
+
+function syncFieldToDocument(id){
+  const value=$("#"+id)?.value??"";
+  $$("[data-bind='"+id+"']",paper).forEach(el=>el.textContent=value);
+  if(id==="docDate") updateDateLabel();
+  if(["fontFamily","fontSize","lineHeight","marginPreset"].includes(id)) applyDocumentStyle();
+  updatePageCount(); queueSave();
+}
+
+function syncDocumentToField(target){
+  const bind=target.closest?.("[data-bind]")?.dataset.bind;
+  if(!bind) return;
+  const field=$("#"+bind);
+  if(field){
+    field.value=target.closest("[data-bind]").innerText.replace(/\n/g," ").trim();
+    if(bind==="docNumber") field.value=target.closest("[data-bind]").innerText.trim();
   }
+  queueSave();
 }
-function headerHtml(s){return `
-<div class="doc-header" contenteditable="false">
-<table class="header-table"><tr>
-<td class="header-logo"><img src="data:image/jpeg;base64,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"><small>ALCALDÍA MUNICIPAL<br>DE SAN PEDRO, VALLE<br>NIT. ${s.municipalityNit}</small></td>
-<td class="header-main"><div><b>Nombre:</b> ${s.formatName}</div><div><b>Proceso:</b> ${s.processName}</div><div><b>Responsable:</b> ${s.responsibleName}</div></td>
-<td class="header-side"><div><b>Código:</b> ${s.formatCode}</div><div><b>Fecha de emisión:</b><br>${s.formatIssueDate}</div><div><b>Versión:</b> ${s.formatVersion}</div><div><b>Página:</b> automática</div></td>
-</tr></table></div><div class="trd" contenteditable="false">CÓDIGO TRD: ${s.trdCode}</div>`}
-function footerHtml(s){return `<table class="footer-grid" contenteditable="false"><tr><td><b>PROYECTÓ:</b> ${s.projectedBy}</td><td><b>REVISÓ:</b> ${s.reviewedBy}</td><td><b>APROBÓ:</b> ${s.approvedBy}</td></tr></table><div class="footer-contact" contenteditable="false">Dirección: ${s.address}. Teléfono: ${s.phone}.<br><u>${s.website}</u> / <u>${s.email}</u> - Código Postal: ${s.postalCode}</div>`}
-function coreBody(){return paper.querySelector(".doc-body")?.innerHTML||""}
-function render(fresh=false){
-  const s=state(); const t=TEMPLATE_DEFS[s.docType];
-  if(fresh || !paper.querySelector(".doc-body")) $("#docSubject").value=t.subject;
-  const body=fresh?t.body:coreBody()||t.body; const actual=state();
-  paper.style.fontFamily=`"${actual.fontFamily}", Arial, sans-serif`;paper.style.fontSize=`${actual.fontSize}pt`;paper.style.lineHeight=actual.lineHeight;
-  paper.innerHTML=`${headerHtml(actual)}<div class="doc-title">${actual.typeLabel.toUpperCase()} ${actual.numberToken} ${actual.docNumber}<br>${actual.datePrefix}${formatDateLong(actual.docDate).toUpperCase()}</div><div class="doc-subject">${actual.subject}</div><div class="doc-body">${body}</div><div class="signature"><div>Dado en San Pedro Valle del Cauca, a los ${formatDateLong(actual.docDate)}.</div><div class="signature-line"></div><b>DIEGO FERNANDO MENDOZA TASCÓN</b><br>Alcalde Municipal</div>${footerHtml(actual)}`;
-  refreshToc();
+
+function templateDescription(key){
+  const map={
+    decreto:"Acto administrativo con considerandos, parte dispositiva, artículos y firma.",
+    resolucion:"Resolución con motivación, parte resolutiva, artículos y notificación.",
+    acta:"Reuniones, asistentes, desarrollo, decisiones y compromisos.",
+    circular:"Comunicación general con destinatarios, asunto y lineamientos.",
+    oficio:"Comunicación oficial individual o institucional.",
+    constancia:"Constancia de hechos, circunstancias o información institucional.",
+    plan:"Estructura guiada: diagnóstico, objetivos, acciones, cronograma, KPI, riesgos y seguimiento.",
+    politica:"Estructura guiada: contexto, objetivo, alcance, principios, lineamientos, roles, implementación y evaluación.",
+    libre:"Lienzo institucional sin estructura obligatoria: encabezado, TRD, pie y bloques libres."
+  };
+  return map[key]||"Plantilla institucional editable.";
 }
-function refreshToc(){
-  const heads=[...paper.querySelectorAll(".doc-body h1,.doc-body h2,.doc-body h3")].filter(h=>!h.closest(".auto-toc"));
-  heads.forEach((h,i)=>h.id=`sec-${i+1}`);
-  paper.querySelectorAll(".auto-toc").forEach(t=>{t.innerHTML=`<h3>Tabla de contenido</h3>${heads.map((h,i)=>`<a href="#${h.id}"><span>${h.innerText}</span><span>${i+1}</span></a>`).join("")}`});
+
+function populateTemplates(){
+  const select=$("#docType");
+  select.innerHTML=Object.entries(TEMPLATES).map(([k,t])=>`<option value="${k}">${t.label}</option>`).join("");
+  const grid=$("#templateGrid");
+  const icons={decreto:"D",resolucion:"R",acta:"A",circular:"C",oficio:"O",constancia:"✓",plan:"P",politica:"PI",libre:"+"};
+  grid.innerHTML=Object.entries(TEMPLATES).map(([k,t])=>`
+    <article class="template-card">
+      <div class="template-icon">${icons[k]||"D"}</div>
+      <h3>${t.label}</h3>
+      <p>${templateDescription(k)}</p>
+      <button data-use-template="${k}">Usar esta plantilla</button>
+    </article>`).join("");
 }
-function applyStateOnly(){
- const s=state(); paper.style.fontFamily=`"${s.fontFamily}", Arial, sans-serif`;paper.style.fontSize=`${s.fontSize}pt`;paper.style.lineHeight=s.lineHeight;
- const trd=paper.querySelector(".trd");if(trd)trd.textContent=`CÓDIGO TRD: ${s.trdCode}`;
- const hdr=paper.querySelector(".doc-header");if(hdr)hdr.outerHTML=headerHtml(s);
- const title=paper.querySelector(".doc-title");if(title)title.innerHTML=`${s.typeLabel.toUpperCase()} ${s.numberToken} ${s.docNumber}<br>${s.datePrefix}${formatDateLong(s.docDate).toUpperCase()}`;
- const subj=paper.querySelector(".doc-subject");if(subj)subj.textContent=s.subject;
- const sig=paper.querySelector(".signature");if(sig)sig.querySelector("div").textContent=`Dado en San Pedro Valle del Cauca, a los ${formatDateLong(s.docDate)}.`;
- const oldFooter=paper.querySelector(".footer-grid"); const oldContact=paper.querySelector(".footer-contact");if(oldFooter)oldFooter.outerHTML=footerHtml(s).split('<div class="footer-contact"')[0]; if(oldContact)oldContact.outerHTML=`<div class="footer-contact" contenteditable="false">Dirección: ${s.address}. Teléfono: ${s.phone}.<br><u>${s.website}</u> / <u>${s.email}</u> - Código Postal: ${s.postalCode}</div>`;
- refreshToc();
+
+function resetBlocks(){
+  root=$("#blockRoot");
+  root.innerHTML="";
 }
-function exec(cmd){paper.focus();document.execCommand(cmd,false,null)}
-$("#editorToolbar").addEventListener("click",e=>{const b=e.target.closest("[data-cmd]");if(b){e.preventDefault();exec(b.dataset.cmd)}})
-$("#addHeading").onclick=()=>document.execCommand("insertHTML",false,'<h2 class="section-title">NUEVO TÍTULO</h2><p>Contenido...</p>');
-$("#addSubheading").onclick=()=>document.execCommand("insertHTML",false,'<h3>Nuevo subtítulo</h3><p>Contenido...</p>');
-$("#addArticle").onclick=()=>document.execCommand("insertHTML",false,'<p class="article"><strong>ARTÍCULO.</strong> Redacte el contenido del artículo.</p>');
-$("#addTable").onclick=()=>document.execCommand("insertHTML",false,'<table style="width:100%;border-collapse:collapse"><tr><th style="border:1px solid #777;padding:5px">Columna 1</th><th style="border:1px solid #777;padding:5px">Columna 2</th></tr><tr><td style="border:1px solid #777;padding:5px">Dato</td><td style="border:1px solid #777;padding:5px">Dato</td></tr></table><p><br></p>');
-$("#addToc").onclick=()=>{document.execCommand("insertHTML",false,'<div class="auto-toc" contenteditable="false"></div><p><br></p>');refreshToc()};
-$("#addNote").onclick=()=>document.execCommand("insertHTML",false,'<p><strong>Nota.</strong> Redacte aquí la nota aclaratoria.</p>');
-$("#addReference").onclick=()=>document.execCommand("insertHTML",false,'<p><strong>Referencia:</strong> Autor o entidad. (Año). Título o norma.</p>');
-$("#addPageBreak").onclick=()=>document.execCommand("insertHTML",false,'<hr class="page-break"><p><br></p>');
-paper.addEventListener("input",refreshToc);
-fields.forEach(id=>$("#"+id)?.addEventListener("input",()=>id==="docType"?loadTemplate($("#docType").value):applyStateOnly()));
-function loadTemplate(type){$("#docSubject").value=TEMPLATE_DEFS[type].subject;render(true)}
-$("#saveDraft").onclick=()=>{const payload={state:state(),body:coreBody()};localStorage.setItem("sp-doc-draft",JSON.stringify(payload));alert("Borrador guardado localmente.")};
-$("#exportDocx").onclick=()=>exportWord(state(),paper.querySelector(".doc-body"));
-$("#exportPdf").onclick=()=>exportPdf(state(),paper);
-$("#zoom").oninput=e=>{$("#zoomValue").textContent=e.target.value+"%";paper.style.transform=`scale(${e.target.value/100})`;paper.style.marginBottom=`${-(1-e.target.value/100)*297}mm`};
-document.querySelectorAll(".nav-item").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav-item").forEach(x=>x.classList.remove("active"));b.classList.add("active");["editor","templates","trd","settings"].forEach(v=>$("#"+v+"View").classList.toggle("hidden",b.dataset.view!==v))});
-const cards=$("#templateCards");Object.entries(TEMPLATE_DEFS).forEach(([key,t])=>{const d=document.createElement("div");d.className="template-card";d.innerHTML=`<h3>${t.label}</h3><p>${t.description}</p><button>Usar plantilla</button>`;d.querySelector("button").onclick=()=>{$("#docType").value=key;loadTemplate(key);document.querySelector('[data-view="editor"]').click()};cards.appendChild(d)});
-const saved=localStorage.getItem("sp-doc-draft");if(saved){try{const p=JSON.parse(saved);Object.entries(p.state||{}).forEach(([k,v])=>{const el=$("#"+k);if(el)el.value=v});render(true);if(p.body)paper.querySelector(".doc-body").innerHTML=p.body;refreshToc()}catch{render(true)}}else render(true);
-if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
+
+function applyTemplate(type,{announce=true}={}){
+  const t=TEMPLATES[type];
+  if(!t) return;
+  $("#docType").value=type;
+  $("#formatName").value=t.formatName;
+  $("#docTitleText").textContent=t.title;
+  $("#docNumberToken").textContent=t.numberToken;
+  resetBlocks();
+  t.blocks.forEach(([kind,data])=>insertBlock(root,kind,null,data));
+  bindRootInteractions();
+  syncFieldToDocument("formatName");
+  updateDateLabel();
+  updateToc();
+  updateOutline();
+  updatePageCount();
+  queueSave();
+  if(announce) toast(`Plantilla ${t.label} aplicada`);
+}
+
+function bindRootInteractions(){
+  activateBlockControls(root,()=>{
+    renumberArticles(false); updateToc(); updateOutline(); updatePageCount(); queueSave();
+  });
+  root.addEventListener("click",e=>{
+    const b=e.target.closest(".doc-block");
+    if(b){ selectedBlock=b; $$(".doc-block.selected",root).forEach(x=>x.classList.remove("selected")); b.classList.add("selected"); }
+  });
+  root.addEventListener("focusin",e=>{
+    const b=e.target.closest(".doc-block"); if(b) selectedBlock=b;
+  });
+  root.addEventListener("input",()=>{
+    updateToc(); updateOutline(); updatePageCount(); queueSave();
+  });
+}
+
+function nextArticleName(){
+  const n=$$('.doc-block[data-block="article"]',root).length;
+  return ordinalWords[Math.min(n,ordinalWords.length-1)] || String(n+1);
+}
+
+function renumberArticles(force=false){
+  const articles=$$('.doc-block[data-block="article"]',root);
+  articles.forEach((b,i)=>{
+    const label=$(".article-label",b);
+    if(!label) return;
+    const current=label.innerText.trim();
+    if(force || /^ARTÍCULO(\s+[A-ZÁÉÍÓÚÑ]+){1,3}\.$/i.test(current)){
+      label.textContent=`ARTÍCULO ${ordinalWords[i]||String(i+1)}.`;
+    }
+  });
+}
+
+function addBlock(type){
+  let data={};
+  if(type==="article") data={text:"Redacte aquí el contenido completo del artículo."};
+  if(type==="resolutiva") data={text:$("#docType").value==="decreto"?"DECRETA":"RESUELVE"};
+  const node=insertBlock(root,type,selectedBlock,data);
+  selectedBlock=node;
+  if(type==="article"){
+    const articles=$$('.doc-block[data-block="article"]',root);
+    const label=$(".article-label",node);
+    label.textContent=`ARTÍCULO ${ordinalWords[Math.min(articles.indexOf(node),ordinalWords.length-1)]||articles.indexOf(node)+1}.`;
+  }
+  updateToc();updateOutline();updatePageCount();queueSave();
+  node.querySelector("[contenteditable=true]")?.focus();
+}
+
+function updateToc(){
+  const headings=$$(".doc-block[data-block='title'] .block-title,.doc-block[data-block='subtitle'] .block-subtitle",root)
+    .map(el=>el.innerText.trim()).filter(Boolean);
+  $$(".toc-items",root).forEach(box=>{
+    box.innerHTML=headings.length?headings.map((h,i)=>`<div class="toc-line"><span>${h}</span><span>${i+1}</span></div>`).join(""):"Agrega títulos o subtítulos para generar el índice.";
+  });
+}
+
+function updateOutline(){
+  const box=$("#outline");
+  const headings=$$(".doc-block[data-block='title'] .block-title,.doc-block[data-block='subtitle'] .block-subtitle",root);
+  box.innerHTML=headings.length?"":"<span style='font-size:9px;color:#8293a1'>Sin títulos todavía.</span>";
+  headings.forEach((h,i)=>{
+    const b=document.createElement("button");
+    b.textContent=h.innerText.trim()||`Sección ${i+1}`;
+    b.onclick=()=>h.scrollIntoView({behavior:"smooth",block:"center"});
+    box.appendChild(b);
+  });
+}
+
+function updatePageCount(){
+  requestAnimationFrame(()=>{
+    const pxPerMm=paper.offsetWidth/210;
+    const pagePx=297*pxPerMm;
+    const pages=Math.max(1,Math.ceil(paper.scrollHeight/pagePx));
+    $("#pageCount").textContent=pages;
+    $$(".auto-page-total",paper).forEach(x=>x.textContent=pages);
+    $$(".auto-page-current",paper).forEach(x=>x.textContent=1);
+  });
+}
+
+function restoreDraft(){
+  const raw=localStorage.getItem("san-pedro-document-draft-v2");
+  if(!raw) return false;
+  try{
+    const data=JSON.parse(raw);
+    $("#docType").value=data.docType||"decreto";
+    Object.entries(data.values||{}).forEach(([id,v])=>{const el=$("#"+id);if(el)el.value=v;});
+    if(data.header) $(".institutional-header",paper).innerHTML=data.header;
+    if(data.footer) $(".institutional-footer",paper).innerHTML=data.footer;
+    root.innerHTML=data.blocks||"";
+    if(data.identity){
+      $("#docTitleText").innerHTML=data.identity.title||"";
+      $("#docNumberToken").innerHTML=data.identity.token||"";
+      $("#docDateText").innerHTML=data.identity.date||"";
+    }
+    $("#documentLogo").src=LOGO_DATA_URL;
+    bindRootInteractions();applyDocumentStyle();updateToc();updateOutline();updatePageCount();
+    fieldIds.forEach(id=>{ if(!["fontFamily","fontSize","lineHeight","marginPreset"].includes(id)) {
+      const v=$("#"+id)?.value; if(v!=null) $$("[data-bind='"+id+"']",paper).forEach(el=>el.textContent=v);
+    }});
+    updateDateLabel();
+    return true;
+  }catch(e){ console.error(e); return false; }
+}
+
+function showPanel(name){
+  ["editor","templates","settings"].forEach(p=>$("#"+p+"Panel").classList.toggle("hidden",p!==name));
+  $$(".rail-btn[data-panel]").forEach(b=>b.classList.toggle("active",b.dataset.panel===name));
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function collectExportState(){
+  const v={};
+  fieldIds.forEach(id=>v[id]=$("#"+id)?.value??"");
+  return {
+    ...v,
+    docType:$("#docType").value,
+    docTitle:$("#docTitleText").innerText.trim(),
+    numberToken:$("#docNumberToken").innerText.trim(),
+    dateText:$("#docDateText").innerText.trim(),
+    fontFamily:$("#fontFamily").value,
+    fontSize:Number($("#fontSize").value)||11,
+    lineHeight:Number($("#lineHeight").value)||1.5,
+    marginCm:Number($("#marginPreset").value)||2.54,
+    pageCount:Number($("#pageCount").textContent)||1
+  };
+}
+
+populateTemplates();
+$("#topLogo").src=LOGO_DATA_URL;
+$("#documentLogo").src=LOGO_DATA_URL;
+$("#docDate").value=new Date().toISOString().slice(0,10);
+
+fieldIds.forEach(id=>{
+  const el=$("#"+id); if(!el) return;
+  el.addEventListener("input",()=>syncFieldToDocument(id));
+  el.addEventListener("change",()=>syncFieldToDocument(id));
+});
+
+paper.addEventListener("input",e=>{
+  syncDocumentToField(e.target);
+  updatePageCount();updateOutline();updateToc();queueSave();
+});
+
+$("#docType").addEventListener("change",()=>applyTemplate($("#docType").value));
+
+$("#toggleAdvanced").onclick=()=>{
+  const p=$("#advancedConfig");p.classList.toggle("open");
+  $("#toggleAdvanced").textContent=p.classList.contains("open")?"Ocultar configuración institucional":"Mostrar configuración institucional";
+};
+
+$("#editorRibbon").addEventListener("click",e=>{
+  const cmd=e.target.closest("[data-cmd]")?.dataset.cmd;
+  if(cmd){document.execCommand(cmd,false,null);paper.focus();queueSave();return;}
+  const type=e.target.closest("[data-add]")?.dataset.add;
+  if(type) addBlock(type);
+});
+
+$("#templateGrid").addEventListener("click",e=>{
+  const type=e.target.closest("[data-use-template]")?.dataset.useTemplate;
+  if(type){applyTemplate(type);showPanel("editor");}
+});
+
+$$(".rail-btn[data-panel]").forEach(b=>b.onclick=()=>showPanel(b.dataset.panel));
+$("#railHome").onclick=()=>showPanel("editor");
+$("#saveDraft").onclick=()=>saveLocal();
+$("#resetDraft").onclick=()=>{
+  if(confirm("¿Crear un documento nuevo? Se reemplazará el borrador local actual.")){
+    localStorage.removeItem("san-pedro-document-draft-v2");
+    applyTemplate($("#docType").value);
+    toast("Nuevo documento creado");
+  }
+};
+
+$("#zoom").addEventListener("input",e=>{
+  const z=Number(e.target.value);$("#zoomLabel").textContent=z+"%";
+  paper.style.transform=`scale(${z/100})`;
+  paper.style.marginBottom=`-${Math.max(0,(1-z/100)*paper.scrollHeight)}px`;
+});
+
+$("#exportDocx").onclick=async()=>{
+  try{saveLocal(true);await exportDocx(collectExportState(),paper);toast("Word generado");}
+  catch(e){console.error(e);toast("No fue posible generar Word");}
+};
+$("#exportPdf").onclick=async()=>{
+  try{saveLocal(true);await exportPdf(collectExportState(),paper);toast("PDF generado");}
+  catch(e){console.error(e);toast("No fue posible generar PDF");}
+};
+
+window.addEventListener("resize",updatePageCount);
+window.addEventListener("beforeunload",()=>{if(dirty) saveLocal(true);});
+
+if(!restoreDraft()){
+  applyTemplate("decreto",{announce:false});
+  syncFieldToDocument("trdCode");
+  fieldIds.forEach(id=>syncFieldToDocument(id));
+}
+applyDocumentStyle();
+setTimeout(updatePageCount,250);
