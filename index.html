@@ -388,7 +388,10 @@
         <button class="btn soft" id="requestSignatureOtp" type="button">Enviar código a mi correo</button>
         <label><span>Código de 6 dígitos</span><input id="signatureOtpCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000"></label>
       </div>
-      <div class="signature-consent"><label><input type="checkbox" id="signatureConsent"> <span>Declaro que revisé el documento y manifiesto mi aprobación para firmarlo electrónicamente.</span></label></div>
+      <div class="signature-consent">
+        <label><input type="checkbox" id="signatureConsent"> <span>Declaro que revisé el documento, que el contenido corresponde a mi voluntad y que acepto utilizar el mecanismo institucional de <b>firma electrónica FE-1.0-2026</b>, basado en identidad Google institucional, código de un solo uso, integridad SHA-256 y registro de evidencia. Este mecanismo se implementa bajo la Ley 527 de 1999 y el régimen de firma electrónica compilado en el Decreto 1074 de 2015.</span></label>
+        <small class="signature-legal-caption">La aceptación, la identidad utilizada, el hash del documento, la fecha y el código de evidencia quedan vinculados al evento de firma.</small>
+      </div>
       <div class="modal-actions"><button class="btn soft" data-close-modal="signDocumentModal" type="button">Cancelar</button><button class="btn primary" id="confirmElectronicSignature" type="button" disabled>Firmar documento</button></div>
     </div>
   </div>
