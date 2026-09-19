@@ -7,7 +7,7 @@
   <title>Sistema Maestro Documental · San Pedro</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=20260919-v10">
-  <link rel="stylesheet" href="./styles.css?v=20260919-v23">
+  <link rel="stylesheet" href="./styles.css?v=20260919-v24">
 </head>
 <body class="premium-v4 premium-v9 premium-v10">
   <div class="ambient ambient-a"></div>
@@ -318,6 +318,7 @@
           <div class="system-rule"><strong>Paginación</strong><span>Hojas A4 físicas separadas en el editor y paginación automática en Word/PDF.</span></div>
           <div class="system-rule"><strong>Estructura</strong><span>Contenido modular por títulos, textos, listas, tablas, KPI, matrices, artículos y más.</span></div>
           <div class="system-rule"><strong>Edición</strong><span>Metadatos y contenido editables desde la barra lateral o directamente sobre la hoja.</span></div>
+          <div class="system-rule signature-profile-rule"><strong>Mi firma</strong><span id="mySavedSignatureStatus">Sin firma guardada. Puedes crearla al firmar un documento o cargar una imagen; el sistema no conserva la imagen original.</span><button class="btn soft hidden" id="deleteMySavedSignature" type="button">Eliminar firma guardada</button></div>
           <div class="system-rule integration-rule"><strong>Integraciones institucionales</strong><span>Google OAuth, correo de códigos y archivo final en Drive.</span><button class="btn soft" id="checkIntegrationsBtn" type="button">Verificar configuración</button><div class="integration-readiness" id="integrationReadiness"></div></div>
         </div>
       </section>
@@ -411,8 +412,27 @@
       <div class="modal-head"><div><span class="eyebrow">FIRMA ELECTRÓNICA</span><h2 id="signDocumentTitle">Revisar y firmar documento</h2></div><button class="modal-close" data-close-modal="signDocumentModal" type="button">×</button></div>
       <div id="signDocumentInfo" class="sign-document-info"></div>
       <div class="signature-pad-section">
-        <div class="signature-pad-head"><div><span class="eyebrow">TU FIRMA</span><strong>Dibuja tu firma dentro del recuadro</strong><small>Esta representación visual se insertará exactamente en el lugar marcado por quien envió el documento.</small></div><button class="btn soft" id="clearSignaturePad" type="button">Limpiar</button></div>
-        <div class="signature-pad-wrap"><canvas id="signaturePadCanvas" aria-label="Área para dibujar la firma"></canvas><span id="signaturePadHint">Firma aquí con el mouse, lápiz o dedo</span></div>
+        <div class="signature-pad-head">
+          <div><span class="eyebrow">REPRESENTACIÓN VISUAL</span><strong>Elige cómo quieres mostrar tu firma</strong><small>La imagen o el trazo no sustituyen la autenticación: cada documento seguirá exigiendo identidad, consentimiento, OTP e integridad SHA-256.</small></div>
+        </div>
+        <div class="signature-source-tabs" role="tablist" aria-label="Origen de firma">
+          <button class="signature-source-tab" id="useSavedSignature" data-signature-source-mode="saved" type="button" disabled><span>✓</span> Mi firma</button>
+          <button class="signature-source-tab active" data-signature-source-mode="drawn" type="button"><span>✎</span> Dibujar</button>
+          <label class="signature-source-tab upload-tab" for="signatureImageInput"><span>↑</span> Subir imagen</label>
+          <input id="signatureImageInput" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+        </div>
+        <div class="saved-signature-empty hidden" id="savedSignatureEmpty">Todavía no tienes una firma guardada.</div>
+        <div class="signature-pad-wrap" id="signaturePadWrap"><canvas id="signaturePadCanvas" aria-label="Área para dibujar la firma"></canvas><span id="signaturePadHint">Firma aquí con el mouse, lápiz o dedo</span></div>
+        <div class="signature-artifact-preview hidden" id="signatureArtifactPreview">
+          <div class="signature-artifact-canvas" id="signatureArtifactVisual"></div>
+          <div><strong id="signatureArtifactTitle">Firma lista</strong><small id="signatureArtifactMeta">Formato interno SPSIG1</small></div>
+        </div>
+        <div class="signature-editor-actions">
+          <button class="btn soft" id="clearSignaturePad" type="button">Limpiar</button>
+          <button class="btn soft hidden" id="saveCurrentSignature" type="button">Guardar como Mi firma</button>
+          <button class="btn ghost hidden" id="deleteSavedSignature" type="button">Eliminar guardada</button>
+        </div>
+        <div class="signature-format-note"><span>SPSIG1</span><div><strong>Formato interno del aplicativo</strong><small>Las imágenes cargadas se convierten localmente a una máscara binaria compacta; la fotografía original no se guarda en Supabase.</small></div></div>
       </div>
       <div class="signature-verification-box">
         <div class="verification-step"><span>1</span><div><strong>Identidad de usuario autenticado</strong><small id="signIdentityStatus">Se verificará con tu sesión activa.</small></div></div>
@@ -424,7 +444,7 @@
         <label><span>Código de 6 dígitos</span><input id="signatureOtpCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000"></label>
       </div>
       <div class="signature-consent">
-        <label><input type="checkbox" id="signatureConsent"> <span>Declaro que revisé el documento, que el contenido corresponde a mi voluntad y que acepto utilizar el mecanismo institucional de <b>firma electrónica FE-1.0-2026</b>, basado en una cuenta autenticada y habilitada, código de un solo uso, integridad SHA-256 y registro de evidencia. Este mecanismo se implementa bajo la Ley 527 de 1999 y el régimen de firma electrónica compilado en el Decreto 1074 de 2015.</span></label>
+        <label><input type="checkbox" id="signatureConsent"> <span>Declaro que revisé el documento, que el contenido corresponde a mi voluntad y que acepto utilizar el mecanismo institucional de <b>firma electrónica FE-1.1-2026</b>, basado en una cuenta autenticada y habilitada, código de un solo uso, integridad SHA-256 y registro de evidencia. Este mecanismo se implementa bajo la Ley 527 de 1999 y el régimen de firma electrónica compilado en el Decreto 1074 de 2015.</span></label>
         <small class="signature-legal-caption">La aceptación, la identidad utilizada, el hash del documento, la fecha y el código de evidencia quedan vinculados al evento de firma.</small>
       </div>
       <div class="modal-actions"><button class="btn soft" data-close-modal="signDocumentModal" type="button">Cancelar</button><button class="btn primary" id="confirmElectronicSignature" type="button" disabled>Firmar documento</button></div>
@@ -487,6 +507,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script type="module" src="./app.js?v=20260919-v23"></script>
+  <script type="module" src="./app.js?v=20260919-v24"></script>
 </body>
 </html>
