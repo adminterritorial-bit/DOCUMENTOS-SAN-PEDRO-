@@ -386,7 +386,7 @@ function restoreDraft(){
 function showPanel(name){
   closeStudioDrawers();
   ["editor","templates","settings"].forEach(p=>$("#"+p+"Panel").classList.toggle("hidden",p!==name));
-  $(".rail-btn[data-panel]").forEach(b=>b.classList.toggle("active",b.dataset.panel===name));
+  $(".workspace-nav-btn[data-panel]").forEach(b=>b.classList.toggle("active",b.dataset.panel===name));
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
@@ -510,8 +510,7 @@ $("#templateGrid").addEventListener("click",e=>{
   if(type){applyTemplate(type);showPanel("editor");}
 });
 
-$$(".rail-btn[data-panel]").forEach(b=>b.onclick=()=>showPanel(b.dataset.panel));
-$("#railHome").onclick=()=>showPanel("editor");
+$(".workspace-nav-btn[data-panel]").forEach(b=>b.onclick=()=>showPanel(b.dataset.panel));
 $("#saveDraft").onclick=()=>saveLocal();
 
 $("#resetDraft").onclick=()=>{
