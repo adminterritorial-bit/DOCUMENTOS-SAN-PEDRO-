@@ -490,6 +490,7 @@ function beginPlacementMode(userId=null){
     ? userId
     : selectedSignerIds.find(id=>!signaturePlacements.has(id))||selectedSignerIds[0];
   placementModeActive=true;
+  ctx.showPanel("editor");
   document.body.classList.add("signature-placement-mode");
   closeModal("signatureRequestModal");
   $("#signaturePlacementPanel")?.classList.remove("hidden");
