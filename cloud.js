@@ -1627,11 +1627,12 @@ function printArchiveTraceability(){
   const a=trace.archive||{};
   const signers=trace.signers||[];
   const events=trace.events||[];
-  const popup=window.open("","_blank","noopener,noreferrer");
+  const popup=window.open("","_blank");
   if(!popup){
     ctx.toast("El navegador bloqueó la ventana de impresión");
     return;
   }
+  try{popup.opener=null;}catch{}
   const path=[a.root_folder,a.parent_folder,a.folder_name].filter(Boolean).join(" / ");
   popup.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Trazabilidad ${escapeHtml(a.trace_code||"")}</title>
     <style>
