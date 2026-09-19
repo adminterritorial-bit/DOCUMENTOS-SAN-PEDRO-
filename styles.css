@@ -2116,3 +2116,96 @@ body.easy-mode .doc-block:hover>.quick-add{opacity:1}
   .signature-pad-section{padding-left:14px;padding-right:14px}
   .signature-pad-wrap{height:130px}
 }
+
+
+/* =========================================================
+   SIGNATURE PLACEMENT UX V22 — compact / fluid
+   ========================================================= */
+.signature-placement-setup{
+  margin-top:8px;padding:8px 9px;min-height:44px;
+  border-color:#dbe9ef;background:#f8fbfc;border-radius:10px
+}
+.placement-setup-copy{min-width:0}
+.signature-placement-setup strong{font-size:8.8px}
+.signature-placement-setup small{font-size:7.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:430px}
+.placement-launch-btn{min-height:32px;padding:7px 10px;font-size:8px;white-space:nowrap}
+.placement-launch-btn.placement-ready{border-color:#b9ddc8!important;background:#f2faf5!important;color:#2b7650!important}
+.selected-signer-card{padding:7px 8px;grid-template-columns:27px minmax(0,1fr) auto}
+.selected-order{width:26px;height:26px;border-radius:8px}
+.placement-state{margin-top:2px;padding:2px 5px;font-size:6.2px}
+.selected-signer-actions button{width:25px;height:25px;border-radius:7px}
+
+/* Floating dock instead of a large side panel */
+.signature-placement-panel{
+  left:50%;right:auto;top:auto;bottom:18px;transform:translateX(-50%);
+  width:auto;max-width:min(920px,calc(100vw - 36px));max-height:none;overflow:visible;
+  padding:7px 8px;border-radius:14px;border:1px solid rgba(173,205,220,.92);
+  background:rgba(251,254,255,.94);box-shadow:0 14px 38px rgba(5,45,70,.18);
+  backdrop-filter:blur(18px)
+}
+.placement-dock-main{display:flex;align-items:center;gap:8px;min-width:0}
+.placement-dock-status{display:flex;align-items:center;gap:7px;min-width:118px;padding:0 6px 0 3px}
+.placement-dock-status>div{display:grid;gap:1px}
+.placement-dock-status strong{font-size:8px;color:#214d64;white-space:nowrap}
+.placement-dock-status small{font-size:6.5px;color:#7b909c;white-space:nowrap}
+.placement-dock-dot{width:8px;height:8px;border-radius:50%;background:#1c93c8;box-shadow:0 0 0 4px rgba(28,147,200,.10)}
+.placement-signer-list{display:flex;gap:5px;min-width:0;overflow-x:auto;padding:1px;scrollbar-width:none}
+.placement-signer-list::-webkit-scrollbar{display:none}
+.placement-signer-item{
+  width:auto;min-width:0;display:flex;align-items:center;gap:5px;padding:4px 7px 4px 4px;
+  border-radius:10px;white-space:nowrap;box-shadow:none
+}
+.placement-signer-item:hover{transform:none}
+.placement-signer-item.active{box-shadow:0 0 0 2px rgba(22,136,191,.10)}
+.placement-order{width:19px;height:19px;flex:0 0 19px;border-radius:6px;font-size:6.5px}
+.placement-chip-avatar{
+  width:22px;height:22px;flex:0 0 22px;display:grid;place-items:center;border-radius:7px;
+  background:#edf6fa;color:#2a6e8e;font-size:6.5px;font-weight:900
+}
+.placement-chip-name{max-width:115px;overflow:hidden;text-overflow:ellipsis;font-size:7.5px;font-weight:800;color:#34576b}
+.placement-signer-item i{width:18px;height:18px;flex:0 0 18px;border-radius:6px;font-size:7px}
+.placement-dock-actions{display:flex;align-items:center;gap:5px;margin-left:2px}
+.placement-dock-actions .btn{min-height:31px;padding:7px 12px;font-size:8px}
+.placement-icon-btn{
+  width:31px;height:31px;display:grid;place-items:center;border:1px solid #d8e6ed;border-radius:9px;
+  background:#fff;color:#537387;font-size:13px;font-weight:800
+}
+.placement-icon-btn:hover{border-color:#9bcbdc;background:#f2f9fc;color:#176e98}
+
+/* Document stays visually clean while placing */
+.signature-placement-mode .document-page{
+  cursor:crosshair;box-shadow:0 0 0 2px rgba(19,137,191,.10),0 24px 62px rgba(6,38,62,.13)
+}
+.signature-placement-mode .document-page:after{display:none!important}
+.signature-placement-marker{
+  min-height:0;padding:3px 5px;gap:4px;border-width:1.3px;border-style:dashed;border-radius:5px;
+  background:rgba(241,250,254,.72);box-shadow:none;cursor:grab;touch-action:none;
+  transition:background .12s ease,border-color .12s ease,box-shadow .12s ease
+}
+.signature-placement-marker:hover,.signature-placement-marker.active{
+  border-style:solid;background:rgba(233,247,253,.90);box-shadow:0 0 0 3px rgba(22,136,191,.07)
+}
+.signature-placement-marker.dragging{cursor:grabbing!important;border-style:solid;background:#eef9fd;box-shadow:0 6px 16px rgba(8,93,135,.14)}
+.signature-placement-dragging,.signature-placement-dragging *{cursor:grabbing!important}
+.placement-marker-index{width:17px;height:17px;flex:0 0 17px;border-radius:5px;font-size:6px}
+.placement-marker-name{
+  min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:6.2px;font-weight:900;color:#216885
+}
+.placement-drag-hint{font-size:8px;color:#6e93a5;letter-spacing:-2px;margin-right:2px}
+
+/* Quiet selected-user state */
+.selected-signer-copy .placement-state.pending{background:transparent;color:#a17a25;padding-left:0}
+.selected-signer-copy .placement-state.ready{background:transparent;color:#3b8060;padding-left:0}
+
+@media(max-width:760px){
+  .signature-placement-panel{
+    left:8px;right:8px;bottom:68px;top:auto;transform:none;width:auto;max-width:none;padding:7px
+  }
+  .placement-dock-main{gap:5px}
+  .placement-dock-status{display:none}
+  .placement-signer-list{flex:1}
+  .placement-chip-name{max-width:78px}
+  .placement-dock-actions .btn{padding:7px 9px}
+  .signature-placement-setup small{white-space:normal}
+}
