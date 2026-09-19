@@ -90,7 +90,7 @@ export function initWordPagination(stack,{logoUrl=""}={}){
     const badge=document.createElement("span");
     badge.className="sheet-number";
     badge.contentEditable="false";
-    badge.textContent=`Página ${index}`;
+    badge.innerHTML=`<span>PÁGINA</span><strong>${index}</strong><small>de 1</small>`;
 
     inner.append(header,trd,content,footer);
     page.append(inner,badge);
@@ -129,7 +129,7 @@ export function initWordPagination(stack,{logoUrl=""}={}){
       page.dataset.page=String(i+1);
       page.setAttribute("aria-label",`Página ${i+1} de ${total}`);
       const badge=$(".sheet-number",page);
-      if(badge) badge.textContent=`Página ${i+1} de ${total}`;
+      if(badge) badge.innerHTML=`<span>PÁGINA</span><strong>${i+1}</strong><small>de ${total}</small>`;
       $$(".auto-page-current",page).forEach(x=>x.textContent=String(i+1));
       $$(".auto-page-total",page).forEach(x=>x.textContent=String(total));
     });
