@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#082f55">
   <title>Sistema Maestro Documental · San Pedro</title>
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./styles.css?v=20260919-v8">
+  <link rel="stylesheet" href="./styles.css?v=20260919-v9">
 </head>
-<body class="premium-v4">
+<body class="premium-v4 premium-v9">
   <div class="ambient ambient-a"></div>
   <div class="ambient ambient-b"></div>
 
@@ -199,8 +199,9 @@
               <div class="canvas-breadcrumb"><span>Documento</span><b>›</b><strong id="canvasDocType">Editor</strong></div>
               <span class="editing-tip">✎ Haz clic en cualquier texto y escribe</span>
               <div class="canvas-tools">
-                <button class="mini-action" id="focusConfig">Configuración</button>
-                <div class="zoom-control"><span id="zoomLabel">90%</span><input id="zoom" type="range" min="65" max="110" value="90"></div>
+                <button class="mini-action panel-toggle" id="focusConfig" type="button" aria-controls="documentSidebar" aria-expanded="false">☰ Configuración</button>
+                <button class="mini-action panel-toggle inspector-toggle" id="focusInspector" type="button" aria-controls="documentInspector" aria-expanded="false">◎ Inspector</button>
+                <div class="zoom-control"><span id="zoomLabel">90%</span><input id="zoom" type="range" min="40" max="115" value="90" aria-label="Zoom del documento"></div>
               </div>
             </div>
 
@@ -259,6 +260,7 @@
 
           <aside class="inspector premium-inspector" id="documentInspector">
             <div class="inspector-sticky">
+              <div class="inspector-mobile-head"><div><span class="eyebrow">INSPECTOR</span><strong>Revisión del documento</strong></div><button id="closeInspector" type="button" aria-label="Cerrar inspector">×</button></div>
               <div class="inspector-card selected-card">
                 <span class="eyebrow">SELECCIÓN ACTUAL</span>
                 <div id="selectedBlockInfo" class="selected-block-info"><strong>Documento</strong><span>Selecciona un bloque para ubicarte y trabajar con precisión.</span></div>
@@ -302,6 +304,8 @@
       </section>
     </main>
   </div>
+
+  <button class="studio-backdrop" id="studioBackdrop" type="button" aria-label="Cerrar panel lateral"></button>
 
   <div class="accessibility-dock" aria-label="Ayuda y accesibilidad">
     <button id="floatingHelpBtn" type="button" class="dock-main" title="Abrir ayuda"><span>?</span><em>Ayuda</em></button>
