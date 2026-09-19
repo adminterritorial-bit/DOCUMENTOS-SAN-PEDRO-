@@ -169,10 +169,12 @@ export async function exportDocx(state,paper){
     ...blocksToDocx(paper.querySelector("#blockRoot"),d,state)
   ];
 
-  const margin=Math.round(state.marginCm/2.54*1440);
+  const safeMarginCm=Math.max(1,Number(state.marginCm)||2.54);
+  const margin=Math.round(safeMarginCm/2.54*1440);
+  const headerFooterDistance=Math.round(Math.min(safeMarginCm/2,1.27)/2.54*1440);
   const doc=new Document({
     styles:{default:{document:{run:{font,size},paragraph:{spacing:{line:Math.round(240*state.lineHeight)}}}}},
-    sections:[{properties:{page:{margin:{top:margin,right:margin,bottom:margin,left:margin}}},headers:{default:header},footers:{default:footer},children:body}]
+    sections:[{properties:{page:{margin:{top:margin,right:margin,bottom:margin,left:margin,header:headerFooterDistance,footer:headerFooterDistance}}},headers:{default:header},footers:{default:footer},children:body}]
   });
   const blob=await Packer.toBlob(doc),url=URL.createObjectURL(blob),a=document.createElement("a");
   a.href=url;a.download=`${safe(state.docTitle||state.formatName)}_${safe(state.docNumber||"")}.docx`;a.click();
@@ -181,16 +183,28 @@ export async function exportDocx(state,paper){
 
 export async function exportPdf(state,paper){
   const clone=paper.cloneNode(true);
-  clone.style.transform="none";clone.style.margin="0";clone.style.boxShadow="none";
-  clone.querySelectorAll(".block-actions,.quick-add").forEach(el=>el.remove());
+  const marginCm=Math.max(1,Number(state.marginCm)||2.54);
+  const marginMm=marginCm*10;
+  const contentWidthMm=Math.max(120,210-(marginMm*2));
+
+  clone.style.transform="none";
+  clone.style.margin="0";
+  clone.style.boxShadow="none";
+  clone.style.border="0";
+  clone.style.borderRadius="0";
+  clone.style.padding="0";
+  clone.style.width=`${contentWidthMm}mm`;
+  clone.style.minHeight="0";
+  clone.querySelectorAll(".block-actions,.quick-add,.page-markers,.page-auto-note").forEach(el=>el.remove());
   clone.querySelectorAll("[contenteditable]").forEach(el=>el.removeAttribute("contenteditable"));
+
   const opt={
-    margin:0,
+    margin:[marginMm,marginMm,marginMm,marginMm],
     filename:`${safe(state.docTitle||state.formatName)}_${safe(state.docNumber||"")}.pdf`,
     image:{type:"jpeg",quality:.98},
-    html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff"},
+    html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff",windowWidth:1200},
     jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
-    pagebreak:{mode:["css","legacy"],avoid:["table",".article-row",".kpi-grid",".signature-box"]}
+    pagebreak:{mode:["css","legacy"],avoid:["table",".article-row",".kpi-grid",".signature-box",".institutional-header",".institutional-footer"]}
   };
   await window.html2pdf().set(opt).from(clone).save();
 }
