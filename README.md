@@ -51,12 +51,12 @@ Para reducir el consumo de Supabase:
 - no se guarda cada cambio del editor;
 - los borradores permanecen en el navegador;
 - la nube recibe el snapshot únicamente cuando el documento entra al flujo de firmas;
-- los snapshots no pueden superar 2 MB;
+- los snapshots no pueden superar 768 KB;
 - no se permiten PDF/DOCX incrustados en la base de datos;
 - el logo no se replica como Base64 en cada snapshot;
 - OTPs vencidos se eliminan;
 - se registran eventos relevantes, no telemetría de interfaz;
-- los PDFs finales se almacenan en Google Drive, no en Supabase Storage.
+- los PDFs finales se almacenan en Google Drive, no en Supabase Storage.\n- al archivar, el snapshot fuente completo también se traslada a Drive y Supabase conserva únicamente un registro compacto con identificadores y hashes.
 
 ## Firma electrónica
 
