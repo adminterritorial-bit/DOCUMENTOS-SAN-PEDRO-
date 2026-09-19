@@ -7,7 +7,7 @@
   <title>Sistema Maestro Documental · San Pedro</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=20260919-v10">
-  <link rel="stylesheet" href="./styles.css?v=20260919-v27">
+  <link rel="stylesheet" href="./styles.css?v=20260919-v28">
 </head>
 <body class="premium-v4 premium-v9 premium-v10">
   <div class="ambient ambient-a"></div>
@@ -35,6 +35,7 @@
         <button class="workspace-nav-btn active" data-panel="editor" type="button">Editor</button>
         <button class="workspace-nav-btn" data-panel="templates" type="button">Plantillas</button>
         <button class="workspace-nav-btn" data-panel="signatures" type="button">Firmas <span class="nav-badge hidden" id="pendingSignatureBadge">0</span></button>
+        <button class="workspace-nav-btn" data-panel="archive" type="button">Archivo</button>
         <button class="workspace-nav-btn" data-panel="settings" type="button">Sistema</button>
       </nav>
 
@@ -309,6 +310,51 @@
         </div>
       </section>
 
+      <section id="archivePanel" class="panel-screen hidden archive-screen">
+        <div class="section-heading premium-section-heading archive-heading">
+          <div><span class="eyebrow">ARCHIVO DIGITAL</span><h2>Expedientes y trazabilidad</h2><p>Cada documento firmado se incorpora automáticamente a una carpeta institucional y conserva su historial verificable.</p></div>
+          <div class="archive-heading-actions">
+            <label class="archive-search"><span>Buscar</span><input id="archiveSearch" type="search" placeholder="Nombre, número, TRD o expediente"></label>
+            <select id="archiveSort" aria-label="Ordenar archivo">
+              <option value="order">Orden institucional</option>
+              <option value="name">Nombre</option>
+              <option value="date">Más recientes</option>
+            </select>
+          </div>
+        </div>
+        <div class="archive-workspace">
+          <aside class="archive-folders-pane">
+            <div class="archive-pane-head"><div><span class="eyebrow">CARPETAS</span><strong>Archivo firmado</strong></div><button class="archive-refresh-btn" id="refreshArchive" type="button" title="Actualizar">↻</button></div>
+            <div class="archive-tree" id="archiveTree"><div class="signature-empty">Cargando carpetas…</div></div>
+          </aside>
+          <section class="archive-documents-pane">
+            <div class="archive-pane-head">
+              <div><span class="eyebrow">DOCUMENTOS</span><strong id="archiveFolderTitle">Todos los expedientes</strong><small id="archiveFolderMeta">Documentos firmados disponibles para consulta.</small></div>
+              <span class="archive-count" id="archiveDocumentCount">0</span>
+            </div>
+            <div class="archive-document-list" id="archiveDocumentList"><div class="signature-empty">Aún no hay documentos firmados en el archivo digital.</div></div>
+          </section>
+          <aside class="archive-trace-pane" id="archiveTracePane">
+            <div class="archive-trace-empty" id="archiveTraceEmpty">
+              <span>⌁</span><strong>Selecciona un expediente</strong><small>Aquí verás firmantes, códigos, hashes y la línea de tiempo completa.</small>
+            </div>
+            <div class="archive-trace-detail hidden" id="archiveTraceDetail">
+              <div class="archive-trace-head">
+                <div><span class="eyebrow">EXPEDIENTE</span><h3 id="archiveTraceTitle">Documento</h3><code id="archiveTraceCode">EXP-</code></div>
+                <button class="archive-trace-close" id="closeArchiveTrace" type="button" aria-label="Cerrar detalle">×</button>
+              </div>
+              <div class="archive-trace-meta" id="archiveTraceMeta"></div>
+              <div class="archive-trace-actions">
+                <button class="btn primary" id="openArchivedDocument" type="button">Abrir documento</button>
+                <button class="btn soft" id="printArchiveTrace" type="button">Imprimir trazabilidad</button>
+              </div>
+              <div class="archive-signers" id="archiveTraceSigners"></div>
+              <div class="archive-timeline" id="archiveTimeline"></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
       <section id="settingsPanel" class="panel-screen hidden">
         <div class="section-heading premium-section-heading">
           <div><span class="eyebrow">SISTEMA</span><h2>Reglas de trabajo</h2><p>El editor está diseñado para mantener formato, TRD, estructura y márgenes bajo control.</p></div>
@@ -508,6 +554,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script type="module" src="./app.js?v=20260919-v27"></script>
+  <script type="module" src="./app.js?v=20260919-v28"></script>
 </body>
 </html>
