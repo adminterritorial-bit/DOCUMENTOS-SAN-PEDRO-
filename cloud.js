@@ -328,7 +328,7 @@ function mySignatureCard(s){
   const r=s.docsys_signature_requests||{};
   const d=r.docsys_documents||{};
   const signedActions=s.status==="signed"
-    ? `<span class="evidence-chip">Código ${s.evidence_code||"registrado"}</span><button class="btn soft" data-open-cloud-doc="${d.id}">Abrir documento</button>${d.drive_url?`<a class="btn primary drive-link" href="${d.drive_url}" target="_blank" rel="noopener">Documento final</a>`:""}`
+    ? `<span class="evidence-chip">Código ${s.evidence_code||"registrado"}</span>${d.status!=="archived"?`<button class="btn soft" data-open-cloud-doc="${d.id}">Abrir documento</button>`:""}${d.drive_url?`<a class="btn primary drive-link" href="${d.drive_url}" target="_blank" rel="noopener">Documento final</a>`:""}`
     : "";
   return `<article class="signature-card">
     <div class="signature-card-top"><div><span class="signature-card-kicker">ORDEN ${s.signer_order}</span><h4>${d.title||"Documento institucional"}</h4></div>${statusBadge(s.status)}</div>
@@ -344,7 +344,7 @@ function sentRequestCard(r){
     <div class="signature-card-top"><div><span class="signature-card-kicker">SOLICITUD</span><h4>${d.title||"Documento institucional"}</h4></div>${statusBadge(d.status==="archived"?"archived":r.status)}</div>
     <div class="signature-progress-list">${signers.map(s=>`<div><span class="mini-order">${s.signer_order}</span><span><strong>${s.signer_name}</strong><small>${s.signer_role||s.signer_email}</small></span>${statusBadge(s.status)}</div>`).join("")}</div>
     <div class="signature-card-actions">
-      <button class="btn soft" data-open-cloud-doc="${d.id}">Abrir documento</button>
+      ${d.status!=="archived"?`<button class="btn soft" data-open-cloud-doc="${d.id}">Abrir documento</button>`:""}
       ${completed&&d.status!=="archived"?`<button class="btn primary" data-archive-doc="${d.id}">Generar final y archivar en Drive</button>`:""}
       ${d.drive_url?`<a class="btn soft drive-link" href="${d.drive_url}" target="_blank" rel="noopener">Abrir en Drive</a>`:""}
     </div>
@@ -482,12 +482,17 @@ async function archiveDocument(documentId,button){
 }
 async function openCloudDocument(documentId){
   try{
-    const {data,error}=await supabase.from("docsys_documents").select("content_snapshot,title").eq("id",documentId).single();
+    const {data,error}=await supabase.from("docsys_documents").select("content_snapshot,title,status,drive_url").eq("id",documentId).single();
     if(error)throw error;
+    if(data.status==="archived"&&data.drive_url){
+      window.open(data.drive_url,"_blank","noopener");
+      return;
+    }
+    if(data.content_snapshot?.archived_to_drive)throw new Error("La fuente fue transferida al archivo institucional.");
     localStorage.setItem("san-pedro-document-draft-v3",JSON.stringify(data.content_snapshot));
     sessionStorage.setItem("docsys-opened-cloud-document",documentId);
     location.href=location.origin+location.pathname;
-  }catch(e){ctx.toast("No fue posible abrir el documento")}
+  }catch(e){ctx.toast(e.message||"No fue posible abrir el documento")}
 }
 async function verifyPublicCode(code){
   openModal("verifySignatureModal");
