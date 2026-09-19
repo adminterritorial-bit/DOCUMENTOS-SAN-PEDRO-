@@ -19,7 +19,13 @@ let ctx=null;
 let session=null;
 let profile=null;
 let activeSignerId=null;
+let activeSignatureFieldId=null;
 let dashboardTimer=null;
+let signaturePlacements=new Map();
+let placementModeActive=false;
+let activePlacementUserId=null;
+let signaturePadStrokes=[];
+let signaturePadCurrent=null;
 
 const normalize=s=>(s||"").trim();
 const domainOf=email=>(email||"").toLowerCase().split("@")[1]||"";
@@ -332,11 +338,15 @@ function signerSubtitle(user){
   const parts=[user.job_title,user.department,user.email].filter(Boolean);
   return parts.join(" · ");
 }
+function placementComplete(){
+  return selectedSignerIds.length>0 && selectedSignerIds.every(id=>signaturePlacements.has(id));
+}
 function renderSelectedSigners(){
   const host=$("#selectedSignerList");
   if(!host)return;
   $("#selectedSignerCount").textContent=`${selectedSignerIds.length} / 3`;
-  $("#confirmSendToSignatures").disabled=selectedSignerIds.length<1;
+  if($("#startPlacementMode"))$("#startPlacementMode").disabled=selectedSignerIds.length<1;
+  if($("#confirmSendToSignatures"))$("#confirmSendToSignatures").disabled=!placementComplete();
   if(!selectedSignerIds.length){
     host.innerHTML='<div class="signature-empty compact">Aún no has seleccionado firmantes.</div>';
     return;
@@ -344,10 +354,12 @@ function renderSelectedSigners(){
   host.innerHTML=selectedSignerIds.map((id,index)=>{
     const user=signerDirectoryUser(id);
     if(!user)return "";
+    const placement=signaturePlacements.get(id);
     return `<article class="selected-signer-card" data-selected-signer="${id}">
       <span class="selected-order">${index+1}</span>
-      <div class="selected-signer-copy"><strong>${user.full_name}</strong><small>${signerSubtitle(user)}</small></div>
+      <div class="selected-signer-copy"><strong>${user.full_name}</strong><small>${signerSubtitle(user)}</small><span class="placement-state ${placement?"ready":"pending"}">${placement?`Página ${placement.page_number} · ubicación lista`:"Falta marcar ubicación"}</span></div>
       <div class="selected-signer-actions">
+        <button type="button" data-place-signer title="Marcar ubicación">⌖</button>
         <button type="button" data-move-signer="-1" ${index===0?"disabled":""} title="Subir">↑</button>
         <button type="button" data-move-signer="1" ${index===selectedSignerIds.length-1?"disabled":""} title="Bajar">↓</button>
         <button type="button" data-remove-signer title="Quitar">×</button>
@@ -397,6 +409,8 @@ async function loadSignerDirectory(force=false){
 function toggleSignerSelection(userId){
   if(selectedSignerIds.includes(userId)){
     selectedSignerIds=selectedSignerIds.filter(id=>id!==userId);
+    signaturePlacements.delete(userId);
+    if(activePlacementUserId===userId)activePlacementUserId=selectedSignerIds[0]||null;
   }else{
     if(selectedSignerIds.length>=3){
       ctx.toast("Puedes seleccionar máximo 3 firmantes");
@@ -406,6 +420,8 @@ function toggleSignerSelection(userId){
   }
   renderSignerDirectory();
   renderSelectedSigners();
+  renderPlacementPanel();
+  renderPlacementMarkers();
 }
 function moveSelectedSigner(userId,direction){
   const index=selectedSignerIds.indexOf(userId);
