@@ -377,11 +377,18 @@ async function loadDashboard(){
 async function openSigner(signerId){
   if(!session){openModal("authOverlay");return;}
   const {data,error}=await supabase.from("docsys_signers")
-    .select("id,request_id,signer_order,signer_name,signer_email,signer_role,status,evidence_code,docsys_signature_requests(id,status,expires_at,signing_mode,document_id,docsys_documents(id,title,document_type,document_number,trd_code,status,document_sha256))")
+    .select("id,request_id,signer_order,signer_name,signer_email,signer_role,status,evidence_code,docsys_signature_requests(id,status,expires_at,signing_mode,document_id,docsys_documents(id,title,document_type,document_number,trd_code,status,document_sha256,content_snapshot))")
     .eq("id",signerId).single();
   if(error){ctx.toast("No tienes acceso a esta solicitud");return;}
   activeSignerId=signerId;
   const d=data.docsys_signature_requests?.docsys_documents||{};
+  if(d.id && d.content_snapshot && sessionStorage.getItem("docsys-opened-cloud-document")!==d.id){
+    localStorage.setItem("san-pedro-document-draft-v3",JSON.stringify(d.content_snapshot));
+    sessionStorage.setItem("docsys-opened-cloud-document",d.id);
+    location.reload();
+    return;
+  }
+  setEditorLocked(true,d.status||"signing");
   $("#signDocumentInfo").innerHTML=`
     <div><span>Documento</span><strong>${d.title||"Documento institucional"}</strong></div>
     <div><span>Firmante</span><strong>${data.signer_name}</strong><small>${data.signer_role||data.signer_email}</small></div>
