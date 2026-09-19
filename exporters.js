@@ -210,10 +210,11 @@ export async function exportPdf(state,paper){
     clone.style.height="297mm";
     clone.style.minHeight="297mm";
     clone.style.maxHeight="297mm";
-    clone.style.overflow="hidden";
+    clone.style.setProperty("overflow","hidden","important");
     clone.style.pageBreakAfter=index<pages.length-1?"always":"auto";
     clone.style.breakAfter=index<pages.length-1?"page":"auto";
     clone.querySelectorAll(".block-actions,.quick-add,.sheet-number,.page-auto-note,.page-break-block").forEach(el=>el.remove());
+    clone.querySelectorAll(".selected,.oversize-block").forEach(el=>el.classList.remove("selected","oversize-block"));
     clone.querySelectorAll("[contenteditable]").forEach(el=>el.removeAttribute("contenteditable"));
     wrapper.appendChild(clone);
   });
@@ -224,7 +225,7 @@ export async function exportPdf(state,paper){
     image:{type:"jpeg",quality:.99},
     html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff",windowWidth:1200},
     jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
-    pagebreak:{mode:["css","legacy"],before:[],after:[".document-page:not(:last-child)"]}
+    pagebreak:{mode:["css","legacy"]}
   };
   await window.html2pdf().set(opt).from(wrapper).save();
 }
