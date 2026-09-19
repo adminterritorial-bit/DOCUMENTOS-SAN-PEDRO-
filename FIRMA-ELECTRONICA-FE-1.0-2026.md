@@ -14,11 +14,12 @@ FE-1.0-2026 se implementa como **firma electrónica**. No se presenta como firma
 
 Para registrar una firma se exige simultáneamente:
 
-1. sesión autenticada mediante Google OAuth;
-2. cuenta del dominio institucional `@sanpedro-valle.gov.co`;
-3. coincidencia entre la cuenta autenticada y el correo designado como firmante;
-4. código de un solo uso enviado al mismo correo institucional;
-5. aceptación expresa de este acuerdo antes de confirmar la operación.
+1. sesión autenticada mediante un método habilitado por el Sistema Maestro Documental;
+2. durante la fase de demostración, el método puede ser Google OAuth o correo/contraseña de Supabase Auth;
+3. la cuenta debe pertenecer al dominio institucional `@sanpedro-valle.gov.co` o encontrarse expresamente autorizada en la lista de acceso;
+4. coincidencia entre la cuenta autenticada y el correo designado como firmante;
+5. código de un solo uso enviado al mismo correo;
+6. aceptación expresa de este acuerdo antes de confirmar la operación.
 
 ### 4. Integridad
 
@@ -56,7 +57,7 @@ Al marcar la casilla de aceptación y confirmar con el código recibido, el firm
 
 El OCR no se utiliza como factor de autenticación ni como fuente de validez de la firma. OCR sirve para reconocer texto en imágenes y no permite, por sí mismo, demostrar quién firmó un documento.
 
-Si en una evolución posterior se incorpora un trazo manuscrito, rúbrica o imagen de firma, ese elemento se considerará una **representación visual adicional**. La evidencia principal de FE-1.0-2026 seguirá siendo la identidad Google institucional, el OTP, el consentimiento expreso, la integridad SHA-256 y la trazabilidad registrada.
+Si en una evolución posterior se incorpora un trazo manuscrito, rúbrica o imagen de firma, ese elemento se considerará una **representación visual adicional**. La evidencia principal de FE-1.0-2026 seguirá siendo la cuenta autenticada y habilitada, el método de autenticación registrado, el OTP, el consentimiento expreso, la integridad SHA-256 y la trazabilidad registrada. Para producción se mantiene como objetivo preferente Google Workspace institucional.
 
 ### 8. Sellado y verificación
 
