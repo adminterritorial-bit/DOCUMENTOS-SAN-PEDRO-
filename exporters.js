@@ -194,6 +194,10 @@ export async function exportPdf(state,paper){
   wrapper.style.margin="0";
   wrapper.style.padding="0";
   wrapper.style.background="#fff";
+  wrapper.style.setProperty("--page-margin",`${Math.max(10,(Number(state.marginCm)||2.54)*10)}mm`);
+  wrapper.style.setProperty("--doc-font",`"${state.fontFamily}", Arial, sans-serif`);
+  wrapper.style.setProperty("--doc-size",`${Number(state.fontSize)||11}pt`);
+  wrapper.style.setProperty("--doc-line",String(Number(state.lineHeight)||1.5));
 
   pages.forEach((page,index)=>{
     const clone=page.cloneNode(true);
@@ -209,7 +213,7 @@ export async function exportPdf(state,paper){
     clone.style.overflow="hidden";
     clone.style.pageBreakAfter=index<pages.length-1?"always":"auto";
     clone.style.breakAfter=index<pages.length-1?"page":"auto";
-    clone.querySelectorAll(".block-actions,.quick-add,.sheet-number,.page-auto-note").forEach(el=>el.remove());
+    clone.querySelectorAll(".block-actions,.quick-add,.sheet-number,.page-auto-note,.page-break-block").forEach(el=>el.remove());
     clone.querySelectorAll("[contenteditable]").forEach(el=>el.removeAttribute("contenteditable"));
     wrapper.appendChild(clone);
   });
