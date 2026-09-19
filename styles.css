@@ -2473,3 +2473,24 @@ body.easy-mode .doc-block:hover>.quick-add{opacity:1}
   .archive-trace-meta{grid-template-columns:1fr}
   .archive-meta-hash{grid-column:auto}
 }
+
+
+/* explicit institutional database save */
+.cloud-save-btn{
+  min-height:35px;padding:8px 11px!important;display:inline-flex;align-items:center;gap:6px;
+  border-color:#9ecfe1!important;background:linear-gradient(145deg,#edf8fc,#f9fdff)!important;
+  color:#0c6f9e!important;font-weight:900!important
+}
+.cloud-save-btn:hover:not(:disabled){border-color:#62b5d5!important;background:#e5f5fb!important}
+.cloud-save-btn>span{font-size:12px;line-height:1}
+.cloud-save-status{
+  display:inline-flex;align-items:center;min-height:27px;padding:5px 8px;border-radius:8px;
+  background:#f2f6f8;color:#78909c;font-size:7px;font-weight:900;white-space:nowrap
+}
+.cloud-save-status.saved{background:#e6f5ec;color:#2b7951}
+.cloud-save-status.dirty{background:#fff4d8;color:#8b6815}
+.cloud-save-status.error{background:#fff0f0;color:#a64949}
+@media(max-width:980px){
+  .cloud-save-status{display:none}
+  .cloud-save-btn{padding:8px 9px!important}
+}
