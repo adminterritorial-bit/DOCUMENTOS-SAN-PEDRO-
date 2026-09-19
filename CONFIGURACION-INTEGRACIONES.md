@@ -21,6 +21,42 @@ No se deben reutilizar tablas de Hacienda u otros aplicativos. El almacenamiento
 
 Proyecto: `dvdpgllezrmttrknbcjq`
 
+### Error `Unsupported provider: provider is not enabled`
+
+Ese mensaje significa exactamente que **el proveedor Google todavía está deshabilitado en Supabase Auth**. El frontend ya usa `provider: "google"`; el bloqueo ocurre antes de entrar a Google.
+
+Configuración exacta para esta aplicación:
+
+**Google Auth Platform → Clients → Web application**
+
+- Authorized JavaScript origin:
+  `https://adminterritorial-bit.github.io`
+- Authorized redirect URI:
+  `https://dvdpgllezrmttrknbcjq.supabase.co/auth/v1/callback`
+- Scopes básicos:
+  `openid`, `email`, `profile`
+
+Si el proyecto de Google Cloud pertenece al mismo Google Workspace de la Alcaldía y la consola permite una audiencia interna, se recomienda seleccionar **Internal**. De todas formas, el aplicativo y PostgreSQL vuelven a validar `@sanpedro-valle.gov.co`.
+
+**Supabase → Authentication → Providers → Google**
+
+1. Abrir Google.
+2. Activar **Enable Sign in with Google**.
+3. Pegar el **Client ID** del cliente Web.
+4. Pegar el **Client Secret**.
+5. Guardar.
+
+**Supabase → Authentication → URL Configuration**
+
+- Site URL:
+  `https://adminterritorial-bit.github.io/DOCUMENTOS-SAN-PEDRO-/`
+- Redirect URLs:
+  `https://adminterritorial-bit.github.io/DOCUMENTOS-SAN-PEDRO-/`
+  `https://adminterritorial-bit.github.io/DOCUMENTOS-SAN-PEDRO-/**`
+
+No colocar la URL de GitHub Pages como redirect URI dentro de Google: Google debe regresar primero al callback de Supabase.
+
+
 En **Authentication → Providers → Google**:
 
 1. Activar Google.
@@ -146,7 +182,20 @@ Si una clase documental exige **firma digital basada en certificado**, el siguie
 
 No existe técnicamente una cuota finita que pueda garantizarse como “eterna”; esta arquitectura busca que el crecimiento de Supabase sea pequeño, predecible y principalmente textual.
 
-## 9. Prueba de aceptación
+## 9. Diagnóstico incorporado
+
+La pantalla de inicio consulta la configuración pública de Supabase Auth antes de redirigir. Si Google sigue deshabilitado, ya no debe aparecer la respuesta JSON cruda: el sistema muestra **Google OAuth pendiente** y explica qué falta.
+
+Después de iniciar sesión, en **Sistema → Integraciones institucionales → Verificar configuración**, el aplicativo prueba:
+
+- Google OAuth;
+- disponibilidad de la Edge Function;
+- delegación Gmail;
+- delegación Google Drive.
+
+No se muestran secretos ni tokens en pantalla.
+
+## 10. Prueba de aceptación
 
 Antes de producción verificar:
 
