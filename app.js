@@ -294,9 +294,9 @@ function addBlock(type){
 }
 
 function updateToc(){
-  const headings=$(".doc-block[data-block='title'] .block-title,.doc-block[data-block='subtitle'] .block-subtitle",root)
+  const headings=$$(".doc-block[data-block='title'] .block-title,.doc-block[data-block='subtitle'] .block-subtitle",root)
     .filter(el=>el.innerText.trim());
-  $(".toc-items",root).forEach(box=>{
+  $$(".toc-items",root).forEach(box=>{
     box.innerHTML=headings.length
       ? headings.map(el=>{
           const title=el.innerText.trim();
@@ -386,7 +386,7 @@ function restoreDraft(){
 function showPanel(name){
   closeStudioDrawers();
   ["editor","templates","settings"].forEach(p=>$("#"+p+"Panel").classList.toggle("hidden",p!==name));
-  $(".workspace-nav-btn[data-panel]").forEach(b=>b.classList.toggle("active",b.dataset.panel===name));
+  $$(".workspace-nav-btn[data-panel]").forEach(b=>b.classList.toggle("active",b.dataset.panel===name));
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
@@ -510,7 +510,7 @@ $("#templateGrid").addEventListener("click",e=>{
   if(type){applyTemplate(type);showPanel("editor");}
 });
 
-$(".workspace-nav-btn[data-panel]").forEach(b=>b.onclick=()=>showPanel(b.dataset.panel));
+$$(".workspace-nav-btn[data-panel]").forEach(b=>b.onclick=()=>showPanel(b.dataset.panel));
 $("#saveDraft").onclick=()=>saveLocal();
 
 $("#resetDraft").onclick=()=>{
