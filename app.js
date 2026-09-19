@@ -1,8 +1,8 @@
 import {LOGO_DATA_URL} from "./assets.js";
 import {TEMPLATES,longDate} from "./templates.js";
 import {insertBlock,activateBlockControls} from "./blocks.js";
-import {exportDocx,exportPdf,buildPdfBlob} from "./exporters.js?v=20260919-v30";
-import {initCloud} from "./cloud.js?v=20260919-v30";
+import {exportDocx,exportPdf,buildPdfBlob} from "./exporters.js?v=20260919-v31";
+import {initCloud} from "./cloud.js?v=20260919-v31";
 import {initGuidance} from "./guide.js";
 import {initWordPagination} from "./pagination.js";
 
@@ -83,6 +83,11 @@ function queueSave(){
   dirty=true;
   const status=$("#saveStatus");
   if(status) status.innerHTML="<i style='background:#e3ae39'></i> Guardando…";
+  const cloudStatus=$("#cloudSaveStatus");
+  if(cloudStatus&&localStorage.getItem("docsys-current-cloud-draft")){
+    cloudStatus.textContent="Cambios sin guardar";
+    cloudStatus.className="cloud-save-status dirty";
+  }
   clearTimeout(saveTimer);
   saveTimer=setTimeout(()=>saveLocal(true),700);
 }
@@ -530,7 +535,13 @@ $("#resetDraft").onclick=()=>{
   if(confirm("¿Crear un documento nuevo? Se reemplazará el borrador local actual.")){
     localStorage.removeItem(DRAFT_KEY);
     localStorage.removeItem(LEGACY_DRAFT_KEY);
+    localStorage.removeItem("docsys-current-cloud-draft");
     sessionStorage.removeItem("docsys-opened-cloud-document");
+    const cloudStatus=$("#cloudSaveStatus");
+    if(cloudStatus){
+      cloudStatus.textContent="Sin guardar en sistema";
+      cloudStatus.className="cloud-save-status";
+    }
     if(document.body.classList.contains("cloud-document-locked")){
       location.href=location.origin+location.pathname;
       return;
