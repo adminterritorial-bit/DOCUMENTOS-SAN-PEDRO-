@@ -10,7 +10,7 @@ import {
 
 const resolveRoot=r=>typeof r==="string"?document.querySelector(r):r;
 const $=(s,r=document)=>resolveRoot(r)?.querySelector(s)||null;
-const $=(s,r=document)=>[...(resolveRoot(r)?.querySelectorAll(s)||[])];
+const qsa=(s,r=document)=>[...(resolveRoot(r)?.querySelectorAll(s)||[])];
 const supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{
   auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
 });
@@ -319,11 +319,11 @@ function signerRow(index,data={}){
   return row;
 }
 function renumberSignerRows(){
-  $$(".signer-row","#signerRows").forEach((row,i)=>{
+  qsa(".signer-row","#signerRows").forEach((row,i)=>{
     row.dataset.index=String(i+1);
     row.querySelector(".signer-order").textContent=String(i+1);
   });
-  $("#addSignerRow").disabled=$$(".signer-row","#signerRows").length>=3;
+  $("#addSignerRow").disabled=qsa(".signer-row","#signerRows").length>=3;
 }
 function addSigner(data={}){
   const host=$("#signerRows");
@@ -332,7 +332,7 @@ function addSigner(data={}){
   renumberSignerRows();
 }
 function readSigners(){
-  const rows=$$(".signer-row","#signerRows");
+  const rows=qsa(".signer-row","#signerRows");
   if(!rows.length)throw new Error("Agrega al menos un firmante.");
   return rows.map((row,i)=>{
     const name=normalize(row.querySelector("[data-signer-name]").value);
@@ -661,7 +661,7 @@ function bindEvents(){
   $("#signatureConsent")?.addEventListener("change",e=>{$("#confirmElectronicSignature").disabled=!e.target.checked;});
   $("#checkIntegrationsBtn")?.addEventListener("click",checkIntegrationReadiness);
   $("[data-close-modal='signatureRequestModal']")?.addEventListener("click",()=>closeModal("signatureRequestModal"));
-  $$("[data-close-modal]").forEach(btn=>btn.addEventListener("click",()=>closeModal(btn.dataset.closeModal)));
+  qsa("[data-close-modal]").forEach(btn=>btn.addEventListener("click",()=>closeModal(btn.dataset.closeModal)));
   $("#mySignatureList")?.addEventListener("click",e=>{
     const id=e.target.closest("[data-open-sign]")?.dataset.openSign;
     if(id){openSigner(id);return;}
