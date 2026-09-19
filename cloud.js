@@ -147,6 +147,8 @@ async function hydrateOpenedCloudDocument(){
   if(signed.length){
     await applyProofs(signed,d.document_sha256||"");
     ctx.reflow?.();
+    await applyProofs(signed,d.document_sha256||"");
+    ctx.reflow?.();
   }
 }
 
@@ -454,6 +456,9 @@ async function archiveDocument(documentId,button){
     if(now.hash!==d.document_sha256)throw new Error("El documento abierto no coincide con la versión firmada. Ábrelo desde el Centro de firmas antes de archivar.");
 
     await applyProofs(signers,d.document_sha256);
+    ctx.reflow?.();
+    await applyProofs(signers,d.document_sha256);
+    ctx.reflow?.();
     const blob=await ctx.buildPdfBlob(ctx.getExportState(),ctx.paper);
     const pdfHash=await blobSha256(blob);
     const base64=await blobToBase64(blob);
