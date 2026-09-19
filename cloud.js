@@ -1383,6 +1383,8 @@ async function verifyPublicCode(code){
       <div><dt>Fecha</dt><dd>${formatDate(data.signed_at)}</dd></div>
       <div><dt>Documento</dt><dd>${data.document_title}</dd></div>
       <div><dt>Hash fuente</dt><dd><code>${data.document_sha256}</code></dd></div>
+      ${data.signature_visual_sha256?`<div><dt>Firma visual</dt><dd><code>SPSIG1 · ${data.signature_visual_sha256}</code></dd></div>`:""}
+      ${data.signature_source?`<div><dt>Origen visual</dt><dd>${data.signature_source==="saved"?"Mi firma guardada":data.signature_source==="uploaded"?"Imagen convertida":"Firma dibujada"}</dd></div>`:""}
       ${data.final_pdf_sha256?`<div><dt>Hash PDF final</dt><dd><code>${data.final_pdf_sha256}</code></dd></div>`:""}
       ${data.drive_reference?`<div><dt>Archivo institucional</dt><dd>${data.drive_reference}</dd></div>`:""}
       <div><dt>Estado</dt><dd>${data.document_status==="archived"?"Firmado y archivado":data.document_status}</dd></div>
