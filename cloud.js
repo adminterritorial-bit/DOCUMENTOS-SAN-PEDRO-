@@ -193,7 +193,7 @@ async function hydrateOpenedCloudDocument(){
   if(["signing","signed","archived"].includes(d.status))setEditorLocked(true,d.status);
 
   const request=await supabase.from("docsys_signature_requests")
-    .select("id,status,created_at,docsys_signers(signer_order,signer_name,signer_role,status,evidence_code,signed_at)")
+    .select("id,status,created_at")
     .eq("document_id",id)
     .order("created_at",{ascending:false})
     .limit(1)
@@ -203,14 +203,20 @@ async function hydrateOpenedCloudDocument(){
     console.warn("Signature request hydrate failed",request.error);
     return;
   }
+  if(!request.data)return;
 
-  const signers=request.data?.docsys_signers||[];
-  const signed=signers.filter(s=>s.status==="signed");
-  if(signed.length){
-    await applyProofs(signed,d.document_sha256||"");
-    ctx.reflow?.();
-    await applyProofs(signed,d.document_sha256||"");
-    ctx.reflow?.();
+  try{
+    const signatureData=await loadRequestSignatureData(request.data.id);
+    const signed=signatureData.signers.filter(s=>s.status==="signed");
+    renderRuntimeSignatureFields(signatureData.fields,{interactiveSignerId:null});
+    if(signed.length){
+      await applyProofs(signed,d.document_sha256||"",signatureData.fields);
+      ctx.reflow?.();
+      await applyProofs(signed,d.document_sha256||"",signatureData.fields);
+      ctx.reflow?.();
+    }
+  }catch(error){
+    console.warn("Signature placement hydrate failed",error);
   }
 }
 
@@ -986,18 +992,19 @@ async function archiveDocument(documentId,button){
   try{
     setBusy(button,true,"Archivando…");
     const req=await supabase.from("docsys_signature_requests")
-      .select("id,status,docsys_documents(id,title,document_type,document_number,trd_code,status,document_sha256,content_snapshot),docsys_signers(signer_order,signer_name,signer_role,status,evidence_code,signed_at)")
+      .select("id,status,docsys_documents(id,title,document_type,document_number,trd_code,status,document_sha256,content_snapshot)")
       .eq("document_id",documentId).order("created_at",{ascending:false}).limit(1).single();
     if(req.error)throw req.error;
     const d=req.data.docsys_documents;
-    const signers=(req.data.docsys_signers||[]);
+    const signatureData=await loadRequestSignatureData(req.data.id);
+    const signers=signatureData.signers;
     if(signers.some(s=>s.status!=="signed"))throw new Error("Aún existen firmas pendientes");
     const now=await currentHash();
     if(now.hash!==d.document_sha256)throw new Error("El documento abierto no coincide con la versión firmada. Ábrelo desde el Centro de firmas antes de archivar.");
 
-    await applyProofs(signers,d.document_sha256);
+    await applyProofs(signers,d.document_sha256,signatureData.fields);
     ctx.reflow?.();
-    await applyProofs(signers,d.document_sha256);
+    await applyProofs(signers,d.document_sha256,signatureData.fields);
     ctx.reflow?.();
     const blob=await ctx.buildPdfBlob(ctx.getExportState(),ctx.paper);
     const pdfHash=await blobSha256(blob);
@@ -1118,13 +1125,55 @@ function bindEvents(){
       toggleSignerSelection(id);
       return;
     }
+    if(e.target.closest("[data-place-signer]")){
+      beginPlacementMode(id);
+      return;
+    }
     const move=e.target.closest("[data-move-signer]");
-    if(move)moveSelectedSigner(id,Number(move.dataset.moveSigner));
+    if(move){
+      moveSelectedSigner(id,Number(move.dataset.moveSigner));
+      renderPlacementPanel();
+    }
+  });
+  $("#startPlacementMode")?.addEventListener("click",()=>beginPlacementMode());
+  $("#exitPlacementMode")?.addEventListener("click",finishPlacementMode);
+  $("#finishPlacements")?.addEventListener("click",finishPlacementMode);
+  $("#clearPlacements")?.addEventListener("click",()=>{
+    signaturePlacements=new Map();
+    activePlacementUserId=selectedSignerIds[0]||null;
+    renderPlacementPanel();
+    renderPlacementMarkers();
+    renderSelectedSigners();
+  });
+  $("#placementSignerList")?.addEventListener("click",e=>{
+    const item=e.target.closest("[data-placement-user]");
+    if(!item)return;
+    activePlacementUserId=item.dataset.placementUser;
+    renderPlacementPanel();
+    renderPlacementMarkers();
+  });
+  ctx.paper?.addEventListener("click",e=>{
+    if(placementModeActive){
+      const marker=e.target.closest("[data-placement-user]");
+      if(marker){
+        activePlacementUserId=marker.dataset.placementUser;
+        renderPlacementPanel();
+        renderPlacementMarkers();
+        return;
+      }
+      const page=e.target.closest(".document-page");
+      if(page&&ctx.paper.contains(page))placeSignatureField(e,page);
+      return;
+    }
+    const fieldAction=e.target.closest("[data-sign-field-action]");
+    if(fieldAction)openSignatureModalFromField(fieldAction.dataset.signFieldAction);
   });
   $("#confirmSendToSignatures")?.addEventListener("click",sendToSignatures);
   $("#requestSignatureOtp")?.addEventListener("click",requestOtp);
+  $("#clearSignaturePad")?.addEventListener("click",resetSignaturePad);
   $("#confirmElectronicSignature")?.addEventListener("click",confirmSignature);
-  $("#signatureConsent")?.addEventListener("change",e=>{$("#confirmElectronicSignature").disabled=!e.target.checked;});
+  $("#signatureConsent")?.addEventListener("change",updateSignatureConfirmState);
+  bindSignaturePad();
   $("#checkIntegrationsBtn")?.addEventListener("click",checkIntegrationReadiness);
   qsa("[data-close-modal]").forEach(btn=>btn.addEventListener("click",()=>closeModal(btn.dataset.closeModal)));
   $("#mySignatureList")?.addEventListener("click",e=>{
