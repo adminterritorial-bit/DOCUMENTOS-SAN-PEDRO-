@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import QRCode from "https://esm.sh/qrcode@1.5.4";
 import {
   SUPABASE_URL,
   SUPABASE_PUBLISHABLE_KEY,
@@ -349,24 +350,30 @@ async function confirmSignature(){
     await loadDashboard();
   }catch(e){ctx.toast(e.message||"No fue posible registrar la firma")}finally{setBusy(btn,false)}
 }
-function applyProofs(signers,docHash){
-  $$(".signature-proof-runtime",ctx.paper).forEach(x=>x.remove());
+async function applyProofs(signers,docHash){
+  $(".signature-proof-runtime",ctx.paper).forEach(x=>x.remove());
   const footer=$(".institutional-footer",ctx.paper.querySelector(".document-page:last-child")||ctx.paper);
   if(!footer)return;
+  const ordered=[...signers].sort((a,b)=>a.signer_order-b.signer_order);
+  const proofItems=await Promise.all(ordered.map(async s=>{
+    const verifyUrl=location.origin+location.pathname+"?verify="+encodeURIComponent(s.evidence_code||"");
+    let qr="";
+    try{qr=await QRCode.toDataURL(verifyUrl,{width:92,margin:0,errorCorrectionLevel:"M"});}catch{}
+    return '<div class="proof-item">'+
+      (qr?'<img class="proof-qr" src="'+qr+'" alt="QR de verificación">':'<span class="proof-check">✓</span>')+
+      '<div><strong>'+s.signer_name+'</strong><small>'+(s.signer_role||"Firmante")+'</small><code>'+(s.evidence_code||"")+'</code><small>'+formatDate(s.signed_at)+'</small></div></div>';
+  }));
   const strip=document.createElement("div");
   strip.className="signature-proof-runtime";
-  strip.innerHTML='<div class="proof-title">DOCUMENTO FIRMADO ELECTRÓNICAMENTE · SHA-256 '+docHash.slice(0,12)+'…</div>'+
-    signers.sort((a,b)=>a.signer_order-b.signer_order).map(s=>
-      '<div class="proof-item"><span>✓</span><div><strong>'+s.signer_name+'</strong><small>'+(s.signer_role||"Firmante")+' · '+(s.evidence_code||"")+' · '+formatDate(s.signed_at)+'</small></div></div>'
-    ).join("");
+  strip.innerHTML='<div class="proof-title">DOCUMENTO FIRMADO ELECTRÓNICAMENTE · VERIFICACIÓN PÚBLICA · SHA-256 '+docHash.slice(0,12)+'…</div>'+proofItems.join("");
   footer.appendChild(strip);
 
-  const boxes=$$(".signature-box",ctx.paper);
-  signers.forEach((s,i)=>{
+  const boxes=$(".signature-box",ctx.paper);
+  ordered.forEach((s,i)=>{
     const box=boxes[i];if(!box)return;
     let p=$(".signature-inline-proof",box);
     if(!p){p=document.createElement("div");p.className="signature-inline-proof";box.appendChild(p);}
-    p.textContent="FIRMADO ELECTRÓNICAMENTE · "+(s.evidence_code||"")+" · "+formatDate(s.signed_at);
+    p.innerHTML='<strong>FIRMADO ELECTRÓNICAMENTE</strong><br><span>Código '+(s.evidence_code||"")+' · '+formatDate(s.signed_at)+'</span>';
   });
 }
 async function archiveDocument(documentId,button){
@@ -382,7 +389,7 @@ async function archiveDocument(documentId,button){
     const now=await currentHash();
     if(now.hash!==d.document_sha256)throw new Error("El documento abierto no coincide con la versión firmada. Ábrelo desde el Centro de firmas antes de archivar.");
 
-    applyProofs(signers,d.document_sha256);
+    await applyProofs(signers,d.document_sha256);
     const blob=await ctx.buildPdfBlob(ctx.getExportState(),ctx.paper);
     const pdfHash=await blobSha256(blob);
     const base64=await blobToBase64(blob);
