@@ -351,7 +351,7 @@ paper.addEventListener("input",e=>{
   updatePageCount();updateOutline();updateToc();queueSave();
 });
 
-$("#docType").addEventListener("change",()=>applyTemplate($("#docType").value));
+$("#docType").addEventListener("change",()=>{applyTemplate($("#docType").value);updateWorkspaceLabels();});
 
 $("#editorRibbon").addEventListener("click",e=>{
   const cmd=e.target.closest("[data-cmd]")?.dataset.cmd;
