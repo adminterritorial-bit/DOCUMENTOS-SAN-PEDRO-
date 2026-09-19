@@ -304,49 +304,107 @@ async function signOut(){
   ctx.toast("Sesión cerrada");
 }
 
-function signerRow(index,data={}){
-  const row=document.createElement("div");
-  row.className="signer-row";
-  row.dataset.index=String(index);
-  row.innerHTML=`
-    <span class="signer-order">${index}</span>
-    <label><span>Nombre completo</span><input data-signer-name value="${data.name||""}" placeholder="Nombre del firmante"></label>
-    <label><span>Correo institucional</span><input data-signer-email type="email" value="${data.email||""}" placeholder="usuario@${DOCSYS_ALLOWED_DOMAIN}"></label>
-    <label><span>Cargo / calidad</span><input data-signer-role value="${data.role||""}" placeholder="Ej. Alcalde Municipal"></label>
-    <button class="signer-remove" type="button" title="Eliminar firmante">×</button>
-  `;
-  row.querySelector(".signer-remove").onclick=()=>{row.remove();renumberSignerRows();};
-  return row;
+let signerDirectory=[];
+let selectedSignerIds=[];
+
+function signerDirectoryUser(id){
+  return signerDirectory.find(user=>user.user_id===id)||null;
 }
-function renumberSignerRows(){
-  qsa(".signer-row","#signerRows").forEach((row,i)=>{
-    row.dataset.index=String(i+1);
-    row.querySelector(".signer-order").textContent=String(i+1);
+function signerSubtitle(user){
+  const parts=[user.job_title,user.department,user.email].filter(Boolean);
+  return parts.join(" · ");
+}
+function renderSelectedSigners(){
+  const host=$("#selectedSignerList");
+  if(!host)return;
+  $("#selectedSignerCount").textContent=`${selectedSignerIds.length} / 3`;
+  $("#confirmSendToSignatures").disabled=selectedSignerIds.length<1;
+  if(!selectedSignerIds.length){
+    host.innerHTML='<div class="signature-empty compact">Aún no has seleccionado firmantes.</div>';
+    return;
+  }
+  host.innerHTML=selectedSignerIds.map((id,index)=>{
+    const user=signerDirectoryUser(id);
+    if(!user)return "";
+    return `<article class="selected-signer-card" data-selected-signer="${id}">
+      <span class="selected-order">${index+1}</span>
+      <div class="selected-signer-copy"><strong>${user.full_name}</strong><small>${signerSubtitle(user)}</small></div>
+      <div class="selected-signer-actions">
+        <button type="button" data-move-signer="-1" ${index===0?"disabled":""} title="Subir">↑</button>
+        <button type="button" data-move-signer="1" ${index===selectedSignerIds.length-1?"disabled":""} title="Bajar">↓</button>
+        <button type="button" data-remove-signer title="Quitar">×</button>
+      </div>
+    </article>`;
+  }).join("");
+}
+function renderSignerDirectory(){
+  const host=$("#signerDirectoryList");
+  if(!host)return;
+  const query=normalize($("#signerDirectorySearch")?.value).toLowerCase();
+  const filtered=signerDirectory.filter(user=>{
+    const haystack=[user.full_name,user.email,user.job_title,user.department].filter(Boolean).join(" ").toLowerCase();
+    return !query||haystack.includes(query);
   });
-  $("#addSignerRow").disabled=qsa(".signer-row","#signerRows").length>=3;
+  if(!filtered.length){
+    host.innerHTML='<div class="signature-empty">No hay usuarios que coincidan con la búsqueda.</div>';
+    return;
+  }
+  host.innerHTML=filtered.map(user=>{
+    const selected=selectedSignerIds.includes(user.user_id);
+    const disabled=!selected&&selectedSignerIds.length>=3;
+    const initials=(user.full_name||user.email||"US").split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase().slice(0,2);
+    return `<button type="button" class="signer-directory-card ${selected?"selected":""}" data-directory-user="${user.user_id}" ${disabled?"disabled":""}>
+      <span class="directory-avatar">${initials}</span>
+      <span class="directory-user-copy"><strong>${user.full_name}</strong><small>${signerSubtitle(user)}</small></span>
+      <span class="directory-user-state">${selected?"✓ Seleccionado":"Seleccionar"}</span>
+    </button>`;
+  }).join("");
 }
-function addSigner(data={}){
-  const host=$("#signerRows");
-  if(!host||host.children.length>=3)return;
-  host.appendChild(signerRow(host.children.length+1,data));
-  renumberSignerRows();
+async function loadSignerDirectory(force=false){
+  if(signerDirectory.length&&!force){
+    renderSignerDirectory();
+    renderSelectedSigners();
+    return signerDirectory;
+  }
+  const host=$("#signerDirectoryList");
+  if(host)host.innerHTML='<div class="signature-empty">Cargando usuarios habilitados…</div>';
+  const {data,error}=await supabase.rpc("docsys_signature_directory");
+  if(error)throw new Error(error.message||"No fue posible cargar los usuarios habilitados.");
+  signerDirectory=(data||[]).map(user=>({...user,email:(user.email||"").toLowerCase()}));
+  selectedSignerIds=selectedSignerIds.filter(id=>signerDirectory.some(user=>user.user_id===id));
+  renderSignerDirectory();
+  renderSelectedSigners();
+  return signerDirectory;
 }
-function readSigners(){
-  const rows=qsa(".signer-row","#signerRows");
-  if(!rows.length)throw new Error("Agrega al menos un firmante.");
-  return rows.map((row,i)=>{
-    const name=normalize(row.querySelector("[data-signer-name]").value);
-    const email=normalize(row.querySelector("[data-signer-email]").value).toLowerCase();
-    const role=normalize(row.querySelector("[data-signer-role]").value);
-    if(!name||!email)throw new Error("Completa nombre y correo de todos los firmantes.");
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error("Revisa el correo de los firmantes.");
-    return {name,email,role,order:i+1};
-  });
+function toggleSignerSelection(userId){
+  if(selectedSignerIds.includes(userId)){
+    selectedSignerIds=selectedSignerIds.filter(id=>id!==userId);
+  }else{
+    if(selectedSignerIds.length>=3){
+      ctx.toast("Puedes seleccionar máximo 3 firmantes");
+      return;
+    }
+    selectedSignerIds=[...selectedSignerIds,userId];
+  }
+  renderSignerDirectory();
+  renderSelectedSigners();
+}
+function moveSelectedSigner(userId,direction){
+  const index=selectedSignerIds.indexOf(userId);
+  const next=index+direction;
+  if(index<0||next<0||next>=selectedSignerIds.length)return;
+  const copy=[...selectedSignerIds];
+  [copy[index],copy[next]]=[copy[next],copy[index]];
+  selectedSignerIds=copy;
+  renderSelectedSigners();
+}
+function readSelectedSignerIds(){
+  if(selectedSignerIds.length<1||selectedSignerIds.length>3)throw new Error("Selecciona entre 1 y 3 firmantes.");
+  return [...selectedSignerIds];
 }
 async function openSendModal(){
   if(!session){openModal("authOverlay");return;}
-  $("#signerRows").innerHTML="";
-  addSigner();
+  selectedSignerIds=[];
   const meta=currentDocumentMeta();
   $("#signatureDocumentSummary").innerHTML=`
     <div><span>Documento</span><strong>${meta.title}</strong></div>
@@ -354,57 +412,67 @@ async function openSendModal(){
     <div><span>Estado</span><strong>Borrador listo para bloquear</strong></div>
   `;
   $("#signatureHashPreview").textContent="Calculando…";
-  const {hash}=await currentHash();
-  $("#signatureHashPreview").textContent=hash.slice(0,16)+"…"+hash.slice(-12);
   openModal("signatureRequestModal");
+  try{
+    await loadSignerDirectory(true);
+    const {hash}=await currentHash();
+    $("#signatureHashPreview").textContent=hash.slice(0,16)+"…"+hash.slice(-12);
+  }catch(error){
+    console.error("Signer directory error",error);
+    if($("#signerDirectoryList"))$("#signerDirectoryList").innerHTML='<div class="signature-empty signature-error">'+(error.message||"No fue posible cargar usuarios.")+'</div>';
+    ctx.toast(error.message||"No fue posible cargar los firmantes");
+  }
 }
 async function sendToSignatures(){
   const btn=$("#confirmSendToSignatures");
   try{
     setBusy(btn,true,"Creando solicitud…");
-    const signers=readSigners();
+    const signerIds=readSelectedSignerIds();
     const {snapshot,hash}=await currentHash();
     const meta=currentDocumentMeta();
-    const {data:doc,error:docError}=await supabase.from("docsys_documents").insert({
-      owner_user_id:session.user.id,
-      title:meta.title,
-      document_type:meta.document_type,
-      document_number:meta.document_number,
-      trd_code:meta.trd_code,
-      content_snapshot:snapshot,
-      status:"draft"
-    }).select("id,document_sha256").single();
-    if(docError)throw docError;
-    if(doc.document_sha256!==hash)throw new Error("No fue posible confirmar la integridad canónica del documento.");
 
-    const {data:reqId,error:reqError}=await supabase.rpc("docsys_create_signature_request",{
-      p_document_id:doc.id,
-      p_signers:signers,
+    const {data:flow,error:flowError}=await supabase.rpc("docsys_start_signature_flow",{
+      p_title:meta.title,
+      p_document_type:meta.document_type,
+      p_document_number:meta.document_number,
+      p_trd_code:meta.trd_code,
+      p_content_snapshot:snapshot,
+      p_signer_user_ids:signerIds,
       p_signing_mode:$("#signatureMode").value
     });
-    if(reqError)throw reqError;
+    if(flowError){
+      const detail=[flowError.message,flowError.details,flowError.hint].filter(Boolean).join(" · ");
+      throw new Error(detail||"No fue posible crear el flujo de firmas.");
+    }
+    if(!flow?.document_id||!flow?.request_id)throw new Error("Supabase no devolvió los identificadores del flujo de firma.");
+    if(flow.document_sha256!==hash)throw new Error("La huella del documento no coincide con la versión protegida.");
 
     let notificationWarning="";
-    const notify=await supabase.functions.invoke(DOCSYS_SIGNATURE_FUNCTION,{body:{action:"notify_request",request_id:reqId}});
+    const notify=await supabase.functions.invoke(DOCSYS_SIGNATURE_FUNCTION,{body:{action:"notify_request",request_id:flow.request_id}});
     if(notify.error||notify.data?.ok===false){
-      notificationWarning=notify.data?.error||notify.error?.message||"No fue posible enviar los correos.";
+      notificationWarning=notify.data?.error||notify.error?.message||"El flujo fue creado, pero el correo todavía no está configurado.";
     }
 
     closeModal("signatureRequestModal");
-    sessionStorage.setItem("docsys-opened-cloud-document",doc.id);
+    sessionStorage.setItem("docsys-opened-cloud-document",flow.document_id);
     setEditorLocked(true,"signing");
     ctx.showPanel("signatures");
     await loadDashboard();
+
     if(notificationWarning){
-      ctx.toast("Solicitud creada. Falta configurar el servicio institucional de correo.");
-      console.warn(notificationWarning);
+      ctx.toast("Solicitud creada. El firmante ya la verá en su bandeja; el correo queda pendiente de configuración.");
+      console.warn("Signature notification warning:",notificationWarning);
     }else{
-      ctx.toast("Documento bloqueado y enviado a firmas");
+      ctx.toast("Documento enviado correctamente a firmas");
     }
-  }catch(e){
-    console.error(e);
-    ctx.toast(e.message||"No fue posible crear la solicitud");
-  }finally{setBusy(btn,false)}
+  }catch(error){
+    const detail=error?.message||"No fue posible crear la solicitud.";
+    console.error("sendToSignatures failed:",detail,error);
+    ctx.toast(detail);
+  }finally{
+    setBusy(btn,false);
+    renderSelectedSigners();
+  }
 }
 
 function statusBadge(status){
