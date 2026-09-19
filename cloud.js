@@ -86,7 +86,7 @@ function closeModal(id){$("#"+id)?.classList.add("hidden")}
 function setBusy(btn,busy,label){
   if(!btn)return;
   if(busy){
-    btn.dataset.originalText=btn.innerHTML;
+    if(!btn.dataset.originalText)btn.dataset.originalText=btn.innerHTML;
     btn.disabled=true;
     btn.innerHTML="<span class='button-spinner'></span>"+(label||"Procesando…");
   }else{
@@ -94,6 +94,27 @@ function setBusy(btn,busy,label){
     if(btn.dataset.originalText)btn.innerHTML=btn.dataset.originalText;
   }
 }
+function setSignatureActionStatus(state,title,detail=""){
+  const box=$("#signatureActionStatus");
+  if(!box)return;
+  box.className="signature-action-status "+(state||"info");
+  $("#signatureActionStatusTitle").textContent=title||"";
+  $("#signatureActionStatusDetail").textContent=detail||"";
+  box.classList.toggle("hidden",!title);
+}
+function setCloudSaveStatus(state,text){
+  const status=$("#cloudSaveStatus");
+  if(!status)return;
+  status.textContent=text;
+  status.className="cloud-save-status"+(state?" "+state:"");
+}
+function forceCloseModal(id){
+  const modal=$("#"+id);
+  if(!modal)return;
+  modal.classList.add("hidden");
+  modal.setAttribute("aria-hidden","true");
+}
+
 function authMessage(message){
   const box=$("#authError");
   if(!box)return;
@@ -164,67 +185,109 @@ function clearCurrentCloudDraftId(){
   localStorage.removeItem("docsys-current-cloud-draft");
 }
 function renderCloudSaveStatus(data=null){
-  const status=$("#cloudSaveStatus");
-  if(!status)return;
   if(!session?.user){
-    status.textContent="Inicia sesión para guardar";
-    status.className="cloud-save-status";
+    setCloudSaveStatus("","Inicia sesión para guardar");
+    return;
+  }
+  if(document.body.classList.contains("cloud-document-locked")){
+    setCloudSaveStatus("locked","Documento protegido");
     return;
   }
   if(data?.version_no){
-    status.textContent=`En sistema · v${data.version_no}`;
-    status.className="cloud-save-status saved";
+    setCloudSaveStatus("saved",`En sistema · v${data.version_no}`);
     return;
   }
   if(currentCloudDraftId()){
-    status.textContent="Borrador vinculado";
-    status.className="cloud-save-status saved";
+    setCloudSaveStatus("saved","Borrador vinculado");
   }else{
-    status.textContent="Sin guardar en sistema";
-    status.className="cloud-save-status";
+    setCloudSaveStatus("","Sin guardar en sistema");
   }
+}
+async function validateCurrentCloudDraftLink(){
+  const id=currentCloudDraftId();
+  if(!id||!session?.user)return null;
+  const {data,error}=await supabase.from("docsys_documents")
+    .select("id,status,version_no,owner_user_id")
+    .eq("id",id)
+    .maybeSingle();
+  if(error||!data||data.status!=="draft"){
+    clearCurrentCloudDraftId();
+    renderCloudSaveStatus();
+    return null;
+  }
+  return data;
 }
 async function saveCurrentDocumentToDatabase(button=$("#saveCloudDocument")){
   if(!session?.user){
+    setCloudSaveStatus("error","Inicia sesión");
+    ctx.toast("Inicia sesión para guardar el documento en el sistema");
     openModal("authOverlay");
     return null;
   }
   if(document.body.classList.contains("cloud-document-locked")){
-    ctx.toast("Este documento ya está bloqueado y no admite cambios.");
+    setCloudSaveStatus("locked","Documento protegido");
+    ctx.toast("Este documento ya está protegido. Para editar, crea o abre un borrador.");
     return null;
   }
 
+  let linkedId=null;
   try{
+    setCloudSaveStatus("saving","Guardando en sistema…");
     setBusy(button,true,"Guardando…");
+    const linked=await validateCurrentCloudDraftLink();
+    linkedId=linked?.id||null;
+
     const snapshot=ctx.getDocumentState();
     const meta=currentDocumentMeta();
-    const {data,error}=await supabase.rpc("docsys_save_draft",{
-      p_document_id:currentCloudDraftId(),
+
+    const executeSave=async documentId=>supabase.rpc("docsys_save_draft",{
+      p_document_id:documentId,
       p_title:meta.title,
       p_document_type:meta.document_type,
       p_document_number:meta.document_number,
       p_trd_code:meta.trd_code,
       p_content_snapshot:snapshot
     });
+
+    let out=await executeSave(linkedId);
+    if(out.error&&linkedId){
+      const detail=[out.error.message,out.error.details,out.error.hint].filter(Boolean).join(" · ");
+      const stale=/no existe|ya no es editable|estado|permiso/i.test(detail);
+      if(stale){
+        clearCurrentCloudDraftId();
+        linkedId=null;
+        out=await executeSave(null);
+      }
+    }
+
+    const {data,error}=out;
     if(error){
       const detail=[error.message,error.details,error.hint].filter(Boolean).join(" · ");
       throw new Error(detail||"No fue posible guardar el documento.");
     }
     if(!data?.document_id)throw new Error("Supabase no devolvió el identificador del documento.");
+
     setCurrentCloudDraftId(data.document_id);
     renderCloudSaveStatus(data);
+    if(button){
+      const original=button.dataset.originalText||'<span>☁</span> Guardar documento';
+      button.innerHTML="✓ Guardado";
+      button.classList.add("save-success");
+      setTimeout(()=>{
+        if(!button.disabled){
+          button.innerHTML=original;
+          button.classList.remove("save-success");
+        }
+      },1400);
+    }
     ctx.toast(data.changed===false
-      ? "El documento ya estaba actualizado en la base de datos"
-      : `Documento guardado en la base de datos · versión ${data.version_no}`);
+      ? "Documento sincronizado · no había cambios nuevos"
+      : `Documento guardado correctamente · versión ${data.version_no}`);
     return data;
   }catch(error){
     console.error("Database document save failed",error);
-    const status=$("#cloudSaveStatus");
-    if(status){
-      status.textContent="Error al guardar";
-      status.className="cloud-save-status error";
-    }
-    ctx.toast(error.message||"No fue posible guardar el documento");
+    setCloudSaveStatus("error","No se pudo guardar");
+    ctx.toast("Error al guardar: "+(error.message||"revisa la conexión"));
     return null;
   }finally{
     setBusy(button,false);
@@ -257,7 +320,7 @@ function setEditorLocked(locked,status="signing"){
       delete el.dataset.docsysWasEditable;
     }
   });
-  qsa("#documentSidebar input,#documentSidebar select,#sidebarBlockPalette button,#editorRibbon button,#saveCloudDocument").forEach(el=>{
+  qsa("#documentSidebar input,#documentSidebar select,#sidebarBlockPalette button,#editorRibbon button").forEach(el=>{
     if(locked){
       el.dataset.docsysLock="1";
       el.disabled=true;
@@ -266,6 +329,14 @@ function setEditorLocked(locked,status="signing"){
       delete el.dataset.docsysLock;
     }
   });
+  const saveBtn=$("#saveCloudDocument");
+  if(saveBtn){
+    saveBtn.classList.toggle("is-locked",locked);
+    saveBtn.title=locked
+      ?"Documento protegido: no puede sobrescribirse"
+      :"Guardar este borrador en la base de datos institucional";
+  }
+  renderCloudSaveStatus();
 }
 
 async function hydrateOpenedCloudDocument(){
@@ -1373,6 +1444,7 @@ async function openSignatureModalFromField(fieldId){
       <div><span>Ubicación</span><strong>Página ${prepared.field.page_number}</strong><small>Campo asignado por quien envió el documento</small></div>
     `;
     $("#signIdentityStatus").textContent="Sesión verificada: "+session.user.email;
+    setSignatureActionStatus("info","Listo para firmar","Selecciona tu firma, solicita el código y confirma la operación.");
     $("#signatureOtpCode").value="";
     $("#signatureConsent").checked=false;
     if($("#signatureVaultConsent"))$("#signatureVaultConsent").checked=false;
@@ -1394,25 +1466,46 @@ async function openSignatureModalFromField(fieldId){
 async function requestOtp(){
   const btn=$("#requestSignatureOtp");
   try{
+    setSignatureActionStatus("working","Enviando código…","Estamos validando tu identidad y generando un código de un solo uso.");
     setBusy(btn,true,"Enviando…");
     const out=await supabase.functions.invoke(DOCSYS_SIGNATURE_FUNCTION,{body:{action:"request_otp",signer_id:activeSignerId}});
     if(out.error||out.data?.ok===false)throw new Error(out.data?.error||out.error?.message||"No fue posible enviar el código");
+    setSignatureActionStatus("success","Código enviado","Revisa el correo de la cuenta firmante e ingresa los 6 dígitos.");
     ctx.toast("Código enviado al correo de la cuenta firmante");
-  }catch(e){ctx.toast(e.message||"No fue posible enviar el código")}finally{setBusy(btn,false)}
+  }catch(e){
+    setSignatureActionStatus("error","No se pudo enviar el código",e.message||"Revisa la configuración del correo institucional.");
+    ctx.toast(e.message||"No fue posible enviar el código");
+  }finally{
+    setBusy(btn,false);
+  }
 }
 async function confirmSignature(){
   const btn=$("#confirmElectronicSignature");
   const code=normalize($("#signatureOtpCode").value);
-  if(!/^\d{6}$/.test(code)){ctx.toast("Ingresa el código de 6 dígitos");return;}
-  if(!$("#signatureConsent").checked){ctx.toast("Debes aceptar la declaración de firma");return;}
+
+  if(!/^\d{6}$/.test(code)){
+    setSignatureActionStatus("error","Falta el código","Ingresa el código de 6 dígitos enviado al correo del firmante.");
+    ctx.toast("Ingresa el código de 6 dígitos");
+    $("#signatureOtpCode")?.focus();
+    return;
+  }
+  if(!$("#signatureConsent").checked){
+    setSignatureActionStatus("error","Falta tu aceptación","Debes aceptar expresamente la declaración de firma antes de continuar.");
+    ctx.toast("Debes aceptar la declaración de firma");
+    return;
+  }
+
   let signatureMark;
   try{
     signatureMark=signatureMarkPayload();
   }catch(error){
+    setSignatureActionStatus("error","Falta aplicar la firma",error.message||"Selecciona una representación de firma.");
     ctx.toast(error.message);
     return;
   }
+
   try{
+    setSignatureActionStatus("working","Registrando firma…","Validando código, identidad, integridad SHA-256 y evidencia.");
     setBusy(btn,true,"Firmando…");
     const out=await supabase.functions.invoke(DOCSYS_SIGNATURE_FUNCTION,{body:{
       action:"verify_otp",
@@ -1421,15 +1514,32 @@ async function confirmSignature(){
       signature_mark:signatureMark,
       signature_source:currentSignatureSource
     }});
-    if(out.error||out.data?.ok===false)throw new Error(out.data?.error||out.error?.message||"No fue posible firmar");
-    closeModal("signDocumentModal");
-    ctx.toast("Firma registrada · "+out.data.evidence_code);
+    if(out.error||out.data?.ok===false){
+      throw new Error(out.data?.error||out.error?.message||"No fue posible firmar");
+    }
+
+    const evidence=out.data?.evidence_code||"registrada";
+    setSignatureActionStatus("success","Firma registrada","Código de evidencia: "+evidence);
+    forceCloseModal("signDocumentModal");
+    document.body.classList.remove("signer-review-mode");
+    ctx.toast("Firma registrada · "+evidence);
+
     archiveFolders=[];
     archiveDocuments=[];
-    await loadDashboard();
-    await hydrateOpenedCloudDocument();
+
+    // La interfaz se cierra primero; las consultas posteriores ya no bloquean la experiencia.
+    requestAnimationFrame(async()=>{
+      try{
+        await loadDashboard();
+        await hydrateOpenedCloudDocument();
+      }catch(refreshError){
+        console.warn("Post-sign refresh failed",refreshError);
+      }
+    });
   }catch(e){
-    ctx.toast(e.message||"No fue posible registrar la firma");
+    const detail=e.message||"No fue posible registrar la firma";
+    setSignatureActionStatus("error","La firma no se registró",detail);
+    ctx.toast(detail);
   }finally{
     setBusy(btn,false);
     updateSignatureConfirmState();
