@@ -1,8 +1,8 @@
 import {LOGO_DATA_URL} from "./assets.js";
 import {TEMPLATES,longDate} from "./templates.js";
 import {insertBlock,activateBlockControls} from "./blocks.js";
-import {exportDocx,exportPdf,buildPdfBlob} from "./exporters.js?v=20260919-v27";
-import {initCloud} from "./cloud.js?v=20260919-v27";
+import {exportDocx,exportPdf,buildPdfBlob} from "./exporters.js?v=20260919-v28";
+import {initCloud} from "./cloud.js?v=20260919-v28";
 import {initGuidance} from "./guide.js";
 import {initWordPagination} from "./pagination.js";
 
@@ -398,7 +398,7 @@ function restoreDraft(){
 
 function showPanel(name){
   closeStudioDrawers();
-  ["editor","templates","signatures","settings"].forEach(p=>$("#"+p+"Panel").classList.toggle("hidden",p!==name));
+  ["editor","templates","signatures","archive","settings"].forEach(p=>$("#"+p+"Panel").classList.toggle("hidden",p!==name));
   $$(".workspace-nav-btn[data-panel]").forEach(b=>b.classList.toggle("active",b.dataset.panel===name));
   window.scrollTo({top:0,behavior:"smooth"});
 }
