@@ -228,44 +228,75 @@ export async function exportDocx(state,paper){
 export async function exportPdf(state,paper){
   const pages=[...paper.querySelectorAll(".document-page")];
   if(!pages.length) throw new Error("No hay páginas para exportar.");
+  if(typeof window.html2canvas!=="function") throw new Error("No se cargó el motor de renderizado PDF.");
+  const JsPdf=window.jspdf?.jsPDF;
+  if(!JsPdf) throw new Error("No se cargó el generador PDF.");
 
-  const wrapper=document.createElement("div");
-  wrapper.className="pdf-page-stack";
-  wrapper.style.margin="0";
-  wrapper.style.padding="0";
-  wrapper.style.background="#fff";
-  wrapper.style.setProperty("--page-margin",`${Math.max(10,(Number(state.marginCm)||2.54)*10)}mm`);
-  wrapper.style.setProperty("--doc-font",`"${state.fontFamily}", Arial, sans-serif`);
-  wrapper.style.setProperty("--doc-size",`${Number(state.fontSize)||11}pt`);
-  wrapper.style.setProperty("--doc-line",String(Number(state.lineHeight)||1.5));
-
-  pages.forEach((page,index)=>{
-    const clone=page.cloneNode(true);
-    clone.style.transform="none";
-    clone.style.margin="0";
-    clone.style.boxShadow="none";
-    clone.style.border="0";
-    clone.style.borderRadius="0";
-    clone.style.width="210mm";
-    clone.style.height="297mm";
-    clone.style.minHeight="297mm";
-    clone.style.maxHeight="297mm";
-    clone.style.setProperty("overflow","hidden","important");
-    clone.style.pageBreakAfter=index<pages.length-1?"always":"auto";
-    clone.style.breakAfter=index<pages.length-1?"page":"auto";
-    clone.querySelectorAll(".block-actions,.quick-add,.sheet-number,.page-auto-note,.page-break-block").forEach(el=>el.remove());
-    clone.querySelectorAll(".selected,.oversize-block").forEach(el=>el.classList.remove("selected","oversize-block"));
-    clone.querySelectorAll("[contenteditable]").forEach(el=>el.removeAttribute("contenteditable"));
-    wrapper.appendChild(clone);
+  const host=document.createElement("div");
+  host.setAttribute("aria-hidden","true");
+  Object.assign(host.style,{
+    position:"fixed",
+    left:"-100000px",
+    top:"0",
+    width:"210mm",
+    background:"#fff",
+    pointerEvents:"none",
+    zIndex:"-1"
   });
+  document.body.appendChild(host);
 
-  const opt={
-    margin:0,
-    filename:`${safe(state.docTitle||state.formatName)}_${safe(state.docNumber||"")}.pdf`,
-    image:{type:"jpeg",quality:.99},
-    html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff",windowWidth:1200},
-    jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
-    pagebreak:{mode:["css","legacy"]}
-  };
-  await window.html2pdf().set(opt).from(wrapper).save();
+  try{
+    if(document.fonts?.ready) await document.fonts.ready;
+    const pdf=new JsPdf({orientation:"portrait",unit:"mm",format:"a4",compress:true});
+
+    for(let index=0;index<pages.length;index++){
+      const clone=pages[index].cloneNode(true);
+      clone.style.transform="none";
+      clone.style.margin="0";
+      clone.style.boxShadow="none";
+      clone.style.border="0";
+      clone.style.borderRadius="0";
+      clone.style.width="210mm";
+      clone.style.height="297mm";
+      clone.style.minHeight="297mm";
+      clone.style.maxHeight="297mm";
+      clone.style.overflow="hidden";
+      clone.style.background="#fff";
+      clone.querySelectorAll(".block-actions,.quick-add,.sheet-number,.page-auto-note,.page-break-block,.oversize-block:after").forEach(el=>el.remove());
+      clone.querySelectorAll(".selected,.oversize-block").forEach(el=>el.classList.remove("selected","oversize-block"));
+      clone.querySelectorAll("[contenteditable]").forEach(el=>el.removeAttribute("contenteditable"));
+      host.replaceChildren(clone);
+
+      const images=[...clone.querySelectorAll("img")];
+      await Promise.all(images.map(img=>{
+        if(img.complete && img.naturalWidth) return img.decode?.().catch(()=>{})||Promise.resolve();
+        return new Promise(resolve=>{
+          const done=()=>resolve();
+          img.addEventListener("load",done,{once:true});
+          img.addEventListener("error",done,{once:true});
+          setTimeout(done,1200);
+        });
+      }));
+
+      const canvas=await window.html2canvas(clone,{
+        scale:2,
+        useCORS:true,
+        allowTaint:false,
+        backgroundColor:"#ffffff",
+        logging:false,
+        width:clone.scrollWidth,
+        height:clone.scrollHeight,
+        windowWidth:clone.scrollWidth,
+        windowHeight:clone.scrollHeight
+      });
+      const imgData=canvas.toDataURL("image/png");
+      if(index>0) pdf.addPage("a4","portrait");
+      pdf.addImage(imgData,"PNG",0,0,210,297,undefined,"FAST");
+    }
+
+    pdf.save(`${safe(state.docTitle||state.formatName)}_${safe(state.docNumber||"")}.pdf`);
+  }finally{
+    host.remove();
+  }
 }
+
