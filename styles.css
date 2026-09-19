@@ -191,3 +191,6 @@ main{padding:18px 22px 44px}
   .paper{box-shadow:none;transform:none!important;margin:0;width:210mm;min-height:297mm;padding:15mm 18mm 17mm}
   .paper::before,.block-actions,.quick-add{display:none!important}
 }
+
+.paper.free-mode .document-identity{display:none}
+.doc-block.selected{outline:1px dashed rgba(13,111,184,.28);outline-offset:5px}
