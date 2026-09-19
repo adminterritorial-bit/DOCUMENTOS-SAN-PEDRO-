@@ -873,6 +873,7 @@ function renderSignatureArtifactPreview(artifact,title="Firma lista",meta="Forma
 function setSignatureInputMode(mode){
   currentSignatureSource=mode;
   qsa("[data-signature-source-mode]").forEach(btn=>btn.classList.toggle("active",btn.dataset.signatureSourceMode===mode));
+  document.querySelector('label[for="signatureImageInput"]')?.classList.toggle("active",mode==="uploaded");
   const drawing=mode==="drawn";
   $("#signaturePadWrap")?.classList.toggle("hidden",!drawing);
   $("#clearSignaturePad")?.classList.toggle("hidden",!drawing);
