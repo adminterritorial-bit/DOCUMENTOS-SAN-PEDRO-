@@ -522,3 +522,13 @@ main{padding:18px 22px 44px}
   .premium-v4 .paper{width:210mm;min-height:297mm;margin:0!important;transform:none!important;box-shadow:none!important;border:0!important;border-radius:0!important}
   .premium-v4 .paper:before{display:none!important}
 }
+
+.editor-layout.sidebar-collapsed{
+  grid-template-columns:58px minmax(700px,1fr) var(--studio-inspector);
+}
+@media(max-width:1180px){
+  .editor-layout.sidebar-collapsed{grid-template-columns:58px minmax(620px,1fr)}
+}
+@media(max-width:900px){
+  .editor-layout.sidebar-collapsed{display:block}
+}
