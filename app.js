@@ -227,8 +227,18 @@ function updatePageCount(){
     const pagePx=297*pxPerMm;
     const pages=Math.max(1,Math.ceil(paper.scrollHeight/pagePx));
     $("#pageCount").textContent=pages;
-    $$(".auto-page-total",paper).forEach(x=>x.textContent=pages);
-    $$(".auto-page-current",paper).forEach(x=>x.textContent=1);
+    $(".auto-page-total",paper).forEach(x=>x.textContent=pages);
+    $(".auto-page-current",paper).forEach(x=>x.textContent=1);
+
+    // La vista web es un lienzo continuo; estos marcadores muestran dónde cae
+    // cada hoja. En Word se usan campos PAGE / NUMPAGES reales y automáticos.
+    const markers=$("#pageMarkers");
+    if(markers){
+      markers.innerHTML=Array.from({length:pages},(_,i)=>{
+        const top=Math.max(92,(i*pagePx)+118);
+        return `<span class="page-marker" style="top:${top}px">Página ${i+1} de ${pages}</span>`;
+      }).join("");
+    }
   });
 }
 
@@ -242,6 +252,11 @@ function restoreDraft(){
     Object.entries(data.values||{}).forEach(([id,v])=>{const el=$("#"+id);if(el)el.value=v;});
     if(data.header) $(".institutional-header",paper).innerHTML=data.header;
     if(data.footer) $(".institutional-footer",paper).innerHTML=data.footer;
+    if(!$("#pageMarkers",paper)){
+      const markerLayer=document.createElement("div");
+      markerLayer.id="pageMarkers"; markerLayer.className="page-markers"; markerLayer.contentEditable="false";
+      paper.prepend(markerLayer);
+    }
     root.innerHTML=data.blocks||"";
     if(data.identity){
       $("#docTitleText").innerHTML=data.identity.title||"";
