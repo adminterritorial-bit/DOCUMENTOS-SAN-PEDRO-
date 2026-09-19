@@ -352,9 +352,24 @@ function placementComplete(){
 function renderSelectedSigners(){
   const host=$("#selectedSignerList");
   if(!host)return;
+  const placed=selectedSignerIds.filter(id=>signaturePlacements.has(id)).length;
   $("#selectedSignerCount").textContent=`${selectedSignerIds.length} / 3`;
   if($("#startPlacementMode"))$("#startPlacementMode").disabled=selectedSignerIds.length<1;
   if($("#confirmSendToSignatures"))$("#confirmSendToSignatures").disabled=!placementComplete();
+  if($("#placementSetupLabel")){
+    $("#placementSetupLabel").textContent=placementComplete()?"Firmas ubicadas":"Ubica las firmas";
+  }
+  if($("#placementSetupHint")){
+    $("#placementSetupHint").textContent=!selectedSignerIds.length
+      ?"Selecciona al menos un firmante."
+      : placementComplete()
+        ? `${placed} de ${selectedSignerIds.length} listas · puedes ajustar cualquier ubicación antes de enviar.`
+        : `${placed} de ${selectedSignerIds.length} listas · marca un punto por cada firmante.`;
+  }
+  if($("#startPlacementMode")){
+    $("#startPlacementMode").textContent=placementComplete()?"Ajustar":"Ubicar firmas";
+    $("#startPlacementMode").classList.toggle("placement-ready",placementComplete());
+  }
   if(!selectedSignerIds.length){
     host.innerHTML='<div class="signature-empty compact">Aún no has seleccionado firmantes.</div>';
     return;
@@ -448,15 +463,17 @@ function renderPlacementPanel(){
   const list=$("#placementSignerList");
   if(!list)return;
   const ready=selectedSignerIds.filter(id=>signaturePlacements.has(id)).length;
-  if($("#placementProgress"))$("#placementProgress").textContent=`${ready} de ${selectedSignerIds.length} ubicaciones listas`;
+  if($("#placementProgress"))$("#placementProgress").textContent=`${ready}/${selectedSignerIds.length} ubicadas`;
   list.innerHTML=selectedSignerIds.map((id,index)=>{
     const user=signerDirectoryUser(id);
     if(!user)return "";
     const placement=signaturePlacements.get(id);
-    return `<button type="button" class="placement-signer-item ${activePlacementUserId===id?"active":""} ${placement?"ready":""}" data-placement-user="${id}">
+    const initials=(user.full_name||user.email||"US").split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase().slice(0,2);
+    return `<button type="button" class="placement-signer-item ${activePlacementUserId===id?"active":""} ${placement?"ready":""}" data-placement-user="${id}" title="${placement?`Página ${placement.page_number}`:"Pendiente de ubicar"}">
       <span class="placement-order">${index+1}</span>
-      <span><strong>${user.full_name}</strong><small>${placement?`Página ${placement.page_number} · marcado`:"Haz clic para seleccionar y luego ubica el campo"}</small></span>
-      <i>${placement?"✓":"⌖"}</i>
+      <span class="placement-chip-avatar">${initials}</span>
+      <span class="placement-chip-name">${user.full_name}</span>
+      <i>${placement?"✓":"+"}</i>
     </button>`;
   }).join("");
 }
@@ -479,7 +496,8 @@ function renderPlacementMarkers(){
     marker.style.top=placement.y_pct+"%";
     marker.style.width=placement.width_pct+"%";
     marker.style.height=placement.height_pct+"%";
-    marker.innerHTML=`<span class="placement-marker-index">${index+1}</span><span><strong>FIRMA · ${user?.full_name||"Firmante"}</strong><small>Haz clic en otro punto para mover este campo</small></span>`;
+    marker.innerHTML=`<span class="placement-marker-index">${index+1}</span><span class="placement-marker-name">${user?.full_name||"Firmante"}</span><span class="placement-drag-hint">⋮⋮</span>`;
+    marker.title="Arrastra para mover";
     page.appendChild(marker);
   });
 }
@@ -513,28 +531,65 @@ function finishPlacementMode(){
   openModal("signatureRequestModal");
   renderSelectedSigners();
 }
-function placeSignatureField(event,page){
-  if(!placementModeActive||!activePlacementUserId)return;
+function setPlacementAt(userId,page,clientX,clientY){
   const rect=page.getBoundingClientRect();
   if(!rect.width||!rect.height)return;
-  const width=28;
-  const height=9;
-  const rawX=((event.clientX-rect.left)/rect.width)*100-width/2;
-  const rawY=((event.clientY-rect.top)/rect.height)*100-height/2;
+  const previous=signaturePlacements.get(userId);
+  const width=previous?.width_pct||26;
+  const height=previous?.height_pct||8;
+  const rawX=((clientX-rect.left)/rect.width)*100-width/2;
+  const rawY=((clientY-rect.top)/rect.height)*100-height/2;
   const x=Math.max(1,Math.min(99-width,rawX));
   const y=Math.max(1,Math.min(99-height,rawY));
-  signaturePlacements.set(activePlacementUserId,{
+  signaturePlacements.set(userId,{
     page_number:Number(page.dataset.page)||1,
     x_pct:Number(x.toFixed(3)),
     y_pct:Number(y.toFixed(3)),
     width_pct:width,
     height_pct:height
   });
+}
+function placeSignatureField(event,page){
+  if(!placementModeActive||!activePlacementUserId)return;
+  setPlacementAt(activePlacementUserId,page,event.clientX,event.clientY);
   const next=selectedSignerIds.find(id=>!signaturePlacements.has(id));
   if(next)activePlacementUserId=next;
   renderPlacementPanel();
   renderPlacementMarkers();
   renderSelectedSigners();
+}
+function startPlacementDrag(event,marker){
+  if(!placementModeActive)return;
+  event.preventDefault();
+  event.stopPropagation();
+  const userId=marker.dataset.placementUser;
+  if(!userId)return;
+  activePlacementUserId=userId;
+  marker.classList.add("dragging");
+  document.body.classList.add("signature-placement-dragging");
+
+  const move=ev=>{
+    const target=document.elementFromPoint(ev.clientX,ev.clientY);
+    const page=target?.closest?.(".document-page") || qsa(".document-page",ctx.paper).find(p=>{
+      const r=p.getBoundingClientRect();
+      return ev.clientX>=r.left&&ev.clientX<=r.right&&ev.clientY>=r.top&&ev.clientY<=r.bottom;
+    });
+    if(!page)return;
+    setPlacementAt(userId,page,ev.clientX,ev.clientY);
+    renderPlacementMarkers();
+    const refreshed=$(`[data-placement-user="${userId}"].signature-placement-marker`,ctx.paper);
+    refreshed?.classList.add("dragging");
+  };
+  const up=()=>{
+    document.removeEventListener("pointermove",move);
+    document.removeEventListener("pointerup",up);
+    document.body.classList.remove("signature-placement-dragging");
+    renderPlacementPanel();
+    renderPlacementMarkers();
+    renderSelectedSigners();
+  };
+  document.addEventListener("pointermove",move);
+  document.addEventListener("pointerup",up,{once:true});
 }
 function signatureFlowPayload(){
   const ids=readSelectedSignerIds();
@@ -1160,6 +1215,11 @@ function bindEvents(){
     activePlacementUserId=item.dataset.placementUser;
     renderPlacementPanel();
     renderPlacementMarkers();
+  });
+  ctx.paper?.addEventListener("pointerdown",e=>{
+    if(!placementModeActive)return;
+    const marker=e.target.closest(".signature-placement-marker");
+    if(marker)startPlacementDrag(e,marker);
   });
   ctx.paper?.addEventListener("click",e=>{
     if(placementModeActive){
