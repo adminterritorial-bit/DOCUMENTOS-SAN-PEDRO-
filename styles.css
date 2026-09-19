@@ -1824,3 +1824,25 @@ body.easy-mode .doc-block:hover>.quick-add{opacity:1}
 @media print{
   .auth-overlay,.modal-shell,.signature-send-btn,.auth-user-chip{display:none!important}
 }
+
+
+/* cloud document integrity lock */
+.cloud-lock-banner{
+  margin:0 0 10px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  border:1px solid #cce6d7;border-radius:13px;background:linear-gradient(135deg,#eff9f3,#fbfdfc);
+  box-shadow:0 7px 18px rgba(40,119,77,.06)
+}
+.cloud-lock-banner>div{display:flex;align-items:center;gap:9px}.cloud-lock-banner strong,.cloud-lock-banner small{display:block}.cloud-lock-banner strong{font-size:10px;color:#285e42}.cloud-lock-banner small{font-size:8px;color:#71867a;margin-top:2px}
+.cloud-lock-icon{width:29px;height:29px;display:grid;place-items:center;border-radius:9px;background:#d9f0e2;color:#26764c;font-weight:900}
+.cloud-lock-banner button{min-height:32px;padding:6px 10px;border:1px solid #bcdbc9;border-radius:9px;background:#fff;color:#2d6948;font-size:8.5px;font-weight:900}
+.cloud-lock-banner button:hover{background:#e8f7ee;border-color:#8fc9a7}
+.cloud-document-locked .doc-block .block-actions,
+.cloud-document-locked .quick-add{display:none!important}
+.cloud-document-locked .editable:hover,
+.cloud-document-locked .inline-edit:hover,
+.cloud-document-locked .editable-label:hover{background:transparent!important;box-shadow:none!important}
+.cloud-document-locked .paper{cursor:default}
+@media(max-width:620px){
+  .cloud-lock-banner{align-items:flex-start;flex-direction:column}
+}
+@media print{.cloud-lock-banner{display:none!important}}
