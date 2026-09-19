@@ -146,6 +146,90 @@ async function currentHash(){
   }
   return {snapshot,hash:await sha256Hex(JSON.stringify(snapshot))};
 }
+function currentCloudDraftId(){
+  if(!session?.user)return null;
+  try{
+    const saved=JSON.parse(localStorage.getItem("docsys-current-cloud-draft")||"null");
+    return saved?.user_id===session.user.id&&saved?.document_id?saved.document_id:null;
+  }catch{return null;}
+}
+function setCurrentCloudDraftId(documentId){
+  if(!session?.user||!documentId)return;
+  localStorage.setItem("docsys-current-cloud-draft",JSON.stringify({
+    user_id:session.user.id,
+    document_id:documentId
+  }));
+}
+function clearCurrentCloudDraftId(){
+  localStorage.removeItem("docsys-current-cloud-draft");
+}
+function renderCloudSaveStatus(data=null){
+  const status=$("#cloudSaveStatus");
+  if(!status)return;
+  if(!session?.user){
+    status.textContent="Inicia sesión para guardar";
+    status.className="cloud-save-status";
+    return;
+  }
+  if(data?.version_no){
+    status.textContent=`En sistema · v${data.version_no}`;
+    status.className="cloud-save-status saved";
+    return;
+  }
+  if(currentCloudDraftId()){
+    status.textContent="Borrador vinculado";
+    status.className="cloud-save-status saved";
+  }else{
+    status.textContent="Sin guardar en sistema";
+    status.className="cloud-save-status";
+  }
+}
+async function saveCurrentDocumentToDatabase(button=$("#saveCloudDocument")){
+  if(!session?.user){
+    openModal("authOverlay");
+    return null;
+  }
+  if(document.body.classList.contains("cloud-document-locked")){
+    ctx.toast("Este documento ya está bloqueado y no admite cambios.");
+    return null;
+  }
+
+  try{
+    setBusy(button,true,"Guardando…");
+    const snapshot=ctx.getDocumentState();
+    const meta=currentDocumentMeta();
+    const {data,error}=await supabase.rpc("docsys_save_draft",{
+      p_document_id:currentCloudDraftId(),
+      p_title:meta.title,
+      p_document_type:meta.document_type,
+      p_document_number:meta.document_number,
+      p_trd_code:meta.trd_code,
+      p_content_snapshot:snapshot
+    });
+    if(error){
+      const detail=[error.message,error.details,error.hint].filter(Boolean).join(" · ");
+      throw new Error(detail||"No fue posible guardar el documento.");
+    }
+    if(!data?.document_id)throw new Error("Supabase no devolvió el identificador del documento.");
+    setCurrentCloudDraftId(data.document_id);
+    renderCloudSaveStatus(data);
+    ctx.toast(data.changed===false
+      ? "El documento ya estaba actualizado en la base de datos"
+      : `Documento guardado en la base de datos · versión ${data.version_no}`);
+    return data;
+  }catch(error){
+    console.error("Database document save failed",error);
+    const status=$("#cloudSaveStatus");
+    if(status){
+      status.textContent="Error al guardar";
+      status.className="cloud-save-status error";
+    }
+    ctx.toast(error.message||"No fue posible guardar el documento");
+    return null;
+  }finally{
+    setBusy(button,false);
+  }
+}
 
 function setEditorLocked(locked,status="signing"){
   document.body.classList.toggle("cloud-document-locked",locked);
@@ -173,7 +257,7 @@ function setEditorLocked(locked,status="signing"){
       delete el.dataset.docsysWasEditable;
     }
   });
-  qsa("#documentSidebar input,#documentSidebar select,#sidebarBlockPalette button,#editorRibbon button").forEach(el=>{
+  qsa("#documentSidebar input,#documentSidebar select,#sidebarBlockPalette button,#editorRibbon button,#saveCloudDocument").forEach(el=>{
     if(locked){
       el.dataset.docsysLock="1";
       el.disabled=true;
@@ -251,6 +335,7 @@ function renderAuth(){
     overlay?.classList.remove("hidden");
     chip?.classList.add("hidden");
     send?.classList.add("hidden");
+    renderCloudSaveStatus();
     return;
   }
   overlay?.classList.add("hidden");
@@ -262,6 +347,7 @@ function renderAuth(){
   if($("#authUserName"))$("#authUserName").textContent=name;
   if($("#authUserRole"))$("#authUserRole").textContent=role;
   if($("#authAvatar"))$("#authAvatar").textContent=(name||"SP").split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase().slice(0,2);
+  renderCloudSaveStatus();
 }
 async function validateSession(){
   const {data}=await supabase.auth.getSession();
@@ -644,7 +730,8 @@ async function sendToSignatures(){
     const {snapshot,hash}=await currentHash();
     const meta=currentDocumentMeta();
 
-    const {data:flow,error:flowError}=await supabase.rpc("docsys_start_signature_flow_v2",{
+    const {data:flow,error:flowError}=await supabase.rpc("docsys_start_signature_flow_v3",{
+      p_document_id:currentCloudDraftId(),
       p_title:meta.title,
       p_document_type:meta.document_type,
       p_document_number:meta.document_number,
@@ -668,6 +755,8 @@ async function sendToSignatures(){
 
     closeModal("signatureRequestModal");
     clearPlacementMarkers();
+    clearCurrentCloudDraftId();
+    renderCloudSaveStatus();
     sessionStorage.setItem("docsys-opened-cloud-document",flow.document_id);
     setEditorLocked(true,"signing");
     ctx.showPanel("signatures");
@@ -1423,6 +1512,8 @@ async function openCloudDocument(documentId){
     }
     if(data.content_snapshot?.archived_to_drive)throw new Error("La fuente fue transferida al archivo institucional.");
     localStorage.setItem("san-pedro-document-draft-v3",JSON.stringify(data.content_snapshot));
+    if(data.status==="draft")setCurrentCloudDraftId(documentId);
+    else clearCurrentCloudDraftId();
     sessionStorage.setItem("docsys-opened-cloud-document",documentId);
     location.href=location.origin+location.pathname;
   }catch(e){ctx.toast(e.message||"No fue posible abrir el documento")}
@@ -1735,6 +1826,7 @@ function bindEvents(){
   $("#passwordLoginPassword")?.addEventListener("keydown",e=>{if(e.key==="Enter")signInPassword();});
   $("#authUserChip")?.addEventListener("click",()=>{if(confirm("¿Cerrar la sesión institucional?"))signOut();});
   $("#sendToSignatures")?.addEventListener("click",openSendModal);
+  $("#saveCloudDocument")?.addEventListener("click",e=>saveCurrentDocumentToDatabase(e.currentTarget));
   $("#signaturePanelNew")?.addEventListener("click",openSendModal);
   $("#signerDirectorySearch")?.addEventListener("input",renderSignerDirectory);
   $("#refreshSignerDirectory")?.addEventListener("click",async()=>{
@@ -1930,5 +2022,5 @@ export async function initCloud(options){
     if(sign)await openSigner(sign);
   }
 
-  return {supabase,loadDashboard,loadArchiveWorkspace,openSendModal};
+  return {supabase,loadDashboard,loadArchiveWorkspace,openSendModal,saveCurrentDocumentToDatabase,clearCurrentCloudDraftId};
 }
