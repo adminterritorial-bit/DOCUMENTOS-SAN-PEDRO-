@@ -34,12 +34,24 @@ function jwtPayload(token){
     return JSON.parse(decodeURIComponent(escape(atob(part.padEnd(Math.ceil(part.length/4)*4,"=")))));
   }catch{return {};}
 }
-const isAllowedSession=s=>{
-  const user=s?.user;
+function authMethodOfSession(s){
   const claims=jwtPayload(s?.access_token||"");
-  const oauth=Array.isArray(claims.amr)&&claims.amr.some(x=>x?.method==="oauth");
-  return !!user?.email&&domainOf(user.email)===DOCSYS_ALLOWED_DOMAIN&&isGoogleUser(user)&&oauth;
-};
+  const methods=Array.isArray(claims.amr)?claims.amr.map(x=>x?.method).filter(Boolean):[];
+  if(methods.includes("oauth"))return "oauth";
+  if(methods.includes("password"))return "password";
+  if(s?.user?.app_metadata?.provider==="google")return "oauth";
+  if(s?.user?.app_metadata?.provider==="email")return "password";
+  return "";
+}
+async function isAllowedSession(s){
+  if(!s?.user?.email)return false;
+  const method=authMethodOfSession(s);
+  if(!["oauth","password"].includes(method))return false;
+  if(method==="oauth"&&!isGoogleUser(s.user))return false;
+  const {data,error}=await supabase.rpc("docsys_is_member");
+  if(error){console.warn("Authorization check failed",error);return false;}
+  return data===true;
+}
 
 async function sha256Hex(input){
   const data=typeof input==="string"?new TextEncoder().encode(input):input;
@@ -179,6 +191,8 @@ async function hydrateOpenedCloudDocument(){
 
 async function ensureProfile(){
   if(!session?.user)return null;
+  const synced=await supabase.rpc("docsys_sync_current_profile");
+  if(synced.error)console.warn("Profile sync failed",synced.error);
   const {data,error}=await supabase.from("docsys_profiles").select("user_id,email,full_name,role").eq("user_id",session.user.id).maybeSingle();
   if(error)console.warn(error);
   profile=data||{
@@ -203,7 +217,8 @@ function renderAuth(){
   chip?.classList.remove("hidden");
   send?.classList.remove("hidden");
   const name=profile?.full_name||session.user.user_metadata?.full_name||session.user.email;
-  const role=profile?.role==="admin"?"Administrador":"Usuario institucional";
+  const method=authMethodOfSession(session);
+  const role=profile?.role==="admin"?"Administrador":method==="password"?"Usuario de demostración":"Usuario institucional";
   if($("#authUserName"))$("#authUserName").textContent=name;
   if($("#authUserRole"))$("#authUserRole").textContent=role;
   if($("#authAvatar"))$("#authAvatar").textContent=(name||"SP").split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase().slice(0,2);
@@ -211,13 +226,17 @@ function renderAuth(){
 async function validateSession(){
   const {data}=await supabase.auth.getSession();
   session=data.session;
-  if(session?.user&&!isAllowedSession(session)){
-    await supabase.auth.signOut();
-    session=null;
-    profile=null;
-    authMessage("Esta cuenta no pertenece al dominio institucional autorizado.");
-  }else if(session?.user){
-    await ensureProfile();
+  if(session?.user){
+    const allowed=await isAllowedSession(session);
+    if(!allowed){
+      const rejectedEmail=session.user.email||"";
+      await supabase.auth.signOut();
+      session=null;
+      profile=null;
+      authMessage("El usuario "+rejectedEmail+" no está habilitado para este sistema. Usa una cuenta @"+DOCSYS_ALLOWED_DOMAIN+" o agrega el correo a la lista de usuarios permitidos.");
+    }else{
+      await ensureProfile();
+    }
   }
   renderAuth();
   return session;
@@ -243,6 +262,36 @@ async function signInGoogle(){
     if(error)throw error;
   }catch(error){
     authMessage(error.message||"No fue posible iniciar con Google.");
+  }finally{
+    setBusy(btn,false);
+  }
+}
+async function signInPassword(){
+  const btn=$("#passwordLoginBtn");
+  const email=normalize($("#passwordLoginEmail")?.value).toLowerCase();
+  const password=$("#passwordLoginPassword")?.value||"";
+  authMessage("");
+  if(!email||!password){
+    authMessage("Ingresa correo y contraseña.");
+    return;
+  }
+  try{
+    setBusy(btn,true,"Ingresando…");
+    const {data,error}=await supabase.auth.signInWithPassword({email,password});
+    if(error)throw error;
+    session=data.session;
+    const allowed=await isAllowedSession(session);
+    if(!allowed){
+      await supabase.auth.signOut();
+      session=null;
+      throw new Error("Credenciales válidas, pero este usuario no está habilitado para el Sistema Maestro Documental.");
+    }
+    await ensureProfile();
+    renderAuth();
+    await loadDashboard();
+    ctx.toast("Sesión iniciada");
+  }catch(error){
+    authMessage(error.message==="Invalid login credentials"?"Correo o contraseña incorrectos.":(error.message||"No fue posible iniciar sesión."));
   }finally{
     setBusy(btn,false);
   }
@@ -289,7 +338,7 @@ function readSigners(){
     const email=normalize(row.querySelector("[data-signer-email]").value).toLowerCase();
     const role=normalize(row.querySelector("[data-signer-role]").value);
     if(!name||!email)throw new Error("Completa nombre y correo de todos los firmantes.");
-    if(domainOf(email)!==DOCSYS_ALLOWED_DOMAIN)throw new Error("Solo se permiten firmantes @"+DOCSYS_ALLOWED_DOMAIN+".");
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error("Revisa el correo de los firmantes.");
     return {name,email,role,order:i+1};
   });
 }
@@ -587,6 +636,8 @@ async function checkIntegrationReadiness(){
 
 function bindEvents(){
   $("#googleLoginBtn")?.addEventListener("click",signInGoogle);
+  $("#passwordLoginBtn")?.addEventListener("click",signInPassword);
+  $("#passwordLoginPassword")?.addEventListener("keydown",e=>{if(e.key==="Enter")signInPassword();});
   $("#authUserChip")?.addEventListener("click",()=>{if(confirm("¿Cerrar la sesión institucional?"))signOut();});
   $("#sendToSignatures")?.addEventListener("click",openSendModal);
   $("#signaturePanelNew")?.addEventListener("click",openSendModal);
@@ -615,9 +666,19 @@ export async function initCloud(options){
   bindEvents();
   await getGoogleProviderStatus();
   await validateSession();
-  supabase.auth.onAuthStateChange(async(_event,newSession)=>{
+  supabase.auth.onAuthStateChange(async(event,newSession)=>{
     session=newSession;
-    if(session?.user&&isAllowedSession(session))await ensureProfile();
+    if(session?.user){
+      const allowed=await isAllowedSession(session);
+      if(allowed){
+        await ensureProfile();
+      }else if(event==="SIGNED_IN"){
+        await supabase.auth.signOut();
+        session=null;
+        profile=null;
+        authMessage("Este usuario no está habilitado para el Sistema Maestro Documental.");
+      }
+    }
     renderAuth();
     if(session)await loadDashboard();
   });
