@@ -6,20 +6,12 @@
   <meta name="theme-color" content="#082f55">
   <title>Sistema Maestro Documental · San Pedro</title>
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./styles.css?v=20260919-v9">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=20260919-v10">
+  <link rel="stylesheet" href="./styles.css?v=20260919-v10">
 </head>
-<body class="premium-v4 premium-v9">
+<body class="premium-v4 premium-v9 premium-v10">
   <div class="ambient ambient-a"></div>
   <div class="ambient ambient-b"></div>
-
-  <aside class="rail" aria-label="Navegación principal">
-    <button class="rail-brand" id="railHome" title="Editor documental">SP</button>
-    <button class="rail-btn active" data-panel="editor" title="Editor"><span>▤</span><small>Editor</small></button>
-    <button class="rail-btn" data-panel="templates" title="Plantillas"><span>▦</span><small>Plantillas</small></button>
-    <button class="rail-btn" data-panel="settings" title="Sistema"><span>⚙</span><small>Sistema</small></button>
-    <div class="rail-spacer"></div>
-    <button class="rail-btn" id="resetDraft" title="Nuevo documento"><span>＋</span><small>Nuevo</small></button>
-  </aside>
 
   <div class="app">
     <header class="topbar premium-topbar">
@@ -38,6 +30,12 @@
         <span class="workspace-dot"></span>
         <div><strong id="activeDocLabel">Documento en edición</strong><small>Autoguardado activo</small></div>
       </div>
+
+      <nav class="workspace-nav" aria-label="Secciones del sistema">
+        <button class="workspace-nav-btn active" data-panel="editor" type="button">Editor</button>
+        <button class="workspace-nav-btn" data-panel="templates" type="button">Plantillas</button>
+        <button class="workspace-nav-btn" data-panel="settings" type="button">Sistema</button>
+      </nav>
 
       <div class="status-cluster">
         <button class="btn easy-toggle" id="easyModeBtn" type="button" aria-pressed="true" title="Activar una interfaz más simple y grande"><span>☀</span> Modo fácil</button>
@@ -306,6 +304,9 @@
   </div>
 
   <button class="studio-backdrop" id="studioBackdrop" type="button" aria-label="Cerrar panel lateral"></button>
+  <button class="floating-new-document" id="resetDraft" type="button" title="Crear nuevo documento" aria-label="Crear nuevo documento">
+    <span>＋</span><strong>Nuevo</strong>
+  </button>
 
   <div class="accessibility-dock" aria-label="Ayuda y accesibilidad">
     <button id="floatingHelpBtn" type="button" class="dock-main" title="Abrir ayuda"><span>?</span><em>Ayuda</em></button>
@@ -361,7 +362,8 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js"></script>
-  <script type="module" src="./app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+  <script type="module" src="./app.js?v=20260919-v10"></script>
 </body>
 </html>
