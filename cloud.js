@@ -490,8 +490,18 @@ async function verifyPublicCode(code){
     box.innerHTML='<div class="verify-invalid"><strong>No se encontró una firma válida</strong><span>Revisa el código de evidencia.</span></div>';
     return;
   }
-  box.innerHTML=`<div class="verify-valid"><span>✓</span><div><strong>Firma verificada</strong><small>La evidencia existe y está asociada al hash registrado.</small></div></div>
-    <dl><div><dt>Código</dt><dd>${data.code}</dd></div><div><dt>Firmante</dt><dd>${data.signer_name}</dd></div><div><dt>Calidad</dt><dd>${data.signer_role||"Firmante"}</dd></div><div><dt>Fecha</dt><dd>${formatDate(data.signed_at)}</dd></div><div><dt>Documento</dt><dd>${data.document_title}</dd></div><div><dt>Hash</dt><dd><code>${data.document_sha256}</code></dd></div></dl>`;
+  box.innerHTML=`<div class="verify-valid"><span>✓</span><div><strong>Firma verificada</strong><small>La evidencia existe y está vinculada a la versión protegida del documento.</small></div></div>
+    <dl>
+      <div><dt>Código</dt><dd>${data.code}</dd></div>
+      <div><dt>Firmante</dt><dd>${data.signer_name}</dd></div>
+      <div><dt>Calidad</dt><dd>${data.signer_role||"Firmante"}</dd></div>
+      <div><dt>Fecha</dt><dd>${formatDate(data.signed_at)}</dd></div>
+      <div><dt>Documento</dt><dd>${data.document_title}</dd></div>
+      <div><dt>Hash fuente</dt><dd><code>${data.document_sha256}</code></dd></div>
+      ${data.final_pdf_sha256?`<div><dt>Hash PDF final</dt><dd><code>${data.final_pdf_sha256}</code></dd></div>`:""}
+      ${data.drive_reference?`<div><dt>Archivo institucional</dt><dd>${data.drive_reference}</dd></div>`:""}
+      <div><dt>Estado</dt><dd>${data.document_status==="archived"?"Firmado y archivado":data.document_status}</dd></div>
+    </dl>`;
 }
 function bindEvents(){
   $("#googleLoginBtn")?.addEventListener("click",signInGoogle);
