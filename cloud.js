@@ -88,6 +88,10 @@ function currentDocumentMeta(){
 }
 async function currentHash(){
   const snapshot=ctx.getDocumentState();
+  if(session?.user){
+    const remote=await supabase.rpc("docsys_hash_snapshot",{p_snapshot:snapshot});
+    if(!remote.error&&remote.data)return {snapshot,hash:remote.data};
+  }
   return {snapshot,hash:await sha256Hex(JSON.stringify(snapshot))};
 }
 
@@ -279,10 +283,10 @@ async function sendToSignatures(){
       document_number:meta.document_number,
       trd_code:meta.trd_code,
       content_snapshot:snapshot,
-      document_sha256:hash,
       status:"draft"
-    }).select("id").single();
+    }).select("id,document_sha256").single();
     if(docError)throw docError;
+    if(doc.document_sha256!==hash)throw new Error("No fue posible confirmar la integridad canónica del documento.");
 
     const {data:reqId,error:reqError}=await supabase.rpc("docsys_create_signature_request",{
       p_document_id:doc.id,
