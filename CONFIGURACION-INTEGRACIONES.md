@@ -17,6 +17,21 @@ Tablas reservadas para este sistema:
 
 No se deben reutilizar tablas de Hacienda u otros aplicativos. El almacenamiento binario de PDF/DOCX está expresamente fuera de Supabase; los documentos finales se archivan en Google Drive.
 
+## 1.1. Modo temporal de demostración con usuario y contraseña
+
+Mientras se termina Google OAuth, el sistema permite autenticación con **correo + contraseña de Supabase Auth**.
+
+Reglas:
+
+- La aplicación **no ofrece registro público**.
+- Los usuarios deben crearse manualmente desde Supabase Auth.
+- Una cuenta `@sanpedro-valle.gov.co` puede entrar directamente con contraseña.
+- Un correo externo (por ejemplo Gmail) debe existir en Auth **y** agregarse expresamente a `docsys_allowed_users`.
+- El administrador inicial continúa siendo `adminterritorial@sanpedro-valle.gov.co`.
+- La firma electrónica registra si la sesión usada fue `oauth` o `password`.
+
+Para una demo rápida se recomienda crear dos usuarios manualmente en **Authentication → Users** con correos institucionales y marcar el correo como confirmado.
+
 ## 2. Google OAuth en Supabase
 
 Proyecto: `dvdpgllezrmttrknbcjq`
