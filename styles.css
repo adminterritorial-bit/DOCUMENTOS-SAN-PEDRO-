@@ -1995,3 +1995,124 @@ body.easy-mode .doc-block:hover>.quick-add{opacity:1}
   .signer-directory-tools{grid-template-columns:1fr}
   .selected-signers-title{align-items:flex-start;flex-direction:column}
 }
+
+
+/* =========================================================
+   SIGNATURE PLACEMENT + SIGNER-ONLY FIELD V20
+   ========================================================= */
+.signature-placement-setup{
+  margin-top:10px;padding:11px 12px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  border:1px solid #cfe4ee;border-radius:12px;background:linear-gradient(135deg,#f2faff,#fff)
+}
+.signature-placement-setup>div{display:grid;gap:2px}
+.signature-placement-setup strong{font-size:10px;color:#214d67}
+.signature-placement-setup small{font-size:8px;color:#78909e;line-height:1.4}
+.placement-state{display:inline-flex;width:max-content;margin-top:4px;padding:3px 6px;border-radius:6px;font-size:6.8px;font-weight:900;letter-spacing:.02em}
+.placement-state.ready{background:#e3f5eb;color:#2c7850}
+.placement-state.pending{background:#fff2d3;color:#82610f}
+
+.signature-placement-panel{
+  position:fixed;right:18px;top:96px;z-index:155;width:min(350px,calc(100vw - 36px));max-height:calc(100vh - 120px);overflow:auto;
+  padding:15px;border:1px solid #c9dfe9;border-radius:18px;background:rgba(251,254,255,.97);
+  box-shadow:0 28px 70px rgba(5,45,70,.24);backdrop-filter:blur(18px)
+}
+.placement-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.placement-panel-head h3{margin:4px 0 0;font-size:16px;color:#173f58}
+.placement-panel-head button{width:34px;height:34px;border:1px solid #d4e3eb;border-radius:10px;background:#fff;color:#45687d;font-size:20px}
+.signature-placement-panel>p{margin:10px 0;font-size:9px;line-height:1.5;color:#657f8f}
+.placement-progress{margin:0 0 9px;padding:8px 9px;border-radius:10px;background:#eef8fc;color:#246b8d;font-size:8.5px;font-weight:900;text-align:center}
+.placement-signer-list{display:grid;gap:7px}
+.placement-signer-item{
+  width:100%;display:grid;grid-template-columns:30px 1fr 25px;gap:8px;align-items:center;padding:8px 9px;
+  border:1px solid #dbe8ee;border-radius:11px;background:#fff;color:#294e65;text-align:left
+}
+.placement-signer-item:hover{border-color:#8bc7df;background:#f4fbfe}
+.placement-signer-item.active{border-color:#1688bf;box-shadow:0 0 0 3px rgba(22,136,191,.10);background:#eef9fd}
+.placement-signer-item.ready>i{background:#dff2e7;color:#27774d}
+.placement-order{width:28px;height:28px;display:grid;place-items:center;border-radius:8px;background:#e8f5fb;color:#0b73a6;font-size:8px;font-weight:900}
+.placement-signer-item strong,.placement-signer-item small{display:block}
+.placement-signer-item strong{font-size:9px}
+.placement-signer-item small{margin-top:2px;font-size:7.2px;color:#81949f}
+.placement-signer-item i{width:23px;height:23px;display:grid;place-items:center;border-radius:7px;background:#fff3d7;color:#8a6717;font-style:normal;font-size:9px;font-weight:900}
+.placement-panel-actions{display:flex;gap:7px;margin-top:11px}.placement-panel-actions .btn{flex:1}
+
+.signature-placement-mode .modal-shell{pointer-events:none}
+.signature-placement-mode .document-page{cursor:crosshair;box-shadow:0 0 0 3px rgba(19,137,191,.15),0 28px 72px rgba(6,38,62,.16)}
+.signature-placement-mode .document-page>.page-inner,
+.signature-placement-mode .document-page>.sheet-number{pointer-events:none}
+.signature-placement-mode .document-page:after{
+  content:"Haz clic para ubicar la firma";position:absolute;left:50%;top:8px;transform:translateX(-50%);
+  z-index:48;padding:5px 9px;border-radius:999px;background:rgba(7,72,108,.88);color:#fff;font-size:7px;font-family:"Century Gothic",Arial,sans-serif;pointer-events:none
+}
+.signature-placement-marker{
+  position:absolute;z-index:52;display:flex;align-items:center;gap:6px;padding:5px 7px;overflow:hidden;
+  border:2px dashed #1688bf;border-radius:7px;background:rgba(233,249,255,.92);color:#0b608a;text-align:left;
+  box-shadow:0 6px 16px rgba(7,96,142,.13);font-family:"Century Gothic",Arial,sans-serif
+}
+.signature-placement-marker:hover,.signature-placement-marker.active{border-style:solid;background:rgba(218,244,255,.98);box-shadow:0 0 0 4px rgba(22,136,191,.10),0 8px 18px rgba(7,96,142,.16)}
+.placement-marker-index{width:22px;height:22px;flex:0 0 22px;display:grid;place-items:center;border-radius:7px;background:#0b78ad;color:#fff;font-size:8px;font-weight:900}
+.signature-placement-marker strong,.signature-placement-marker small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.signature-placement-marker strong{font-size:6.8px}.signature-placement-marker small{font-size:5.6px;color:#5f8192;margin-top:1px}
+
+/* runtime fields visible to the signer and in the final PDF */
+.signature-field-runtime{
+  position:absolute;z-index:44;display:grid;place-items:stretch;border-radius:5px;font-family:"Century Gothic",Arial,sans-serif;
+  overflow:hidden
+}
+.signature-field-runtime.pending{border:1.5px dashed #9cb7c5;background:rgba(247,251,253,.86)}
+.signature-field-runtime.interactive{
+  z-index:58;border:2px solid #0e88c3;background:rgba(229,247,255,.96);
+  box-shadow:0 0 0 5px rgba(14,136,195,.12),0 9px 24px rgba(9,92,136,.18)
+}
+.signature-field-action{
+  width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  border:0;background:transparent;color:#086a9b;font-family:inherit
+}
+.signature-field-action>span{font-size:14px}
+.signature-field-action strong{font-size:7.2px;letter-spacing:.08em}
+.signature-field-action small{font-size:5.8px;color:#47788f;max-width:94%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.signature-field-action:hover{background:rgba(255,255,255,.55)}
+.signature-field-pending{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#6d8491}
+.signature-field-pending span{font-size:10px}.signature-field-pending strong{font-size:6.6px}.signature-field-pending small{font-size:5.5px;max-width:94%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.signature-field-runtime.signed{
+  border:.35mm solid #6b9bad;background:rgba(255,255,255,.96);color:#15394d;z-index:45
+}
+.signature-field-mark{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.2mm 1.5mm;line-height:1.05;text-align:center}
+.drawn-signature-svg{width:88%;height:58%;min-height:12px;color:#102c3e;overflow:visible}
+.signature-field-mark strong{font-size:5.6pt;text-transform:uppercase;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.signature-field-mark small{font-size:4.7pt;color:#5f7581;margin-top:.35mm}
+.signature-field-mark code{font-size:4.4pt;color:#0b6d99;margin-top:.45mm;font-family:"Century Gothic",Arial,sans-serif;font-weight:800}
+
+/* signature drawing pad */
+.signature-pad-section{padding:0 20px 14px}
+.signature-pad-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:8px}
+.signature-pad-head>div{display:grid;gap:2px}
+.signature-pad-head strong{font-size:10px;color:#284e65}
+.signature-pad-head small{font-size:7.8px;color:#7a8f9c;line-height:1.4}
+.signature-pad-wrap{
+  position:relative;height:150px;border:1.5px dashed #8fbfd4;border-radius:13px;background:
+    linear-gradient(to bottom,transparent 72%,rgba(28,88,119,.16) 72%,rgba(28,88,119,.16) 72.7%,transparent 72.7%),
+    #fff;
+  overflow:hidden;touch-action:none
+}
+#signaturePadCanvas{display:block;width:100%;height:100%;cursor:crosshair;touch-action:none}
+#signaturePadHint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;color:#9aabb4;font-size:9px}
+#signaturePadHint.hidden{display:none}
+
+/* locked signer review: all document content is read-only, assigned field stays interactive */
+.cloud-document-locked .signature-field-runtime.interactive,
+.cloud-document-locked .signature-field-runtime.interactive *{pointer-events:auto!important}
+.cloud-document-locked .document-page .page-inner{user-select:text}
+.cloud-document-locked .doc-block,.cloud-document-locked .institutional-header,.cloud-document-locked .trd-line,.cloud-document-locked .institutional-footer{cursor:default}
+
+/* PDF must never include incomplete placement UI */
+@media print{
+  .signature-placement-panel,.signature-placement-marker,.signature-field-runtime.pending{display:none!important}
+}
+@media(max-width:760px){
+  .signature-placement-panel{right:8px;left:8px;top:82px;width:auto;max-height:calc(100vh - 98px)}
+  .signature-placement-setup{align-items:flex-start;flex-direction:column}
+  .signature-placement-setup .btn{width:100%}
+  .signature-pad-section{padding-left:14px;padding-right:14px}
+  .signature-pad-wrap{height:130px}
+}
