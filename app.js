@@ -530,6 +530,11 @@ $("#resetDraft").onclick=()=>{
   if(confirm("¿Crear un documento nuevo? Se reemplazará el borrador local actual.")){
     localStorage.removeItem(DRAFT_KEY);
     localStorage.removeItem(LEGACY_DRAFT_KEY);
+    sessionStorage.removeItem("docsys-opened-cloud-document");
+    if(document.body.classList.contains("cloud-document-locked")){
+      location.href=location.origin+location.pathname;
+      return;
+    }
     applyTemplate($("#docType").value);
     toast("Nuevo documento creado");
   }
@@ -616,7 +621,8 @@ initCloud({
   paper,
   buildPdfBlob,
   toast,
-  showPanel
+  showPanel,
+  reflow:()=>pagination.reflow()
 }).catch(error=>{
   console.error("Cloud init failed",error);
   toast("No fue posible iniciar la conexión institucional");
