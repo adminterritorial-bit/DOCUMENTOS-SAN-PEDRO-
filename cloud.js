@@ -320,6 +320,8 @@ async function signInPassword(){
     await ensureProfile();
     renderAuth();
     await loadDashboard();
+    const deepLinkSigner=new URLSearchParams(location.search).get("sign");
+    if(deepLinkSigner)await openSigner(deepLinkSigner);
     ctx.toast("Sesión iniciada");
   }catch(error){
     authMessage(error.message==="Invalid login credentials"?"Correo o contraseña incorrectos.":(error.message||"No fue posible iniciar sesión."));
@@ -867,7 +869,13 @@ async function prepareSignerField(signerId){
   }
 
   setEditorLocked(true,d.status||"signing");
+  document.body.classList.toggle("signer-review-mode",data.status==="pending");
   ctx.showPanel("editor");
+  const lockBanner=$("#cloudLockBanner");
+  if(lockBanner&&data.status==="pending"){
+    const copy=lockBanner.querySelector("small");
+    if(copy)copy.textContent="Modo firma · el documento es solo lectura. Únicamente puedes actuar en el campo azul asignado a tu usuario.";
+  }
   const signatureData=await loadRequestSignatureData(request.id);
   renderRuntimeSignatureFields(signatureData.fields,{interactiveSignerId:data.status==="pending"?signerId:null});
 
@@ -1176,7 +1184,18 @@ function bindEvents(){
   $("#signatureConsent")?.addEventListener("change",updateSignatureConfirmState);
   bindSignaturePad();
   $("#checkIntegrationsBtn")?.addEventListener("click",checkIntegrationReadiness);
-  qsa("[data-close-modal]").forEach(btn=>btn.addEventListener("click",()=>closeModal(btn.dataset.closeModal)));
+  qsa("[data-close-modal]").forEach(btn=>btn.addEventListener("click",()=>{
+    const id=btn.dataset.closeModal;
+    closeModal(id);
+    if(id==="signatureRequestModal"&&!placementModeActive){
+      clearPlacementMarkers();
+      signaturePlacements=new Map();
+      selectedSignerIds=[];
+      activePlacementUserId=null;
+      renderSignerDirectory();
+      renderSelectedSigners();
+    }
+  }));
   $("#mySignatureList")?.addEventListener("click",e=>{
     const id=e.target.closest("[data-open-sign]")?.dataset.openSign;
     if(id){openSigner(id);return;}
