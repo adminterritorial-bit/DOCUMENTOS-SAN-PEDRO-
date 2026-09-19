@@ -40,6 +40,8 @@
       </div>
 
       <div class="status-cluster">
+        <button class="btn easy-toggle" id="easyModeBtn" type="button" aria-pressed="true" title="Activar una interfaz más simple y grande"><span>☀</span> Modo fácil</button>
+        <button class="btn help-btn" id="startTourBtn" type="button" title="Iniciar recorrido guiado"><span>?</span> Ayuda</button>
         <span class="save-status" id="saveStatus"><i></i> Guardado local</span>
         <button class="btn soft" id="saveDraft">Guardar</button>
         <button class="btn soft" id="exportPdf">PDF</button>
@@ -66,6 +68,14 @@
                   <strong id="sidebarDocName">Documento institucional</strong>
                   <span>Metadatos, formato y bloques</span>
                 </div>
+              </div>
+
+              <div class="simple-flow" id="simpleFlow" aria-label="Guía rápida">
+                <span class="simple-flow-title">GUÍA RÁPIDA</span>
+                <button type="button" data-guide-target="docType"><b>1</b><span><strong>Elige el documento</strong><small>Decreto, resolución, acta, plan...</small></span></button>
+                <button type="button" data-guide-target="trdCode"><b>2</b><span><strong>Completa los datos</strong><small>TRD, número, fecha y formato.</small></span></button>
+                <button type="button" data-guide-target="sidebarBlockPalette"><b>3</b><span><strong>Agrega contenido</strong><small>Texto, tablas, artículos y más.</small></span></button>
+                <button type="button" data-guide-target="exportDocx"><b>4</b><span><strong>Exporta</strong><small>Descarga Word o PDF.</small></span></button>
               </div>
 
               <section class="side-group open" data-side-group>
@@ -246,7 +256,7 @@
             </div>
           </div>
 
-          <aside class="inspector premium-inspector">
+          <aside class="inspector premium-inspector" id="documentInspector">
             <div class="inspector-sticky">
               <div class="inspector-card selected-card">
                 <span class="eyebrow">SELECCIÓN ACTUAL</span>
@@ -292,7 +302,60 @@
     </main>
   </div>
 
-  <div class="toast" id="toast"></div>
+  <div class="accessibility-dock" aria-label="Ayuda y accesibilidad">
+    <button id="floatingHelpBtn" type="button" class="dock-main" title="Abrir ayuda"><span>?</span><em>Ayuda</em></button>
+    <button id="increaseUiBtn" type="button" title="Aumentar tamaño de la interfaz"><span>A+</span></button>
+    <button id="decreaseUiBtn" type="button" title="Reducir tamaño de la interfaz"><span>A−</span></button>
+    <button id="contrastBtn" type="button" title="Mejorar contraste"><span>◐</span></button>
+  </div>
+
+  <aside class="help-drawer" id="helpDrawer" aria-hidden="true" aria-label="Centro de ayuda">
+    <div class="help-drawer-head">
+      <div><span class="eyebrow">AYUDA</span><h2>¿Qué necesitas hacer?</h2></div>
+      <button id="closeHelpDrawer" type="button" aria-label="Cerrar ayuda">×</button>
+    </div>
+    <div class="help-drawer-body">
+      <button class="help-action primary-help" data-help-action="tour"><span>▶</span><div><strong>Hacer recorrido guiado</strong><small>Te mostramos el aplicativo paso a paso.</small></div></button>
+      <button class="help-action" data-help-action="document"><span>1</span><div><strong>Configurar documento</strong><small>Tipo, número, fecha y TRD.</small></div></button>
+      <button class="help-action" data-help-action="content"><span>2</span><div><strong>Agregar contenido</strong><small>Títulos, textos, tablas, artículos y más.</small></div></button>
+      <button class="help-action" data-help-action="edit"><span>3</span><div><strong>Editar directamente</strong><small>Haz clic en cualquier texto de la hoja y escribe.</small></div></button>
+      <button class="help-action" data-help-action="export"><span>4</span><div><strong>Guardar o exportar</strong><small>Word editable o PDF listo para compartir.</small></div></button>
+      <div class="help-note"><strong>Consejo:</strong> Si prefieres botones y textos más grandes, deja activo <b>Modo fácil</b>.</div>
+    </div>
+  </aside>
+
+  <div class="welcome-overlay hidden" id="welcomeOverlay" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+    <div class="welcome-card">
+      <button class="welcome-close" id="closeWelcome" type="button" aria-label="Cerrar">×</button>
+      <div class="welcome-mark">SP</div>
+      <span class="eyebrow">SISTEMA MAESTRO DOCUMENTAL</span>
+      <h2 id="welcomeTitle">Crear documentos ahora es más fácil</h2>
+      <p>Elige cómo quieres empezar. Puedes cambiar cualquier dato después.</p>
+      <div class="welcome-actions">
+        <button data-welcome-action="new"><span>＋</span><strong>Crear documento</strong><small>Empieza con el tipo que necesites.</small></button>
+        <button data-welcome-action="templates"><span>▦</span><strong>Ver plantillas</strong><small>Escoge una estructura ya organizada.</small></button>
+        <button data-welcome-action="tour" class="featured"><span>▶</span><strong>Ver recorrido</strong><small>Aprende en menos de un minuto.</small></button>
+      </div>
+      <label class="welcome-check"><input type="checkbox" id="dontShowWelcome"> No mostrar esta bienvenida nuevamente</label>
+    </div>
+  </div>
+
+  <div class="tour-layer hidden" id="tourLayer" aria-live="polite">
+    <div class="tour-backdrop"></div>
+    <div class="tour-card" id="tourCard">
+      <div class="tour-progress"><span id="tourStepLabel">Paso 1 de 7</span><div><i id="tourProgressBar"></i></div></div>
+      <span class="tour-kicker" id="tourKicker">EMPECEMOS</span>
+      <h3 id="tourTitle">Configura tu documento</h3>
+      <p id="tourText"></p>
+      <div class="tour-actions">
+        <button class="tour-skip" id="tourSkip" type="button">Salir</button>
+        <button class="tour-prev" id="tourPrev" type="button">Anterior</button>
+        <button class="tour-next" id="tourNext" type="button">Siguiente</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js"></script>
   <script type="module" src="./app.js"></script>
 </body>
