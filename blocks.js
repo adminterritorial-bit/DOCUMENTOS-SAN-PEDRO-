@@ -15,18 +15,24 @@ const shell=(type,inner,extra="")=>`
 const quickAdd=()=>`
 <div class="quick-add" contenteditable="false">
   <span>Agregar debajo:</span>
-  <button data-insert-after="paragraph">Texto</button>
+  <button data-insert-after="title">Título</button>
   <button data-insert-after="subtitle">Subtítulo</button>
+  <button data-insert-after="paragraph">Texto</button>
   <button data-insert-after="list">Lista</button>
   <button data-insert-after="kpi">KPI</button>
   <button data-insert-after="table">Tabla</button>
+  <button data-insert-after="matrix">Matriz</button>
+  <button data-insert-after="timeline">Cronograma</button>
+  <button data-insert-after="callout">Nota</button>
+  <button data-insert-after="article">Artículo</button>
+  <button data-insert-after="paragraph-article">Parágrafo</button>
 </div>`;
 
 export function blockHtml(type,data={}){
   switch(type){
     case "title": return shell(type,`<h2 class="block-title editable" contenteditable="true">${data.text||"NUEVO TÍTULO"}</h2>${quickAdd()}`,"structural");
     case "subtitle": return shell(type,`<h3 class="block-subtitle editable" contenteditable="true">${data.text||"Nuevo subtítulo"}</h3>${quickAdd()}`,"structural");
-    case "paragraph": return shell(type,`<p class="editable body-copy" contenteditable="true">${data.text||"Escriba aquí el contenido del documento. Puede editar este texto directamente."}</p>`);
+    case "paragraph": return shell(type,`<p class="editable body-copy" contenteditable="true">${data.text||"Escriba aquí el contenido del documento. Puede editar este texto directamente."}</p>${quickAdd()}`);
     case "list": return shell(type,`<ul class="editable doc-list" contenteditable="true"><li>${data.a||"Primer elemento"}</li><li>${data.b||"Segundo elemento"}</li><li>${data.c||"Tercer elemento"}</li></ul>`);
     case "kpi": return shell(type,`<div class="kpi-grid">
       <div class="kpi-card"><span class="editable" contenteditable="true">Indicador</span><strong class="editable" contenteditable="true">0%</strong></div>
@@ -34,7 +40,7 @@ export function blockHtml(type,data={}){
       <div class="kpi-card"><span class="editable" contenteditable="true">Periodo</span><strong class="editable" contenteditable="true">2026</strong></div>
     </div>`);
     case "table": return shell(type,`<table class="editable-table"><thead><tr><th contenteditable="true">Campo</th><th contenteditable="true">Responsable</th><th contenteditable="true">Estado / Valor</th></tr></thead><tbody><tr><td contenteditable="true">Actividad</td><td contenteditable="true">Dependencia</td><td contenteditable="true">Pendiente</td></tr><tr><td contenteditable="true">Actividad</td><td contenteditable="true">Dependencia</td><td contenteditable="true">Pendiente</td></tr></tbody></table>`);
-    case "article": return shell(type,`<div class="article-row"><strong class="article-label editable" contenteditable="true">ARTÍCULO PRIMERO.</strong><div class="article-text editable" contenteditable="true">${data.text||"Redacte aquí el contenido completo del artículo. Puede incluir obligaciones, responsables, plazos, parágrafos y condiciones."}</div></div>`);
+    case "article": return shell(type,`<div class="article-row"><strong class="article-label editable" contenteditable="true">ARTÍCULO PRIMERO.</strong><div class="article-text editable" contenteditable="true">${data.text||"Redacte aquí el contenido completo del artículo. Puede incluir obligaciones, responsables, plazos, parágrafos y condiciones."}</div></div>${quickAdd()}`);
     case "paragraph-article": return shell(type,`<div class="article-row paragraph-row"><strong class="article-label editable" contenteditable="true">PARÁGRAFO.</strong><div class="article-text editable" contenteditable="true">Redacte aquí el contenido del parágrafo.</div></div>`);
     case "considerando": return shell(type,`<h2 class="section-label editable" contenteditable="true">CONSIDERANDO</h2><p class="editable body-copy" contenteditable="true">${data.text||"Que [describa el fundamento fáctico, jurídico o administrativo que motiva la decisión]."}</p>${quickAdd()}`,"legal-block");
     case "resolutiva": return shell(type,`<h2 class="section-label editable" contenteditable="true">${data.text||"RESUELVE"}</h2>${quickAdd()}`,"legal-block");
