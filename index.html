@@ -82,11 +82,11 @@
             <button data-cmd="justifyLeft">≡</button>
             <button data-cmd="justifyCenter">≣</button>
             <button data-cmd="justifyFull">☰</button>
-            <button id="addHeading">+ Título</button>
+            <button id="addHeading">+ Título</button><button id="addSubheading">+ Subtítulo</button>
             <button id="addArticle">+ Artículo</button>
             <button id="addTable">+ Tabla</button>
             <button id="addToc">+ Índice</button>
-            <button id="addPageBreak">+ Salto</button>
+            <button id="addNote">+ Nota</button><button id="addReference">+ Referencia</button><button id="addPageBreak">+ Salto</button>
           </div>
         </div>
 
@@ -98,7 +98,20 @@
 
       <section id="templatesView" class="view hidden"><h2>Plantillas institucionales</h2><div id="templateCards" class="cards"></div></section>
       <section id="trdView" class="view hidden"><h2>Clasificación TRD</h2><p>El código TRD es parte del encabezado y puede personalizarse por serie/subserie. El sistema conserva la trazabilidad del valor usado en cada documento.</p><div class="trd-box"><strong>Valor base observado en los actos suministrados:</strong> 200-11. Este valor no se fuerza: queda editable para adaptar el documento a la TRD vigente.</div></section>
-      <section id="settingsView" class="view hidden"><h2>Configuración institucional</h2><div class="settings-card"><label>Dirección <input id="address" value="Calle 5 # 3-85"></label><label>Teléfono <input id="phone" value="(602) 223 8356"></label><label>Web <input id="website" value="www.sanpedro-valle.gov.co"></label><label>Correo <input id="email" value="alcaldia@sanpedro-valle.gov.co"></label><label>Código postal <input id="postalCode" value="763030"></label></div></section>
+      <section id="settingsView" class="view hidden"><h2>Configuración institucional</h2><div class="settings-card">
+<label>Nombre del formato <input id="formatName" value="ACTO ADMINISTRATIVO"></label>
+<label>Código del formato <input id="formatCode" value="GD-FT-10"></label>
+<label>Proceso <input id="processName" value="PLANEACIÓN Y DIRECCIONAMIENTO ESTRATÉGICO"></label>
+<label>Responsable <input id="responsibleName" value="LÍDER DEL PROCESO"></label>
+<label>Fecha de emisión del formato <input id="formatIssueDate" value="03/06/2016"></label>
+<label>Versión <input id="formatVersion" value="2"></label>
+<label>NIT <input id="municipalityNit" value="800.100.526-3"></label>
+<label>Dirección <input id="address" value="Calle 5 # 3-85"></label>
+<label>Teléfono <input id="phone" value="(602) 223 8356"></label>
+<label>Web <input id="website" value="www.sanpedro-valle.gov.co"></label>
+<label>Correo <input id="email" value="alcaldia@sanpedro-valle.gov.co"></label>
+<label>Código postal <input id="postalCode" value="763030"></label>
+</div></section>
     </main>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js"></script>
