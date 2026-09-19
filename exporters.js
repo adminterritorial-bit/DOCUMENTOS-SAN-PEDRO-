@@ -129,29 +129,69 @@ export async function exportDocx(state,paper){
   state.numberToken=clean(paper.querySelector("#docNumberToken")?.innerText)||state.numberToken;
   state.dateText=clean(paper.querySelector("#docDateText")?.innerText)||state.dateText;
   const d=await docxLib();
-  const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,Header,Footer,ImageRun,AlignmentType,VerticalAlign,WidthType,PageNumber,BorderStyle}=d;
+  const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,Header,Footer,ImageRun,AlignmentType,VerticalAlign,VerticalMergeType,WidthType,PageNumber,BorderStyle}=d;
   const font=state.fontFamily,size=Math.round(state.fontSize*2);
-  const cell=(children,width)=>new TableCell({children,verticalAlign:VerticalAlign.CENTER,width:width?{size:width,type:WidthType.PERCENTAGE}:undefined});
+  const cell=(children,width,extra={})=>new TableCell({children,verticalAlign:VerticalAlign.CENTER,width:width?{size:width,type:WidthType.PERCENTAGE}:undefined,...extra});
   const thin={style:BorderStyle.SINGLE,size:4,color:"666666"};
   const borders={top:thin,bottom:thin,left:thin,right:thin,insideHorizontal:thin,insideVertical:thin};
 
-  const header=new Header({children:[new Table({width:{size:100,type:WidthType.PERCENTAGE},borders,rows:[new TableRow({children:[
-    cell([
-      new Paragraph({alignment:AlignmentType.CENTER,children:[new ImageRun({data:logoBytes(),transformation:{width:58,height:58},type:"png"})]}),
-      new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:`ALCALDÍA MUNICIPAL\nDE SAN PEDRO, VALLE\nNIT. ${state.municipalityNit}`,bold:true,font,size:13})]})
-    ],24),
-    cell([
-      new Paragraph({children:[new TextRun({text:"Nombre: ",bold:true,font,size:15}),new TextRun({text:state.formatName,font,size:15})]}),
-      new Paragraph({children:[new TextRun({text:"Proceso: ",bold:true,font,size:15}),new TextRun({text:state.processName,font,size:15})]}),
-      new Paragraph({children:[new TextRun({text:"Responsable: ",bold:true,font,size:15}),new TextRun({text:state.responsibleName,font,size:15})]})
-    ],55),
-    cell([
-      new Paragraph({children:[new TextRun({text:`Código: ${state.formatCode}`,bold:true,font,size:14})]}),
-      new Paragraph({children:[new TextRun({text:`Fecha de emisión: ${state.formatIssueDate}`,font,size:14})]}),
-      new Paragraph({children:[new TextRun({text:`Versión: ${state.formatVersion}`,bold:true,font,size:14})]}),
-      new Paragraph({children:[new TextRun({text:"Página: ",bold:true,font,size:14}),new TextRun({children:[PageNumber.CURRENT],font,size:14}),new TextRun({text:" de ",font,size:14}),new TextRun({children:[PageNumber.TOTAL_PAGES],font,size:14})]})
-    ],21)
-  ]})]})]});
+  const headerFontSize=15;
+  const headerSideSize=14;
+  const vmRestart=VerticalMergeType?.RESTART||"restart";
+  const vmContinue=VerticalMergeType?.CONTINUE||"continue";
+  const mergedLogoChildren=[
+    new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:20},children:[new ImageRun({data:logoBytes(),transformation:{width:58,height:58},type:"png"})]}),
+    new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[new TextRun({text:`ALCALDÍA MUNICIPAL\nDE SAN PEDRO, VALLE\nNIT. ${state.municipalityNit}`,bold:true,font,size:13})]})
+  ];
+  const emptyMerge=[new Paragraph({children:[new TextRun({text:"",font,size:2})]})];
+
+  const header=new Header({children:[new Table({
+    width:{size:100,type:WidthType.PERCENTAGE},
+    borders,
+    rows:[
+      new TableRow({children:[
+        cell(mergedLogoChildren,24,{verticalMerge:vmRestart}),
+        cell([new Paragraph({spacing:{before:0,after:0},children:[
+          new TextRun({text:"Nombre: ",bold:true,font,size:headerFontSize}),
+          new TextRun({text:state.formatName,font,size:headerFontSize})
+        ]})],55),
+        cell([new Paragraph({spacing:{before:0,after:0},children:[
+          new TextRun({text:"Código: ",bold:true,font,size:headerSideSize}),
+          new TextRun({text:state.formatCode,font,size:headerSideSize})
+        ]})],21)
+      ]}),
+      new TableRow({children:[
+        cell(emptyMerge,24,{verticalMerge:vmContinue}),
+        cell([new Paragraph({spacing:{before:0,after:0},children:[
+          new TextRun({text:"Proceso: ",bold:true,font,size:headerFontSize}),
+          new TextRun({text:state.processName,font,size:headerFontSize})
+        ]})],55),
+        cell([new Paragraph({spacing:{before:0,after:0},children:[
+          new TextRun({text:"Fecha de emisión: ",bold:true,font,size:headerSideSize}),
+          new TextRun({text:state.formatIssueDate,font,size:headerSideSize})
+        ]})],21)
+      ]}),
+      new TableRow({children:[
+        cell(emptyMerge,24,{verticalMerge:vmContinue}),
+        cell([new Paragraph({spacing:{before:0,after:0},children:[
+          new TextRun({text:"Responsable: ",bold:true,font,size:headerFontSize}),
+          new TextRun({text:state.responsibleName,font,size:headerFontSize})
+        ]})],55),
+        cell([
+          new Paragraph({spacing:{before:0,after:0},children:[
+            new TextRun({text:"Versión: ",bold:true,font,size:headerSideSize}),
+            new TextRun({text:state.formatVersion,font,size:headerSideSize})
+          ]}),
+          new Paragraph({spacing:{before:0,after:0},children:[
+            new TextRun({text:"Página: ",bold:true,font,size:headerSideSize}),
+            new TextRun({children:[PageNumber.CURRENT],font,size:headerSideSize}),
+            new TextRun({text:" de ",font,size:headerSideSize}),
+            new TextRun({children:[PageNumber.TOTAL_PAGES],font,size:headerSideSize})
+          ]})
+        ],21)
+      ]})
+    ]
+  })]});
 
   const firstPage=paper.querySelector(".document-page")||paper;
   const footerCells=[...firstPage.querySelectorAll(".approval-table td")].map(td=>cell([new Paragraph({children:[new TextRun({text:clean(td.innerText),font,size:13})]})]));
