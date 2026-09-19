@@ -26,6 +26,10 @@ let placementModeActive=false;
 let activePlacementUserId=null;
 let signaturePadStrokes=[];
 let signaturePadCurrent=null;
+let savedSignatureArtifact=null;
+let savedSignatureLoaded=false;
+let currentSignatureArtifact=null;
+let currentSignatureSource="drawn";
 
 const normalize=s=>(s||"").trim();
 const domainOf=email=>(email||"").toLowerCase().split("@")[1]||"";
@@ -744,8 +748,57 @@ async function loadDashboard(){
 function escapeHtml(value){
   return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[ch]));
 }
+function bytesToBase64(bytes){
+  let binary="";
+  const chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
+  return btoa(binary);
+}
+function base64ToBytes(value){
+  const binary=atob(value||"");
+  const bytes=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+  return bytes;
+}
+function normalizeSignatureArtifact(mark){
+  if(!mark||typeof mark!=="object")return null;
+  if(mark.format==="SPSIG1"&&(mark.kind==="vector"||mark.kind==="mask1"))return mark;
+  if(mark.type==="drawn"&&Array.isArray(mark.strokes)){
+    return {format:"SPSIG1",kind:"vector",strokes:mark.strokes};
+  }
+  return null;
+}
+function maskArtifactDataUrl(mark){
+  const artifact=normalizeSignatureArtifact(mark);
+  if(!artifact||artifact.kind!=="mask1")return "";
+  const width=Number(artifact.width)||0;
+  const height=Number(artifact.height)||0;
+  if(!width||!height)return "";
+  const bytes=base64ToBytes(artifact.data||"");
+  const canvas=document.createElement("canvas");
+  canvas.width=width;
+  canvas.height=height;
+  const g=canvas.getContext("2d");
+  const image=g.createImageData(width,height);
+  for(let index=0;index<width*height;index++){
+    const ink=(bytes[index>>3]>>(7-(index&7)))&1;
+    const offset=index*4;
+    image.data[offset]=17;
+    image.data[offset+1]=45;
+    image.data[offset+2]=62;
+    image.data[offset+3]=ink?255:0;
+  }
+  g.putImageData(image,0,0);
+  return canvas.toDataURL("image/png");
+}
 function signatureMarkSvg(mark){
-  const strokes=Array.isArray(mark?.strokes)?mark.strokes:[];
+  const artifact=normalizeSignatureArtifact(mark);
+  if(!artifact)return "";
+  if(artifact.kind==="mask1"){
+    const src=maskArtifactDataUrl(artifact);
+    return src?`<img class="drawn-signature-image" src="${src}" alt="" aria-hidden="true">`:"";
+  }
+  const strokes=Array.isArray(artifact.strokes)?artifact.strokes:[];
   if(!strokes.length)return "";
   const polylines=strokes.slice(0,24).map(stroke=>{
     const points=(Array.isArray(stroke)?stroke:[]).slice(0,260).map(point=>{
@@ -757,10 +810,194 @@ function signatureMarkSvg(mark){
   }).join("");
   return polylines?`<svg class="drawn-signature-svg" viewBox="0 0 1000 300" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${polylines}</svg>`:"";
 }
+function drawnArtifactFromPad(){
+  const strokes=signaturePadStrokes
+    .filter(s=>s.length>1)
+    .slice(0,24)
+    .map(stroke=>stroke.slice(0,260).map(([x,y])=>[
+      Number(Math.max(0,Math.min(1,x)).toFixed(4)),
+      Number(Math.max(0,Math.min(1,y)).toFixed(4))
+    ]));
+  return strokes.length?{format:"SPSIG1",kind:"vector",strokes}:null;
+}
+function renderSavedSignatureStatus(){
+  const hasSaved=Boolean(savedSignatureArtifact);
+  const tab=$("#useSavedSignature");
+  if(tab){
+    tab.disabled=!hasSaved;
+    tab.title=hasSaved?"Usar mi firma guardada":"Aún no tienes una firma guardada";
+  }
+  $("#deleteSavedSignature")?.classList.toggle("hidden",!hasSaved);
+  $("#deleteMySavedSignature")?.classList.toggle("hidden",!hasSaved);
+  const status=$("#mySavedSignatureStatus");
+  if(status){
+    status.textContent=hasSaved
+      ?"Firma guardada en formato interno SPSIG1. Se reutiliza solo como representación visual; cada documento exige una nueva autenticación y consentimiento."
+      :"Sin firma guardada. Puedes crearla al firmar un documento o cargar una imagen; el sistema no conserva la imagen original.";
+  }
+}
+async function loadSavedSignature(force=false){
+  if(!session?.user)return null;
+  if(savedSignatureLoaded&&!force)return savedSignatureArtifact;
+  const {data,error}=await supabase.rpc("docsys_get_my_signature");
+  if(error){
+    console.warn("Saved signature load failed",error);
+    return null;
+  }
+  savedSignatureLoaded=true;
+  savedSignatureArtifact=normalizeSignatureArtifact(data?.signature_data);
+  renderSavedSignatureStatus();
+  return savedSignatureArtifact;
+}
+function renderSignatureArtifactPreview(artifact,title="Firma lista",meta="Formato interno SPSIG1"){
+  const preview=$("#signatureArtifactPreview");
+  const visual=$("#signatureArtifactVisual");
+  if(!preview||!visual)return;
+  const normalized=normalizeSignatureArtifact(artifact);
+  if(!normalized){
+    preview.classList.add("hidden");
+    visual.innerHTML="";
+    return;
+  }
+  visual.innerHTML=signatureMarkSvg(normalized);
+  $("#signatureArtifactTitle").textContent=title;
+  $("#signatureArtifactMeta").textContent=meta;
+  preview.classList.remove("hidden");
+}
+function setSignatureInputMode(mode){
+  currentSignatureSource=mode;
+  qsa("[data-signature-source-mode]").forEach(btn=>btn.classList.toggle("active",btn.dataset.signatureSourceMode===mode));
+  const drawing=mode==="drawn";
+  $("#signaturePadWrap")?.classList.toggle("hidden",!drawing);
+  $("#clearSignaturePad")?.classList.toggle("hidden",!drawing);
+  $("#savedSignatureEmpty")?.classList.add("hidden");
+
+  if(mode==="saved"){
+    if(!savedSignatureArtifact){
+      currentSignatureArtifact=null;
+      $("#savedSignatureEmpty")?.classList.remove("hidden");
+      renderSignatureArtifactPreview(null);
+    }else{
+      currentSignatureArtifact=savedSignatureArtifact;
+      renderSignatureArtifactPreview(savedSignatureArtifact,"Mi firma guardada","SPSIG1 · reutilizable dentro del aplicativo");
+    }
+  }else if(mode==="drawn"){
+    currentSignatureArtifact=drawnArtifactFromPad();
+    if(currentSignatureArtifact)renderSignatureArtifactPreview(currentSignatureArtifact,"Firma dibujada","SPSIG1 · trazos vectoriales");
+    else renderSignatureArtifactPreview(null);
+  }
+  $("#saveCurrentSignature")?.classList.toggle("hidden",mode==="saved"||!currentSignatureArtifact);
+  updateSignatureConfirmState();
+}
+async function imageFileToSignatureArtifact(file){
+  if(!file)throw new Error("Selecciona una imagen.");
+  if(!["image/png","image/jpeg","image/webp"].includes(file.type))throw new Error("Usa una imagen PNG, JPG o WEBP.");
+  if(file.size>3*1024*1024)throw new Error("La imagen no puede superar 3 MB.");
+
+  const bitmap=await createImageBitmap(file);
+  const scale=Math.min(1,1200/bitmap.width,500/bitmap.height);
+  const width=Math.max(1,Math.round(bitmap.width*scale));
+  const height=Math.max(1,Math.round(bitmap.height*scale));
+  const source=document.createElement("canvas");
+  source.width=width;
+  source.height=height;
+  const sg=source.getContext("2d",{willReadFrequently:true});
+  sg.clearRect(0,0,width,height);
+  sg.drawImage(bitmap,0,0,width,height);
+  bitmap.close?.();
+
+  const pixels=sg.getImageData(0,0,width,height);
+  let minX=width,minY=height,maxX=-1,maxY=-1;
+  const isInk=(i)=>{
+    const a=pixels.data[i+3];
+    if(a<28)return false;
+    const lum=.2126*pixels.data[i]+.7152*pixels.data[i+1]+.0722*pixels.data[i+2];
+    return lum<238;
+  };
+  for(let y=0;y<height;y++){
+    for(let x=0;x<width;x++){
+      const i=(y*width+x)*4;
+      if(!isInk(i))continue;
+      if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;
+    }
+  }
+  if(maxX<minX||maxY<minY)throw new Error("No se detectó una firma visible. Usa una imagen con fondo claro y trazo oscuro.");
+
+  const pad=Math.max(2,Math.round(Math.max(maxX-minX,maxY-minY)*.025));
+  minX=Math.max(0,minX-pad);minY=Math.max(0,minY-pad);
+  maxX=Math.min(width-1,maxX+pad);maxY=Math.min(height-1,maxY+pad);
+  const cropW=maxX-minX+1,cropH=maxY-minY+1;
+
+  const targetW=512,targetH=160;
+  const target=document.createElement("canvas");
+  target.width=targetW;target.height=targetH;
+  const tg=target.getContext("2d",{willReadFrequently:true});
+  tg.clearRect(0,0,targetW,targetH);
+  const fit=Math.min((targetW-18)/cropW,(targetH-14)/cropH);
+  const dw=Math.max(1,Math.round(cropW*fit));
+  const dh=Math.max(1,Math.round(cropH*fit));
+  const dx=Math.round((targetW-dw)/2),dy=Math.round((targetH-dh)/2);
+  tg.drawImage(source,minX,minY,cropW,cropH,dx,dy,dw,dh);
+
+  const out=tg.getImageData(0,0,targetW,targetH);
+  const packed=new Uint8Array(Math.ceil(targetW*targetH/8));
+  let inkCount=0;
+  for(let index=0;index<targetW*targetH;index++){
+    const i=index*4;
+    const a=out.data[i+3];
+    const lum=.2126*out.data[i]+.7152*out.data[i+1]+.0722*out.data[i+2];
+    const ink=a>24&&lum<242;
+    if(ink){
+      packed[index>>3]|=1<<(7-(index&7));
+      inkCount++;
+    }
+  }
+  if(inkCount<80)throw new Error("La firma detectada es demasiado tenue. Usa una imagen más nítida.");
+  return {format:"SPSIG1",kind:"mask1",width:targetW,height:targetH,data:bytesToBase64(packed)};
+}
+async function saveCurrentSignatureToVault(){
+  const btn=$("#saveCurrentSignature");
+  let artifact;
+  try{
+    artifact=signatureMarkPayload();
+    if(currentSignatureSource==="saved")return;
+    setBusy(btn,true,"Guardando…");
+    const source=currentSignatureSource==="uploaded"?"uploaded":"drawn";
+    const {data,error}=await supabase.rpc("docsys_save_my_signature",{
+      p_signature_data:artifact,
+      p_source_type:source
+    });
+    if(error)throw error;
+    savedSignatureArtifact=artifact;
+    savedSignatureLoaded=true;
+    renderSavedSignatureStatus();
+    ctx.toast("Tu firma quedó guardada para futuros documentos");
+  }catch(error){
+    ctx.toast(error.message||"No fue posible guardar la firma");
+  }finally{
+    setBusy(btn,false);
+  }
+}
+async function deleteSavedSignatureFromVault(){
+  try{
+    const {error}=await supabase.rpc("docsys_delete_my_signature");
+    if(error)throw error;
+    savedSignatureArtifact=null;
+    savedSignatureLoaded=true;
+    if(currentSignatureSource==="saved"){
+      currentSignatureArtifact=null;
+      setSignatureInputMode("drawn");
+    }
+    renderSavedSignatureStatus();
+    ctx.toast("Firma guardada eliminada");
+  }catch(error){
+    ctx.toast(error.message||"No fue posible eliminar la firma guardada");
+  }
+}
 async function loadRequestSignatureData(requestId){
   const [signersOut,fieldsOut]=await Promise.all([
     supabase.from("docsys_signers")
-      .select("id,request_id,signer_order,signer_name,signer_email,signer_role,status,evidence_code,signed_at,signature_mark")
+      .select("id,request_id,signer_order,signer_name,signer_email,signer_role,status,evidence_code,signed_at,signature_mark,signature_visual_sha256,signature_source")
       .eq("request_id",requestId)
       .order("signer_order",{ascending:true}),
     supabase.from("docsys_signature_fields")
@@ -797,8 +1034,8 @@ function renderRuntimeSignatureFields(fields,{interactiveSignerId=null}={}){
     el.style.height=Number(field.height_pct)+"%";
 
     if(signed){
-      const svg=signatureMarkSvg(signer.signature_mark);
-      el.innerHTML=`<div class="signature-field-mark">${svg}<strong>${escapeHtml(signer.signer_name)}</strong><small>${escapeHtml(signer.signer_role||"Firmante")}</small><code>${escapeHtml(signer.evidence_code||"")}</code></div>`;
+      const visual=signatureMarkSvg(signer.signature_mark);
+      el.innerHTML=`<div class="signature-field-mark">${visual}<strong>${escapeHtml(signer.signer_name)}</strong><small>${escapeHtml(signer.signer_role||"Firmante")}</small><code>${escapeHtml(signer.evidence_code||"")}</code></div>`;
     }else if(interactive){
       el.innerHTML=`<button type="button" class="signature-field-action" data-sign-field-action="${field.id}"><span>✍</span><strong>FIRMAR AQUÍ</strong><small>${escapeHtml(signer.signer_name)}</small></button>`;
     }else{
@@ -810,7 +1047,10 @@ function renderRuntimeSignatureFields(fields,{interactiveSignerId=null}={}){
 function resetSignaturePad(){
   signaturePadStrokes=[];
   signaturePadCurrent=null;
+  currentSignatureArtifact=null;
   redrawSignaturePad();
+  if(currentSignatureSource==="drawn")renderSignatureArtifactPreview(null);
+  $("#saveCurrentSignature")?.classList.add("hidden");
   updateSignatureConfirmState();
 }
 function redrawSignaturePad(){
@@ -845,21 +1085,27 @@ function redrawSignaturePad(){
   $("#signaturePadHint")?.classList.toggle("hidden",signaturePadStrokes.some(s=>s.length>1));
 }
 function signatureMarkPayload(){
-  const strokes=signaturePadStrokes
-    .filter(s=>s.length>1)
-    .slice(0,24)
-    .map(stroke=>stroke.slice(0,260).map(([x,y])=>[
-      Number(Math.max(0,Math.min(1,x)).toFixed(4)),
-      Number(Math.max(0,Math.min(1,y)).toFixed(4))
-    ]));
-  if(!strokes.length)throw new Error("Dibuja tu firma dentro del recuadro asignado.");
-  return {type:"drawn",version:1,strokes};
+  if(currentSignatureSource==="saved"||currentSignatureSource==="uploaded"){
+    const artifact=normalizeSignatureArtifact(currentSignatureArtifact);
+    if(!artifact)throw new Error("Selecciona una firma válida.");
+    return artifact;
+  }
+  const artifact=drawnArtifactFromPad();
+  if(!artifact)throw new Error("Dibuja tu firma dentro del recuadro asignado.");
+  currentSignatureArtifact=artifact;
+  return artifact;
 }
 function updateSignatureConfirmState(){
   const btn=$("#confirmElectronicSignature");
   if(!btn)return;
-  const hasMark=signaturePadStrokes.some(s=>s.length>1);
+  const hasMark=currentSignatureSource==="drawn"
+    ? signaturePadStrokes.some(s=>s.length>1)
+    : Boolean(normalizeSignatureArtifact(currentSignatureArtifact));
   btn.disabled=!($("#signatureConsent")?.checked&&hasMark);
+  if(currentSignatureSource==="drawn"){
+    currentSignatureArtifact=drawnArtifactFromPad();
+    $("#saveCurrentSignature")?.classList.toggle("hidden",!currentSignatureArtifact);
+  }
 }
 function bindSignaturePad(){
   const canvas=$("#signaturePadCanvas");
@@ -874,6 +1120,7 @@ function bindSignaturePad(){
     ];
   };
   canvas.addEventListener("pointerdown",e=>{
+    if(currentSignatureSource!=="drawn")return;
     e.preventDefault();
     canvas.setPointerCapture?.(e.pointerId);
     signaturePadCurrent=[point(e)];
@@ -881,7 +1128,7 @@ function bindSignaturePad(){
     redrawSignaturePad();
   });
   canvas.addEventListener("pointermove",e=>{
-    if(!signaturePadCurrent)return;
+    if(currentSignatureSource!=="drawn"||!signaturePadCurrent)return;
     e.preventDefault();
     const p=point(e);
     const last=signaturePadCurrent[signaturePadCurrent.length-1];
@@ -897,6 +1144,9 @@ function bindSignaturePad(){
       signaturePadCurrent.push([Math.min(1,p[0]+0.002),Math.min(1,p[1]+0.002)]);
     }
     signaturePadCurrent=null;
+    currentSignatureArtifact=drawnArtifactFromPad();
+    if(currentSignatureArtifact)renderSignatureArtifactPreview(currentSignatureArtifact,"Firma dibujada","SPSIG1 · trazos vectoriales");
+    $("#saveCurrentSignature")?.classList.toggle("hidden",!currentSignatureArtifact);
     redrawSignaturePad();
     updateSignatureConfirmState();
     try{canvas.releasePointerCapture?.(e.pointerId);}catch{}
@@ -905,6 +1155,7 @@ function bindSignaturePad(){
   canvas.addEventListener("pointercancel",stop);
   window.addEventListener("resize",()=>redrawSignaturePad());
 }
+
 async function prepareSignerField(signerId){
   const {data,error}=await supabase.from("docsys_signers")
     .select("id,request_id,signer_order,signer_name,signer_email,signer_role,status,evidence_code,signature_mark,docsys_signature_requests(id,status,expires_at,signing_mode,document_id,docsys_documents(id,title,document_type,document_number,trd_code,status,document_sha256,content_snapshot))")
