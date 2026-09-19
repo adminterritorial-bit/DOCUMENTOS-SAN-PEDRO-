@@ -2209,3 +2209,71 @@ body.easy-mode .doc-block:hover>.quick-add{opacity:1}
   .placement-dock-actions .btn{padding:7px 9px}
   .signature-placement-setup small{white-space:normal}
 }
+
+
+/* =========================================================
+   REUSABLE SIGNATURE / SPSIG1 V24
+   ========================================================= */
+.signature-profile-rule{align-items:flex-start!important;flex-wrap:wrap!important}
+.signature-profile-rule>span{flex:1;min-width:260px}
+.signature-profile-rule>.btn{margin-left:auto}
+
+.signature-source-tabs{
+  display:flex;align-items:center;gap:6px;margin:0 0 9px;padding:4px;
+  border:1px solid #dce8ee;border-radius:12px;background:#f5f9fb
+}
+.signature-source-tab{
+  min-height:34px;padding:7px 10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border:1px solid transparent;border-radius:9px;background:transparent;color:#597487;
+  font:800 8.5px "Century Gothic",Arial,sans-serif;cursor:pointer
+}
+.signature-source-tab>span{font-size:10px}
+.signature-source-tab:hover:not(:disabled){background:#fff;border-color:#d5e4eb;color:#1f668b}
+.signature-source-tab.active{background:#fff;border-color:#9fcfe2;color:#0b6e9e;box-shadow:0 4px 12px rgba(8,91,136,.08)}
+.signature-source-tab:disabled{opacity:.42;cursor:not-allowed}
+.signature-source-tab.upload-tab{cursor:pointer}
+.signature-source-tab.upload-tab.is-busy{opacity:.55;pointer-events:none}
+
+.signature-artifact-preview{
+  min-height:112px;margin-top:8px;padding:10px 12px;display:grid;grid-template-columns:minmax(150px,1fr) auto;gap:12px;align-items:center;
+  border:1px solid #d7e7ed;border-radius:13px;background:linear-gradient(145deg,#fff,#f7fbfc)
+}
+.signature-artifact-canvas{
+  height:88px;display:grid;place-items:center;padding:6px;border:1px dashed #cbdde5;border-radius:10px;background:#fff
+}
+.signature-artifact-canvas .drawn-signature-svg,
+.signature-artifact-canvas .drawn-signature-image{width:100%;height:100%;max-height:76px;object-fit:contain;color:#142f40}
+.signature-artifact-preview>div:last-child{min-width:150px}
+.signature-artifact-preview strong,.signature-artifact-preview small{display:block}
+.signature-artifact-preview strong{font-size:9.5px;color:#294f66}
+.signature-artifact-preview small{margin-top:3px;font-size:7.6px;color:#7b909c;line-height:1.35}
+
+.saved-signature-empty{
+  margin:7px 0;padding:12px;border:1px dashed #d2e1e8;border-radius:10px;background:#fafcfd;
+  color:#778d9a;font-size:8.5px;text-align:center
+}
+.signature-editor-actions{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap}
+.signature-editor-actions .btn{min-height:31px;padding:6px 9px;font-size:8px}
+
+.signature-format-note{
+  margin-top:9px;padding:9px 10px;display:flex;align-items:center;gap:9px;
+  border:1px solid #dbe8ee;border-radius:11px;background:#f8fbfc
+}
+.signature-format-note>span{
+  flex:0 0 auto;padding:5px 7px;border-radius:7px;background:#e6f4fa;color:#0a6e9c;font-size:7px;font-weight:900;letter-spacing:.07em
+}
+.signature-format-note strong,.signature-format-note small{display:block}
+.signature-format-note strong{font-size:8.5px;color:#31566c}
+.signature-format-note small{margin-top:2px;font-size:7.2px;line-height:1.4;color:#7d909b}
+
+.drawn-signature-image{
+  display:block;width:88%;height:58%;min-height:12px;object-fit:contain;object-position:center
+}
+.signature-field-mark .drawn-signature-image{margin:0 auto}
+
+@media(max-width:620px){
+  .signature-source-tabs{display:grid;grid-template-columns:repeat(3,1fr)}
+  .signature-source-tab{padding:7px 5px;font-size:7.5px}
+  .signature-artifact-preview{grid-template-columns:1fr}
+  .signature-artifact-preview>div:last-child{min-width:0;text-align:center}
+}
