@@ -140,6 +140,8 @@ function applyTemplate(type,{announce=true}={}){
   resetBlocks();
   t.blocks.forEach(([kind,data])=>insertBlock(root,kind,null,data));
   bindRootInteractions();
+  renumberArticles(true);
+  paper.classList.toggle("free-mode",type==="libre");
   syncFieldToDocument("formatName");
   updateDateLabel();
   updateToc();
@@ -150,6 +152,8 @@ function applyTemplate(type,{announce=true}={}){
 }
 
 function bindRootInteractions(){
+  if(root.dataset.bound==="1") return;
+  root.dataset.bound="1";
   activateBlockControls(root,()=>{
     renumberArticles(false); updateToc(); updateOutline(); updatePageCount(); queueSave();
   });
@@ -234,6 +238,7 @@ function restoreDraft(){
   try{
     const data=JSON.parse(raw);
     $("#docType").value=data.docType||"decreto";
+    paper.classList.toggle("free-mode",(data.docType||"decreto")==="libre");
     Object.entries(data.values||{}).forEach(([id,v])=>{const el=$("#"+id);if(el)el.value=v;});
     if(data.header) $(".institutional-header",paper).innerHTML=data.header;
     if(data.footer) $(".institutional-footer",paper).innerHTML=data.footer;
@@ -347,3 +352,5 @@ if(!restoreDraft()){
 }
 applyDocumentStyle();
 setTimeout(updatePageCount,250);
+
+if("serviceWorker" in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});}
