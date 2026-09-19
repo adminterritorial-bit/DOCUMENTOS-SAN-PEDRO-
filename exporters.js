@@ -262,7 +262,7 @@ export async function buildPdfBlob(state,paper){
       clone.style.maxHeight="297mm";
       clone.style.overflow="hidden";
       clone.style.background="#fff";
-      clone.querySelectorAll(".block-actions,.quick-add,.sheet-number,.page-auto-note,.page-break-block").forEach(el=>el.remove());
+      clone.querySelectorAll(".block-actions,.quick-add,.sheet-number,.page-auto-note,.page-break-block,.signature-placement-marker,.signature-field-runtime.pending").forEach(el=>el.remove());
       clone.querySelectorAll(".selected,.oversize-block").forEach(el=>el.classList.remove("selected","oversize-block"));
       clone.querySelectorAll("[contenteditable]").forEach(el=>el.removeAttribute("contenteditable"));
       host.replaceChildren(clone);
