@@ -136,12 +136,12 @@ Si una clase documental exige **firma digital basada en certificado**, el siguie
 - No se sincroniza cada pulsación del editor.
 - Los borradores continúan locales.
 - Solo se crea registro cloud al enviar a firmas.
-- Snapshot máximo: 2 MB.
+- Snapshot máximo: 768 KB.
 - El logo y los binarios repetidos se excluyen del snapshot.
 - PDF/DOCX no se guardan en Supabase Storage.
 - OTPs se eliminan al firmar o vencer.
 - Se registran eventos jurídicamente relevantes, no telemetría de interfaz.
-- Los PDFs finales se conservan en Drive.
+- Los PDFs finales se conservan en Drive.\n- Al finalizar el archivo, la fuente JSON protegida se transfiere a Drive y el snapshot de Supabase se compacta a un registro mínimo con hashes e identificadores.
 - Índices específicos evitan lecturas innecesarias.
 
 No existe técnicamente una cuota finita que pueda garantizarse como “eterna”; esta arquitectura busca que el crecimiento de Supabase sea pequeño, predecible y principalmente textual.
