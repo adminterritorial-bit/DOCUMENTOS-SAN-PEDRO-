@@ -91,6 +91,61 @@ async function currentHash(){
   return {snapshot,hash:await sha256Hex(JSON.stringify(snapshot))};
 }
 
+function setEditorLocked(locked,status="signing"){
+  document.body.classList.toggle("cloud-document-locked",locked);
+  let banner=$("#cloudLockBanner");
+  if(locked&&!banner){
+    banner=document.createElement("div");
+    banner.id="cloudLockBanner";
+    banner.className="cloud-lock-banner";
+    const center=$(".editor-center");
+    const ribbon=$("#editorRibbon");
+    if(center&&ribbon)center.insertBefore(banner,ribbon);
+  }
+  if(banner){
+    const labels={signing:"En proceso de firmas",signed:"Firmado · pendiente de archivo final",archived:"Firmado y archivado"};
+    banner.innerHTML='<div><span class="cloud-lock-icon">✓</span><span><strong>Documento bloqueado</strong><small>'+(labels[status]||"Versión protegida")+' · el contenido no puede modificarse.</small></span></div><button type="button" data-panel-jump="signatures">Ver firmas</button>';
+    banner.classList.toggle("hidden",!locked);
+    banner.querySelector("[data-panel-jump]")?.addEventListener("click",()=>ctx.showPanel("signatures"),{once:true});
+  }
+  $("[contenteditable]",ctx.paper).forEach(el=>{
+    if(locked){
+      el.dataset.docsysWasEditable=el.getAttribute("contenteditable")||"true";
+      el.setAttribute("contenteditable","false");
+    }else if(el.dataset.docsysWasEditable){
+      el.setAttribute("contenteditable",el.dataset.docsysWasEditable);
+      delete el.dataset.docsysWasEditable;
+    }
+  });
+  $("#documentSidebar input,#documentSidebar select,#sidebarBlockPalette button,#editorRibbon button").forEach(el=>{
+    if(locked){
+      el.dataset.docsysLock="1";
+      el.disabled=true;
+    }else if(el.dataset.docsysLock){
+      el.disabled=false;
+      delete el.dataset.docsysLock;
+    }
+  });
+}
+
+async function hydrateOpenedCloudDocument(){
+  const id=sessionStorage.getItem("docsys-opened-cloud-document");
+  if(!id||!session?.user)return;
+  const out=await supabase.from("docsys_documents")
+    .select("id,status,document_sha256,final_sha256,drive_url,docsys_signature_requests(id,status,created_at,docsys_signers(signer_order,signer_name,signer_role,status,evidence_code,signed_at))")
+    .eq("id",id).order("created_at",{referencedTable:"docsys_signature_requests",ascending:false}).limit(1,{referencedTable:"docsys_signature_requests"}).single();
+  if(out.error){console.warn(out.error);return;}
+  const d=out.data;
+  if(["signing","signed","archived"].includes(d.status))setEditorLocked(true,d.status);
+  const req=Array.isArray(d.docsys_signature_requests)?d.docsys_signature_requests[0]:d.docsys_signature_requests;
+  const signers=req?.docsys_signers||[];
+  const signed=signers.filter(s=>s.status==="signed");
+  if(signed.length){
+    await applyProofs(signed,d.document_sha256||"");
+    ctx.reflow?.();
+  }
+}
+
 async function ensureProfile(){
   if(!session?.user)return null;
   const {data,error}=await supabase.from("docsys_profiles").select("user_id,email,full_name,role").eq("user_id",session.user.id).maybeSingle();
@@ -243,6 +298,8 @@ async function sendToSignatures(){
     }
 
     closeModal("signatureRequestModal");
+    sessionStorage.setItem("docsys-opened-cloud-document",doc.id);
+    setEditorLocked(true,"signing");
     ctx.showPanel("signatures");
     await loadDashboard();
     if(notificationWarning){
@@ -469,6 +526,7 @@ export async function initCloud(options){
     await verifyPublicCode(verify);
   }else if(session){
     await loadDashboard();
+    await hydrateOpenedCloudDocument();
     const sign=params.get("sign");
     if(sign)await openSigner(sign);
   }
