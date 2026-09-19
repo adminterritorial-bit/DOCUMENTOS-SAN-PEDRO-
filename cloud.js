@@ -841,6 +841,11 @@ function renderSavedSignatureStatus(){
       ?"Firma guardada en formato interno SPSIG1. Se reutiliza solo como representación visual; cada documento exige una nueva autenticación y consentimiento."
       :"Sin firma guardada. Puedes crearla al firmar un documento o cargar una imagen; el sistema no conserva la imagen original.";
   }
+  const preview=$("#mySavedSignaturePreview");
+  if(preview){
+    preview.classList.toggle("hidden",!hasSaved);
+    preview.innerHTML=hasSaved?signatureMarkSvg(savedSignatureArtifact):"";
+  }
 }
 async function loadSavedSignature(force=false){
   if(!session?.user)return null;
