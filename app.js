@@ -294,11 +294,15 @@ function addBlock(type){
 }
 
 function updateToc(){
-  const headings=$$(".doc-block[data-block='title'] .block-title,.doc-block[data-block='subtitle'] .block-subtitle",root)
-    .map(el=>el.innerText.trim()).filter(Boolean);
-  $$(".toc-items",root).forEach(box=>{
+  const headings=$(".doc-block[data-block='title'] .block-title,.doc-block[data-block='subtitle'] .block-subtitle",root)
+    .filter(el=>el.innerText.trim());
+  $(".toc-items",root).forEach(box=>{
     box.innerHTML=headings.length
-      ? headings.map((h,i)=>`<div class="toc-line"><span>${h}</span><span>${i+1}</span></div>`).join("")
+      ? headings.map(el=>{
+          const title=el.innerText.trim();
+          const page=el.closest(".document-page")?.dataset.page||"1";
+          return `<div class="toc-line"><span>${title}</span><span>${page}</span></div>`;
+        }).join("")
       : "Agrega títulos o subtítulos para generar el índice.";
   });
 }
@@ -323,6 +327,7 @@ function updatePageCount(){
     const pages=pagination.reflow();
     const counter=$("#pageCount");
     if(counter) counter.textContent=String(pages);
+    updateToc();
     updateOutline();
   });
 }
