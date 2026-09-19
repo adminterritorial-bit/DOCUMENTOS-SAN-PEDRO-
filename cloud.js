@@ -150,7 +150,7 @@ function setEditorLocked(locked,status="signing"){
     banner.classList.toggle("hidden",!locked);
     banner.querySelector("[data-panel-jump]")?.addEventListener("click",()=>ctx.showPanel("signatures"),{once:true});
   }
-  $("[contenteditable]",ctx.paper).forEach(el=>{
+  qsa("[contenteditable]",ctx.paper).forEach(el=>{
     if(locked){
       el.dataset.docsysWasEditable=el.getAttribute("contenteditable")||"true";
       el.setAttribute("contenteditable","false");
@@ -159,7 +159,7 @@ function setEditorLocked(locked,status="signing"){
       delete el.dataset.docsysWasEditable;
     }
   });
-  $("#documentSidebar input,#documentSidebar select,#sidebarBlockPalette button,#editorRibbon button").forEach(el=>{
+  qsa("#documentSidebar input,#documentSidebar select,#sidebarBlockPalette button,#editorRibbon button").forEach(el=>{
     if(locked){
       el.dataset.docsysLock="1";
       el.disabled=true;
@@ -173,14 +173,32 @@ function setEditorLocked(locked,status="signing"){
 async function hydrateOpenedCloudDocument(){
   const id=sessionStorage.getItem("docsys-opened-cloud-document");
   if(!id||!session?.user)return;
-  const out=await supabase.from("docsys_documents")
-    .select("id,status,document_sha256,final_sha256,drive_url,docsys_signature_requests(id,status,created_at,docsys_signers(signer_order,signer_name,signer_role,status,evidence_code,signed_at))")
-    .eq("id",id).order("created_at",{referencedTable:"docsys_signature_requests",ascending:false}).limit(1,{referencedTable:"docsys_signature_requests"}).single();
-  if(out.error){console.warn(out.error);return;}
-  const d=out.data;
+
+  const doc=await supabase.from("docsys_documents")
+    .select("id,status,document_sha256,final_sha256,drive_url")
+    .eq("id",id)
+    .single();
+  if(doc.error){
+    console.warn("Cloud document hydrate failed",doc.error);
+    return;
+  }
+
+  const d=doc.data;
   if(["signing","signed","archived"].includes(d.status))setEditorLocked(true,d.status);
-  const req=Array.isArray(d.docsys_signature_requests)?d.docsys_signature_requests[0]:d.docsys_signature_requests;
-  const signers=req?.docsys_signers||[];
+
+  const request=await supabase.from("docsys_signature_requests")
+    .select("id,status,created_at,docsys_signers(signer_order,signer_name,signer_role,status,evidence_code,signed_at)")
+    .eq("document_id",id)
+    .order("created_at",{ascending:false})
+    .limit(1)
+    .maybeSingle();
+
+  if(request.error){
+    console.warn("Signature request hydrate failed",request.error);
+    return;
+  }
+
+  const signers=request.data?.docsys_signers||[];
   const signed=signers.filter(s=>s.status==="signed");
   if(signed.length){
     await applyProofs(signed,d.document_sha256||"");
@@ -585,7 +603,7 @@ async function confirmSignature(){
   }catch(e){ctx.toast(e.message||"No fue posible registrar la firma")}finally{setBusy(btn,false)}
 }
 async function applyProofs(signers,docHash){
-  $(".signature-proof-runtime",ctx.paper).forEach(x=>x.remove());
+  qsa(".signature-proof-runtime",ctx.paper).forEach(x=>x.remove());
   const footer=$(".institutional-footer",ctx.paper.querySelector(".document-page:last-child")||ctx.paper);
   if(!footer)return;
   const ordered=[...signers].sort((a,b)=>a.signer_order-b.signer_order);
