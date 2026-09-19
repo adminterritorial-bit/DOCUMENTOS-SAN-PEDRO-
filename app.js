@@ -1,8 +1,8 @@
 import {LOGO_DATA_URL} from "./assets.js";
 import {TEMPLATES,longDate} from "./templates.js";
 import {insertBlock,activateBlockControls} from "./blocks.js";
-import {exportDocx,exportPdf,buildPdfBlob} from "./exporters.js";
-import {initCloud} from "./cloud.js";
+import {exportDocx,exportPdf,buildPdfBlob} from "./exporters.js?v=20260919-v12";
+import {initCloud} from "./cloud.js?v=20260919-v12";
 import {initGuidance} from "./guide.js";
 import {initWordPagination} from "./pagination.js";
 
