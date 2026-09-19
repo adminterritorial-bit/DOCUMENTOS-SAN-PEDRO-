@@ -1,9 +1,24 @@
 # Despliegue
 
-La aplicación es estática y puede publicarse con GitHub Pages.
+## Vercel
 
-GitHub Pages todavía debe habilitarse administrativamente en el repositorio antes de activar un flujo automático de despliegue. La prueba inicial del workflow confirmó que GitHub devuelve “Pages site not found” cuando el servicio no está habilitado.
+El proyecto está preparado como aplicación web estática para Vercel mediante `vercel.json`.
 
-Una vez habilitado **Settings → Pages → Build and deployment → GitHub Actions**, puede restaurarse un workflow con `actions/configure-pages`, `actions/upload-pages-artifact` y `actions/deploy-pages`.
+Configuración esperada:
 
-Mientras tanto, el sistema puede ejecutarse con cualquier servidor estático sobre la raíz del repositorio.
+- Framework Preset: **Other**
+- Root Directory: **/**
+- Build Command: vacío
+- Output Directory: vacío
+- Install Command: vacío
+- Rama de producción: **main**
+
+El repositorio fuente es:
+
+`adminterritorial-bit/DOCUMENTOS-SAN-PEDRO-`
+
+Los cambios posteriores sobre `main` pueden desplegarse automáticamente una vez el proyecto quede conectado al repositorio desde Vercel.
+
+## GitHub Pages
+
+No se usa como mecanismo principal de despliegue. El workflow anterior fue retirado para evitar ejecuciones fallidas mientras GitHub Pages no está habilitado administrativamente.
