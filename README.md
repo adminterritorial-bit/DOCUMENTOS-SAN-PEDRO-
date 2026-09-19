@@ -9,8 +9,9 @@ Aplicación web institucional para crear, normalizar, firmar, verificar y archiv
 - Editor modular con títulos, subtítulos, artículos, parágrafos, tablas, matrices, cronogramas, KPI, notas, firmas e índice.
 - Exportación a DOCX y PDF.
 - Borradores locales para evitar consumo innecesario de base de datos.
-- Autenticación institucional mediante Google OAuth.
-- Acceso documental limitado a cuentas `@sanpedro-valle.gov.co`.
+- Autenticación híbrida para demostración: usuario/contraseña de Supabase Auth y Google OAuth cuando esté habilitado.
+- No existe registro público en la aplicación.
+- Las cuentas `@sanpedro-valle.gov.co` pueden autenticarse por contraseña durante la demo; correos externos requieren inclusión expresa en `docsys_allowed_users`.
 - Centro de firma electrónica con 1 a 3 firmantes.
 - Flujo secuencial o paralelo.
 - OTP de un solo uso enviado al correo institucional.
@@ -62,8 +63,8 @@ Para reducir el consumo de Supabase:
 
 El mecanismo institucional implementado es **FE-1.0-2026**. Combina:
 
-- identidad Google Workspace;
-- cuenta institucional;
+- cuenta autenticada y habilitada;
+- Google Workspace o contraseña de Supabase Auth durante la fase de demostración;
 - OTP;
 - consentimiento explícito;
 - SHA-256;
