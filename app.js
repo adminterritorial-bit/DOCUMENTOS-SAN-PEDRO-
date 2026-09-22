@@ -639,6 +639,7 @@ setTimeout(()=>{
   fitWorkspaceZoom(true);
 },180);
 
+document.documentElement.dataset.docsysBoot="loading";
 initCloud({
   getDocumentState:getState,
   getExportState:collectExportState,
@@ -647,7 +648,10 @@ initCloud({
   toast,
   showPanel,
   reflow:()=>pagination.reflow()
+}).then(()=>{
+  document.documentElement.dataset.docsysBoot="ready";
 }).catch(error=>{
+  document.documentElement.dataset.docsysBoot="error";
   console.error("Cloud init failed",error);
   toast("No fue posible iniciar la conexión institucional");
 });

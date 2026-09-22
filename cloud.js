@@ -1356,7 +1356,7 @@ function bindEvents(){
   $("#confirmElectronicSignature")?.addEventListener("click",confirmSignature);
   $("#signatureConsent")?.addEventListener("change",updateSignatureConfirmState);
   bindSignaturePad();
-  $("#checkIntegrationsBtn")?.addEventListener("click",checkIntegrationReadiness);
+  $("#checkIntegrationsBtn")?.addEventListener("click",archive.checkIntegrationReadiness);
   qsa(".workspace-nav-btn[data-panel='archive']").forEach(btn=>btn.addEventListener("click",()=>archive.loadWorkspace()));
   $("#refreshArchive")?.addEventListener("click",async()=>{
     const btn=$("#refreshArchive");
@@ -1367,8 +1367,8 @@ function bindEvents(){
     if(!row)return;
     archive.selectFolder(row.dataset.archiveFolder||null);
   });
-  $("#archiveSearch")?.addEventListener("input",renderArchiveDocuments);
-  $("#archiveSort")?.addEventListener("change",renderArchiveDocuments);
+  $("#archiveSearch")?.addEventListener("input",archive.renderDocuments);
+  $("#archiveSort")?.addEventListener("change",archive.renderDocuments);
   $("#archiveDocumentList")?.addEventListener("click",e=>{
     const card=e.target.closest("[data-archive-document]");
     if(card)archive.openTrace(card.dataset.archiveDocument);
@@ -1415,7 +1415,7 @@ function bindEvents(){
 export async function initCloud(options){
   ctx=options;
   bindEvents();
-  await auth.auth.getGoogleProviderStatus();
+  await auth.getGoogleProviderStatus();
   await auth.validateSession();
   supabase.auth.onAuthStateChange((event,newSession)=>auth.handleAuthStateChange(event,newSession));
 
@@ -1431,5 +1431,12 @@ export async function initCloud(options){
     if(sign)await openSigner(sign);
   }
 
-  return {supabase,loadDashboard,loadArchiveWorkspace,openSendModal,draft.save,draft.clearCurrentId};
+  return {
+    supabase,
+    loadDashboard,
+    loadArchiveWorkspace:archive.loadWorkspace,
+    openSendModal,
+    saveCurrentDocumentToDatabase:draft.save,
+    clearCurrentCloudDraftId:draft.clearCurrentId
+  };
 }

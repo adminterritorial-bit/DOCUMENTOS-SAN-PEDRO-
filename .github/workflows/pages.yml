@@ -25,9 +25,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          JS_STATUS=0
           while IFS= read -r -d '' file; do
-            node --check "$file"
+            if ! node --check "$file"; then
+              JS_STATUS=1
+            fi
           done < <(find . -type f -name '*.js' -print0)
+          test "$JS_STATUS" -eq 0
 
           test ! -f sw.js
 
@@ -43,3 +47,33 @@ jobs:
           grep -q 'docsys_session_status' cloud/supabase.js
           grep -q 'createArchiveController' cloud.js
           grep -q 'security invoker' docs/AUDITORIA-SEGURIDAD-OAUTH-2026-09-21.md || true
+
+      - name: Browser smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/docsys-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          sleep 2
+
+          BROWSER="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$BROWSER" ]; then
+            echo "Chrome/Chromium is not available on the runner."
+            exit 1
+          fi
+
+          set +e
+          "$BROWSER"             --headless             --disable-gpu             --no-sandbox             --disable-dev-shm-usage             --virtual-time-budget=8000             --enable-logging=stderr             --v=1             http://127.0.0.1:4173/             >/tmp/docsys-dom.html 2>/tmp/docsys-browser.log
+          BROWSER_EXIT=$?
+          set -e
+
+          echo "--- Browser diagnostics ---"
+          grep -E 'SyntaxError|ReferenceError|TypeError|Uncaught|Failed to load|ERR_' /tmp/docsys-browser.log || true
+
+          if grep -Eq 'SyntaxError|ReferenceError|Uncaught SyntaxError' /tmp/docsys-browser.log; then
+            cat /tmp/docsys-browser.log
+            exit 1
+          fi
+          grep -q 'data-docsys-boot="ready"' /tmp/docsys-dom.html
+          grep -q 'Sistema Maestro' /tmp/docsys-dom.html
