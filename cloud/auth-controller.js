@@ -173,6 +173,23 @@ export function createAuthController({
     toast?.("Sesión cerrada");
   }
 
+  async function handleAuthStateChange(event,newSession){
+    setSession(newSession);
+    if(newSession?.user){
+      const allowed=await isAllowedSession(newSession);
+      if(allowed){
+        await ensureProfile?.();
+      }else if(event==="SIGNED_IN"){
+        await supabase.auth.signOut();
+        setSession(null);
+        setProfile(null);
+        message("Este usuario no está habilitado para el Sistema Maestro Documental.");
+      }
+    }
+    render();
+    if(getSession?.())await loadDashboard?.();
+  }
+
   return {
     message,
     render,
@@ -180,6 +197,7 @@ export function createAuthController({
     signInGoogle,
     signInPassword,
     signOut,
+    handleAuthStateChange,
     getGoogleProviderStatus
   };
 }
