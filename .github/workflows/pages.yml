@@ -31,7 +31,8 @@ jobs:
 
           test ! -f sw.js
 
-          if grep -R -nE 'premium-v(4|9|10)|\?v=20260919-v|forceCloseModal|serviceWorker\.getRegistrations|docsys_is_member'             --include='*.js' --include='*.html' --include='*.css' .; then
+          if grep -R -nE 'premium-v[0-9]+|premium-[A-Za-z0-9_-]+|\?v=|forceCloseModal|serviceWorker\.getRegistrations|docsys_start_signature_flow_v[0-9]+|san-pedro-document-draft-v[0-9]+' \
+            --include='*.js' --include='*.html' --include='*.css' .; then
             echo "Legacy or transitional pattern detected."
             exit 1
           fi
@@ -42,4 +43,17 @@ jobs:
 
           grep -q 'docsys_session_status' cloud/supabase.js
           grep -q 'createArchiveController' cloud.js
-          grep -q 'security invoker' docs/AUDITORIA-SEGURIDAD-OAUTH-2026-09-21.md || true
+          grep -q 'createAuthController' cloud.js
+          grep -q 'createDraftController' cloud.js
+          grep -q 'initStudioShell' app.js
+          grep -q 'docsys_start_signature_flow' cloud.js
+
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          html=Path("index.html").read_text(encoding="utf-8")
+          ids=re.findall(r'\sid=["\']([^"\']+)["\']',html)
+          dup=sorted({item for item in ids if ids.count(item)>1})
+          if dup:
+              raise SystemExit("Duplicate HTML ids: "+", ".join(dup))
+          PY

@@ -1,5 +1,5 @@
 /* =========================================================
-   PROFESSIONAL ACTION FEEDBACK V32
+   PROFESSIONAL ACTION FEEDBACK
    ========================================================= */
 .toast{
   z-index:260!important;
@@ -11,7 +11,7 @@
 }
 .cloud-save-status.saving{background:#eaf5fb;color:#176c95}
 .cloud-save-status.locked{background:#eef1f4;color:#657684}
-.cloud-save-btn.save-success{
+.header-save.save-success{
   border-color:#9bcfb0!important;
   background:#eef9f2!important;
   color:#24714b!important;

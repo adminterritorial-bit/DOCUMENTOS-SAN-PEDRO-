@@ -9,51 +9,52 @@
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <link rel="stylesheet" href="./styles.css">
 </head>
-<body class="docsys-theme">
+<body class="document-studio">
   <div class="ambient ambient-a"></div>
   <div class="ambient ambient-b"></div>
 
   <div class="app">
-    <header class="topbar premium-topbar">
-      <div class="product">
+    <header class="app-header" id="appHeader">
+      <div class="brand-zone">
         <img id="topLogo" alt="Escudo de San Pedro">
-        <div>
-          <span class="product-kicker">ALCALDÍA MUNICIPAL DE SAN PEDRO · VALLE</span>
-          <div class="product-title-row">
-            <h1>Sistema Maestro Documental</h1>
-            <span class="premium-badge">DOCUMENT STUDIO</span>
+        <div class="brand-copy"><span>ALCALDÍA MUNICIPAL DE SAN PEDRO · VALLE</span><strong>Sistema Maestro Documental</strong></div>
+      </div>
+      <nav class="primary-nav" aria-label="Áreas del sistema">
+        <button class="workspace-nav-btn active" data-panel="editor" type="button"><span>✎</span>Editor</button>
+        <button class="workspace-nav-btn" data-panel="templates" type="button"><span>▦</span>Plantillas</button>
+        <button class="workspace-nav-btn" data-panel="signatures" type="button"><span>✓</span>Firmas <b class="nav-badge hidden" id="pendingSignatureBadge">0</b></button>
+        <button class="workspace-nav-btn" data-panel="archive" type="button"><span>⌂</span>Archivo</button>
+      </nav>
+      <div class="header-actions">
+        <div class="document-state" title="Estado del documento"><i></i><div><strong id="activeDocLabel">Documento en edición</strong><small id="saveStatus">Guardado local</small></div></div>
+        <button class="header-save" id="saveCloudDocument" type="button" title="Guardar en el sistema"><span>☁</span><strong>Guardar</strong><small id="cloudSaveStatus">Sin guardar</small></button>
+        <div class="header-menu-wrap">
+          <button class="header-icon-btn" id="headerActionsBtn" type="button" aria-expanded="false" aria-controls="headerActionsMenu" title="Más acciones">•••</button>
+          <div class="header-popover hidden" id="headerActionsMenu" role="menu">
+            <div class="popover-title"><strong>Acciones del documento</strong><small>Solo lo que necesitas ahora</small></div>
+            <button class="menu-action signature-send-btn hidden" id="sendToSignatures" type="button"><span>✦</span><div><strong>Enviar a firmas</strong><small>Iniciar flujo electrónico</small></div></button>
+            <button class="menu-action" id="saveDraft" type="button"><span>↓</span><div><strong>Guardar copia local</strong><small>En este navegador</small></div></button>
+            <button class="menu-action" id="exportPdf" type="button"><span>PDF</span><div><strong>Exportar PDF</strong><small>Documento listo para compartir</small></div></button>
+            <button class="menu-action" id="exportDocx" type="button"><span>W</span><div><strong>Exportar Word</strong><small>Documento editable</small></div></button>
+            <div class="popover-separator"></div>
+            <button class="menu-action compact" id="easyModeBtn" type="button" aria-pressed="true"><span>A+</span><strong>Modo fácil</strong></button>
+            <button class="menu-action compact" id="startTourBtn" type="button"><span>?</span><strong>Recorrido guiado</strong></button>
+          </div>
+        </div>
+        <div class="user-menu-wrap">
+          <button class="user-chip hidden" id="authUserChip" type="button" aria-expanded="false" aria-controls="userMenu" title="Mi cuenta">
+            <span class="auth-avatar" id="authAvatar">SP</span><span class="user-chip-copy"><strong id="authUserName">Usuario</strong><small id="authUserRole">Institucional</small></span><span class="user-chevron">⌄</span>
+          </button>
+          <div class="user-menu hidden" id="userMenu" role="menu">
+            <div class="user-menu-head"><span class="auth-avatar large" id="userMenuAvatar">SP</span><div><strong id="userMenuName">Usuario</strong><small id="userMenuRole">Institucional</small></div></div>
+            <button type="button" data-panel="settings" class="user-menu-action"><span>⚙</span>Configuración del sistema</button>
+            <button type="button" id="logoutBtn" class="user-menu-action danger"><span>↪</span>Cerrar sesión</button>
           </div>
         </div>
       </div>
-
-      <div class="top-center">
-        <span class="workspace-dot"></span>
-        <div><strong id="activeDocLabel">Documento en edición</strong><small>Autoguardado activo</small></div>
-      </div>
-
-      <nav class="workspace-nav" aria-label="Secciones del sistema">
-        <button class="workspace-nav-btn active" data-panel="editor" type="button">Editor</button>
-        <button class="workspace-nav-btn" data-panel="templates" type="button">Plantillas</button>
-        <button class="workspace-nav-btn" data-panel="signatures" type="button">Firmas <span class="nav-badge hidden" id="pendingSignatureBadge">0</span></button>
-        <button class="workspace-nav-btn" data-panel="archive" type="button">Archivo</button>
-        <button class="workspace-nav-btn" data-panel="settings" type="button">Sistema</button>
-      </nav>
-
-      <div class="status-cluster">
-        <button class="btn signature-send-btn hidden" id="sendToSignatures" type="button" title="Enviar el documento actual a firmas"><span>✦</span> Enviar a firmas</button>
-        <button class="auth-user-chip hidden" id="authUserChip" type="button" title="Cuenta conectada"><span class="auth-avatar" id="authAvatar">SP</span><span><strong id="authUserName">Usuario</strong><small id="authUserRole">Institucional</small></span></button>
-        <button class="btn easy-toggle" id="easyModeBtn" type="button" aria-pressed="true" title="Activar una interfaz más simple y grande"><span>☀</span> Modo fácil</button>
-        <button class="btn help-btn" id="startTourBtn" type="button" title="Iniciar recorrido guiado"><span>?</span> Ayuda</button>
-        <span class="save-status" id="saveStatus"><i></i> Guardado local</span>
-        <button class="btn soft" id="saveDraft" title="Guardar una copia local en este navegador">Guardar local</button>
-        <button class="btn cloud-save-btn" id="saveCloudDocument" type="button" title="Guardar este borrador en la base de datos institucional"><span>☁</span> Guardar documento</button>
-        <span class="cloud-save-status" id="cloudSaveStatus">Sin guardar en sistema</span>
-        <button class="btn soft" id="exportPdf">PDF</button>
-        <button class="btn primary" id="exportDocx">Exportar Word</button>
-      </div>
     </header>
 
-    <main class="premium-main">
+    <main class="app-main">
       <section id="editorPanel" class="panel-screen editor-screen">
         <div class="editor-layout">
           <aside class="document-sidebar" id="documentSidebar">
@@ -147,27 +148,16 @@
                   <label><span>Correo</span><input id="email" value="alcaldia@sanpedro-valle.gov.co"></label>
                 </div>
               </section>
-
-              <section class="side-group open builder-group" data-side-group>
-                <button class="side-group-title" type="button"><span><i>＋</i> Insertar contenido</span><b>⌄</b></button>
+              <section class="side-group builder-group" data-side-group>
+                <button class="side-group-title" type="button"><span><i>＋</i> Contenido</span><b>⌄</b></button>
                 <div class="side-group-body">
-                  <div class="block-palette" id="sidebarBlockPalette">
-                    <button data-add="title"><strong>T</strong><span>Título</span></button>
-                    <button data-add="subtitle"><strong>ST</strong><span>Subtítulo</span></button>
-                    <button data-add="paragraph"><strong>¶</strong><span>Texto</span></button>
-                    <button data-add="list"><strong>•</strong><span>Lista</span></button>
-                    <button data-add="table"><strong>▦</strong><span>Tabla</span></button>
-                    <button data-add="kpi"><strong>%</strong><span>KPI</span></button>
-                    <button data-add="considerando"><strong>C</strong><span>Considerando</span></button>
-                    <button data-add="resolutiva"><strong>R</strong><span>Resuelve</span></button>
-                    <button data-add="article"><strong>A</strong><span>Artículo</span></button>
-                    <button data-add="paragraph-article"><strong>P</strong><span>Parágrafo</span></button>
-                    <button data-add="toc"><strong>≡</strong><span>Índice</span></button>
-                    <button data-add="timeline"><strong>↔</strong><span>Cronograma</span></button>
-                    <button data-add="matrix"><strong>▥</strong><span>Matriz</span></button>
-                    <button data-add="callout"><strong>!</strong><span>Nota</span></button>
-                    <button data-add="signature"><strong>✎</strong><span>Firma</span></button>
-                    <button data-add="pagebreak"><strong>↧</strong><span>Salto</span></button>
+                  <div class="insert-launcher" id="sidebarBlockPalette">
+                    <button class="insert-launch-primary" id="openInsertLibrary" type="button"><span>＋</span><div><strong>Agregar contenido</strong><small>Texto, tablas, artículos, matrices y más</small></div></button>
+                    <div class="insert-suggestions">
+                      <button type="button" data-add="paragraph">Texto</button>
+                      <button type="button" data-add="article">Artículo</button>
+                      <button type="button" data-open-table-builder>Tabla</button>
+                    </div>
                   </div>
                 </div>
               </section>
@@ -175,31 +165,21 @@
           </aside>
 
           <div class="editor-center">
-            <div class="editor-ribbon premium-ribbon" id="editorRibbon">
-              <div class="ribbon-context">
-                <span class="context-dot"></span>
-                <div><strong>Edición directa</strong><small>Selecciona texto o un bloque</small></div>
-              </div>
-              <div class="ribbon-divider"></div>
-              <div class="ribbon-group">
-                <span class="ribbon-label">Texto</span>
+                        <div class="editor-ribbon" id="editorRibbon">
+              <div class="ribbon-context"><span class="context-dot"></span><div><strong>Edición</strong><small>Selecciona texto o agrega contenido</small></div></div>
+              <div class="ribbon-group formatting-group" aria-label="Formato de texto">
                 <button data-cmd="bold" title="Negrita"><b>N</b></button>
                 <button data-cmd="italic" title="Cursiva"><i>K</i></button>
                 <button data-cmd="underline" title="Subrayado"><u>S</u></button>
-                <button data-cmd="justifyLeft" title="Izquierda">≡</button>
+                <span class="ribbon-separator"></span>
+                <button data-cmd="justifyLeft" title="Alinear a la izquierda">≡</button>
                 <button data-cmd="justifyCenter" title="Centrar">≣</button>
                 <button data-cmd="justifyFull" title="Justificar">☰</button>
               </div>
-              <div class="ribbon-divider"></div>
-              <div class="ribbon-group ribbon-shortcuts">
-                <button data-add="paragraph">+ Texto</button>
-                <button data-add="table">+ Tabla</button>
-                <button data-add="article">+ Artículo</button>
-                <button data-add="title">+ Sección</button>
-              </div>
+              <button class="ribbon-insert" id="insertContentBtn" type="button"><span>＋</span>Insertar</button>
             </div>
 
-            <div class="canvas-topline premium-canvasbar">
+            <div class="canvas-topline">
               <div class="canvas-breadcrumb"><span>Documento</span><b>›</b><strong id="canvasDocType">Editor</strong></div>
               <span class="editing-tip">✎ Haz clic en cualquier texto y escribe</span>
               <div class="canvas-tools">
@@ -262,7 +242,7 @@
             </div>
           </div>
 
-          <aside class="inspector premium-inspector" id="documentInspector">
+          <aside class="inspector" id="documentInspector">
             <div class="inspector-sticky">
               <div class="inspector-mobile-head"><div><span class="eyebrow">INSPECTOR</span><strong>Revisión del documento</strong></div><button id="closeInspector" type="button" aria-label="Cerrar inspector">×</button></div>
               <div class="inspector-card selected-card">
@@ -289,14 +269,14 @@
       </section>
 
       <section id="templatesPanel" class="panel-screen hidden">
-        <div class="section-heading premium-section-heading">
+        <div class="section-heading">
           <div><span class="eyebrow">BIBLIOTECA INSTITUCIONAL</span><h2>Plantillas documentales</h2><p>Selecciona una base estructurada. Todo queda editable después.</p></div>
         </div>
-        <div id="templateGrid" class="template-grid premium-template-grid"></div>
+        <div id="templateGrid" class="template-grid"></div>
       </section>
 
       <section id="signaturesPanel" class="panel-screen hidden signatures-screen">
-        <div class="section-heading premium-section-heading signatures-heading">
+        <div class="section-heading signatures-heading">
           <div><span class="eyebrow">FIRMA ELECTRÓNICA</span><h2>Centro de firmas</h2><p>Solicitudes enviadas, firmas pendientes, evidencia y archivo institucional.</p></div>
           <button class="btn primary" id="signaturePanelNew" type="button">Enviar documento actual</button>
         </div>
@@ -313,7 +293,7 @@
       </section>
 
       <section id="archivePanel" class="panel-screen hidden archive-screen">
-        <div class="section-heading premium-section-heading archive-heading">
+        <div class="section-heading archive-heading">
           <div><span class="eyebrow">ARCHIVO DIGITAL</span><h2>Expedientes y trazabilidad</h2><p>Cada documento firmado se incorpora automáticamente a una carpeta institucional y conserva su historial verificable.</p></div>
           <div class="archive-heading-actions">
             <label class="archive-search"><span>Buscar</span><input id="archiveSearch" type="search" placeholder="Nombre, número, TRD o expediente"></label>
@@ -358,10 +338,10 @@
       </section>
 
       <section id="settingsPanel" class="panel-screen hidden">
-        <div class="section-heading premium-section-heading">
+        <div class="section-heading">
           <div><span class="eyebrow">SISTEMA</span><h2>Reglas de trabajo</h2><p>El editor está diseñado para mantener formato, TRD, estructura y márgenes bajo control.</p></div>
         </div>
-        <div class="settings-surface premium-settings">
+        <div class="settings-surface">
           <div class="system-rule"><strong>Márgenes</strong><span>Se aplican de forma uniforme en los cuatro lados en vista, Word y PDF.</span></div>
           <div class="system-rule"><strong>Paginación</strong><span>Hojas A4 físicas separadas en el editor y paginación automática en Word/PDF.</span></div>
           <div class="system-rule"><strong>Estructura</strong><span>Contenido modular por títulos, textos, listas, tablas, KPI, matrices, artículos y más.</span></div>
@@ -400,29 +380,70 @@
     </div>
   </aside>
 
-  <div class="auth-overlay hidden" id="authOverlay" role="dialog" aria-modal="true" aria-labelledby="authTitle">
-    <div class="auth-card">
-      <div class="auth-brand"><div class="auth-brand-mark">SP</div><div><span class="eyebrow">ALCALDÍA DE SAN PEDRO</span><h2 id="authTitle">Sistema Maestro Documental</h2></div></div>
-      <p>Acceso protegido al sistema documental. Para la demostración puedes ingresar con un <b>usuario y contraseña creados en Supabase Auth</b>; Google institucional seguirá disponible cuando se active mañana.</p>
-      <div class="auth-login-grid">
+    <div class="auth-overlay hidden" id="authOverlay" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <div class="auth-card auth-card-redesigned">
+      <div class="auth-brand"><div class="auth-brand-mark">SP</div><div><span class="eyebrow">ALCALDÍA DE SAN PEDRO</span><h2 id="authTitle">Acceso al Sistema Documental</h2></div></div>
+      <p class="auth-lead">Ingresa con tu cuenta institucional. Google es el método principal y tu sesión se valida contra los usuarios habilitados.</p>
+      <section class="google-auth-primary">
+        <div class="auth-provider-status is-checking" id="authProviderStatus"><span></span><div><strong>Verificando Google OAuth…</strong><small>Comprobando la configuración institucional.</small></div></div>
+        <button class="google-login-btn google-primary" id="googleLoginBtn" type="button"><span class="google-mark">G</span><strong>Continuar con Google institucional</strong></button>
+        <small class="google-domain-note">Dominio autorizado: @sanpedro-valle.gov.co</small>
+      </section>
+      <details class="alternate-login">
+        <summary>Usar otro método de acceso</summary>
         <section class="auth-login-method password-method">
-          <span class="auth-method-kicker">DEMOSTRACIÓN</span>
-          <h3>Usuario y contraseña</h3>
           <label><span>Correo</span><input id="passwordLoginEmail" type="email" autocomplete="username" placeholder="usuario@sanpedro-valle.gov.co"></label>
           <label><span>Contraseña</span><input id="passwordLoginPassword" type="password" autocomplete="current-password" placeholder="••••••••"></label>
           <button class="password-login-btn" id="passwordLoginBtn" type="button"><span>↳</span><strong>Iniciar sesión</strong></button>
-          <small class="auth-method-note">No hay registro público. Los usuarios deben existir previamente en Supabase Auth.</small>
+          <small class="auth-method-note">Disponible únicamente para usuarios creados previamente por administración.</small>
         </section>
-        <div class="auth-method-divider"><span>o</span></div>
-        <section class="auth-login-method google-method">
-          <span class="auth-method-kicker">INSTITUCIONAL</span>
-          <h3>Google Workspace</h3>
-          <div class="auth-provider-status is-checking" id="authProviderStatus"><span></span><div><strong>Verificando Google OAuth…</strong><small>Comprobando la configuración de Supabase Auth.</small></div></div>
-          <button class="google-login-btn" id="googleLoginBtn" type="button"><span>G</span><strong>Continuar con Google</strong></button>
-        </section>
-      </div>
-      <div class="auth-security-note"><span>✓</span><div><strong>Acceso controlado</strong><small>Se permiten cuentas municipales del dominio @sanpedro-valle.gov.co y, si hiciera falta para pruebas, correos externos añadidos expresamente a la lista de usuarios habilitados.</small></div></div>
+      </details>
+      <div class="auth-security-note"><span>✓</span><div><strong>Acceso controlado y trazable</strong><small>Autenticarse no concede permisos automáticamente: cada sesión se valida antes de habilitar documentos, firmas y archivo.</small></div></div>
       <div class="auth-error hidden" id="authError"></div>
+    </div>
+  </div>
+
+  <div class="modal-shell hidden" id="insertContentModal" role="dialog" aria-modal="true" aria-labelledby="insertContentTitle">
+    <div class="modal-card insert-library-card">
+      <div class="modal-head"><div><span class="eyebrow">INSERTAR</span><h2 id="insertContentTitle">¿Qué quieres agregar?</h2><p>Elige un elemento. Solo verás las opciones necesarias para ese contenido.</p></div><button class="modal-close" data-close-studio-modal="insertContentModal" type="button">×</button></div>
+      <div class="insert-library">
+        <section><span class="insert-category">Texto y estructura</span><div class="insert-grid">
+          <button data-insert-kind="title"><span>T</span><div><strong>Título</strong><small>Nueva sección</small></div></button>
+          <button data-insert-kind="subtitle"><span>ST</span><div><strong>Subtítulo</strong><small>Subsección</small></div></button>
+          <button data-insert-kind="paragraph"><span>¶</span><div><strong>Texto</strong><small>Párrafo editable</small></div></button>
+          <button data-insert-kind="list"><span>•</span><div><strong>Lista</strong><small>Elementos enumerables</small></div></button>
+          <button data-insert-kind="callout"><span>!</span><div><strong>Nota</strong><small>Aclaración destacada</small></div></button>
+        </div></section>
+        <section><span class="insert-category">Datos</span><div class="insert-grid">
+          <button data-open-table-builder><span>▦</span><div><strong>Tabla</strong><small>Define filas y columnas</small></div></button>
+          <button data-insert-kind="matrix"><span>▥</span><div><strong>Matriz</strong><small>Acciones, indicadores y metas</small></div></button>
+          <button data-insert-kind="timeline"><span>↔</span><div><strong>Cronograma</strong><small>Actividad, fechas y responsable</small></div></button>
+          <button data-insert-kind="kpi"><span>%</span><div><strong>Indicadores</strong><small>Tarjetas KPI</small></div></button>
+        </div></section>
+        <section><span class="insert-category">Actos y documento</span><div class="insert-grid">
+          <button data-insert-kind="considerando"><span>C</span><div><strong>Considerando</strong><small>Fundamento jurídico</small></div></button>
+          <button data-insert-kind="resolutiva"><span>R</span><div><strong>Resuelve / Decreta</strong><small>Sección resolutiva</small></div></button>
+          <button data-insert-kind="article"><span>A</span><div><strong>Artículo</strong><small>Artículo numerado</small></div></button>
+          <button data-insert-kind="paragraph-article"><span>P</span><div><strong>Parágrafo</strong><small>Complemento de artículo</small></div></button>
+          <button data-insert-kind="toc"><span>≡</span><div><strong>Índice</strong><small>Tabla de contenido automática</small></div></button>
+          <button data-insert-kind="signature"><span>✎</span><div><strong>Bloque de firma</strong><small>Espacio institucional</small></div></button>
+          <button data-insert-kind="pagebreak"><span>↧</span><div><strong>Salto de página</strong><small>Nueva hoja</small></div></button>
+        </div></section>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-shell hidden" id="tableBuilderModal" role="dialog" aria-modal="true" aria-labelledby="tableBuilderTitle">
+    <div class="modal-card table-builder-card">
+      <div class="modal-head"><div><span class="eyebrow">TABLA</span><h2 id="tableBuilderTitle">Configurar tabla</h2><p>Crea la estructura correcta antes de insertarla.</p></div><button class="modal-close" data-close-studio-modal="tableBuilderModal" type="button">×</button></div>
+      <div class="table-builder-form">
+        <label><span>Columnas</span><input id="tableColumns" type="number" min="2" max="8" value="3"></label>
+        <label><span>Filas</span><input id="tableRows" type="number" min="1" max="20" value="3"></label>
+        <label><span>Encabezado</span><select id="tableHeaderMode"><option value="yes">Sí, primera fila como encabezado</option><option value="no">No</option></select></label>
+        <label><span>Estilo</span><select id="tableVisualStyle"><option value="clean">Institucional limpio</option><option value="lined">Con líneas</option><option value="soft">Suave</option></select></label>
+      </div>
+      <div class="table-builder-preview" id="tableBuilderPreview"></div>
+      <div class="modal-actions"><button class="btn soft" data-close-studio-modal="tableBuilderModal" type="button">Cancelar</button><button class="btn primary" id="confirmInsertTable" type="button">Insertar tabla</button></div>
     </div>
   </div>
 

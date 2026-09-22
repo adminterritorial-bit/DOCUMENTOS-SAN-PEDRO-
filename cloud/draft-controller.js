@@ -121,12 +121,13 @@ export function createDraftController({getSession,getContext,currentDocumentMeta
       setCurrentId(data.document_id);
       renderStatus(data);
       if(button){
-        const original=button.dataset.originalText||'<span>☁</span> Guardar documento';
-        button.innerHTML="✓ Guardado";
+        const label=button.querySelector("strong");
+        const originalLabel=label?.textContent||"Guardar";
+        if(label)label.textContent="Guardado";
         button.classList.add("save-success");
         setTimeout(()=>{
-          if(!button.disabled){
-            button.innerHTML=original;
+          if(!button.disabled&&label){
+            label.textContent=originalLabel;
             button.classList.remove("save-success");
           }
         },1400);

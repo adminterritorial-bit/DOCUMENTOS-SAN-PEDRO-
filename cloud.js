@@ -493,7 +493,7 @@ async function sendToSignatures(){
     const {snapshot,hash}=await currentHash();
     const meta=currentDocumentMeta();
 
-    const {data:flow,error:flowError}=await supabase.rpc("docsys_start_signature_flow_v3",{
+    const {data:flow,error:flowError}=await supabase.rpc("docsys_start_signature_flow",{
       p_document_id:draft.getCurrentId(),
       p_title:meta.title,
       p_document_type:meta.document_type,
@@ -1241,7 +1241,7 @@ function bindEvents(){
   $("#googleLoginBtn")?.addEventListener("click",auth.signInGoogle);
   $("#passwordLoginBtn")?.addEventListener("click",auth.signInPassword);
   $("#passwordLoginPassword")?.addEventListener("keydown",e=>{if(e.key==="Enter")auth.signInPassword();});
-  $("#authUserChip")?.addEventListener("click",()=>{if(confirm("¿Cerrar la sesión institucional?"))auth.signOut();});
+  $("#logoutBtn")?.addEventListener("click",()=>{if(confirm("¿Cerrar la sesión institucional?"))auth.signOut();});
   $("#sendToSignatures")?.addEventListener("click",openSendModal);
   $("#saveCloudDocument")?.addEventListener("click",e=>draft.save(e.currentTarget));
   $("#signaturePanelNew")?.addEventListener("click",openSendModal);
