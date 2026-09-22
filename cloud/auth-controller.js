@@ -1,6 +1,7 @@
 import {
   supabase,
   DOCSYS_ALLOWED_DOMAIN,
+  DOCSYS_APP_URL,
   authMethodOfSession,
   isAllowedSession,
   readGoogleProviderStatus
@@ -22,15 +23,7 @@ export function createAuthController({
   const profile=()=>getProfile?.()||null;
 
   function applicationRedirectUrl(){
-    const url=new URL(window.location.href);
-    url.search="";
-    url.hash="";
-    if(url.pathname.endsWith("/index.html")){
-      url.pathname=url.pathname.slice(0,-"index.html".length);
-    }else if(!url.pathname.endsWith("/")){
-      url.pathname=url.pathname.replace(/\/[^/]*$/,"/");
-    }
-    return url.toString();
+    return DOCSYS_APP_URL;
   }
 
   function message(value){
