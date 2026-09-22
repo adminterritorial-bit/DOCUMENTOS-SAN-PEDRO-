@@ -5,6 +5,7 @@ import {exportDocx,exportPdf,buildPdfBlob} from "./exporters.js";
 import {initCloud} from "./cloud.js";
 import {initGuidance} from "./guide.js";
 import {initWordPagination} from "./pagination.js";
+import {initStudioShell} from "./studio-shell.js";
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -17,21 +18,6 @@ let dirty=false;
 let saveTimer=null;
 
 const DRAFT_KEY="san-pedro-document-draft";
-const PREVIOUS_DRAFT_KEYS=["san-pedro-document-draft-v3","san-pedro-document-draft-v2"];
-
-function migrateLocalDraftStorage(){
-  if(!localStorage.getItem(DRAFT_KEY)){
-    for(const key of PREVIOUS_DRAFT_KEYS){
-      const value=localStorage.getItem(key);
-      if(value){
-        localStorage.setItem(DRAFT_KEY,value);
-        break;
-      }
-    }
-  }
-  PREVIOUS_DRAFT_KEYS.forEach(key=>localStorage.removeItem(key));
-}
-migrateLocalDraftStorage();
 
 const fieldIds=[
   "docNumber","docDate","trdCode","fontFamily","fontSize","lineHeight","marginPreset",
@@ -70,7 +56,6 @@ function getState(){
   fieldIds.forEach(id=>values[id]=$("#"+id)?.value??"");
   const first=pagination.firstPage();
   return {
-    version:4,
     docType:$("#docType").value,
     values,
     identity:{
@@ -89,14 +74,14 @@ function saveLocal(silent=false){
   localStorage.setItem(DRAFT_KEY,JSON.stringify(getState()));
   dirty=false;
   const status=$("#saveStatus");
-  if(status) status.innerHTML="<i></i> Guardado local";
+  if(status) status.textContent="Guardado local";
   if(!silent) toast("Borrador guardado");
 }
 
 function queueSave(){
   dirty=true;
   const status=$("#saveStatus");
-  if(status) status.innerHTML="<i style='background:#e3ae39'></i> Guardando…";
+  if(status) status.textContent="Guardando…";
   const cloudStatus=$("#cloudSaveStatus");
   if(cloudStatus&&localStorage.getItem("docsys-current-cloud-draft")){
     cloudStatus.textContent="Cambios sin guardar";
@@ -303,10 +288,10 @@ function renumberArticles(force=false){
   });
 }
 
-function addBlock(type){
-  let data={};
-  if(type==="article") data={text:"Redacte aquí el contenido completo del artículo."};
-  if(type==="resolutiva") data={text:$("#docType").value==="decreto"?"DECRETA":"RESUELVE"};
+function addBlock(type,inputData={}){
+  let data={...inputData};
+  if(type==="article"&&!data.text) data.text="Redacte aquí el contenido completo del artículo.";
+  if(type==="resolutiva"&&!data.text) data.text=$("#docType").value==="decreto"?"DECRETA":"RESUELVE";
   const node=insertBlock(root,type,selectedBlock,data);
   selectedBlock=node;
 
@@ -422,6 +407,11 @@ function showPanel(name){
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
+const studioShell=initStudioShell({
+  onInsert:(type,data)=>addBlock(type,data),
+  onShowPanel:showPanel
+});
+
 function collectExportState(){
   const v={};
   fieldIds.forEach(id=>v[id]=$("#"+id)?.value??"");
@@ -479,10 +469,6 @@ $("#editorRibbon").addEventListener("click",e=>{
   if(type)addBlock(type);
 });
 
-$("#sidebarBlockPalette")?.addEventListener("click",e=>{
-  const type=e.target.closest("[data-add]")?.dataset.add;
-  if(type)addBlock(type);
-});
 
 $$("[data-side-group] .side-group-title").forEach(btn=>{
   btn.addEventListener("click",()=>btn.closest("[data-side-group]")?.classList.toggle("open"));
