@@ -22,6 +22,18 @@ export function createAuthController({
   const session=()=>getSession?.()||null;
   const profile=()=>getProfile?.()||null;
 
+  function applicationRedirectUrl(){
+    const url=new URL(window.location.href);
+    url.search="";
+    url.hash="";
+    if(url.pathname.endsWith("/index.html")){
+      url.pathname=url.pathname.slice(0,-"index.html".length);
+    }else if(!url.pathname.endsWith("/")){
+      url.pathname=url.pathname.replace(/\/[^/]*$/,"/");
+    }
+    return url.toString();
+  }
+
   function message(value){
     const box=$("#authError");
     if(!box)return;
@@ -77,8 +89,11 @@ export function createAuthController({
       :method==="password"?"Usuario de demostración":"Usuario institucional";
     if($("#authUserName"))$("#authUserName").textContent=name;
     if($("#authUserRole"))$("#authUserRole").textContent=role;
-    if($("#authAvatar"))$("#authAvatar").textContent=(name||"SP")
-      .split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase().slice(0,2);
+    const initials=(name||"SP").split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase().slice(0,2);
+    if($("#authAvatar"))$("#authAvatar").textContent=initials;
+    if($("#userMenuAvatar"))$("#userMenuAvatar").textContent=initials;
+    if($("#userMenuName"))$("#userMenuName").textContent=name;
+    if($("#userMenuRole"))$("#userMenuRole").textContent=role;
     renderCloudSaveStatus?.();
   }
 
@@ -112,7 +127,7 @@ export function createAuthController({
       if(provider.enabled===false){
         throw new Error("Google todavía no está habilitado en Supabase Auth. Falta activar el proveedor y guardar el Client ID y Client Secret del cliente OAuth Web.");
       }
-      const redirectTo=location.origin+location.pathname+location.search;
+      const redirectTo=applicationRedirectUrl();
       const {error}=await supabase.auth.signInWithOAuth({
         provider:"google",
         options:{
