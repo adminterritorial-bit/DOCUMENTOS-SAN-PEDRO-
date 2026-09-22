@@ -493,7 +493,7 @@ async function sendToSignatures(){
     const {snapshot,hash}=await currentHash();
     const meta=currentDocumentMeta();
 
-    const {data:flow,error:flowError}=await supabase.rpc("docsys_start_signature_flow_v3",{
+    const {data:flow,error:flowError}=await supabase.rpc("docsys_start_signature_flow",{
       p_document_id:draft.getCurrentId(),
       p_title:meta.title,
       p_document_type:meta.document_type,
