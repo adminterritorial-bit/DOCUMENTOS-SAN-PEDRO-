@@ -36,7 +36,6 @@ let selectedArchiveFolderId=null;
 let activeArchiveTrace=null;
 
 const normalize=s=>(s||"").trim();
-const domainOf=email=>(email||"").toLowerCase().split("@")[1]||"";
 const safeName=s=>(s||"documento").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"_").replace(/^_+|_+$/g,"");
 const formatDate=v=>v?new Intl.DateTimeFormat("es-CO",{dateStyle:"medium",timeStyle:"short"}).format(new Date(v)):"";
 const isGoogleUser=user=>{
@@ -118,13 +117,6 @@ function setCloudSaveStatus(state,text){
   status.textContent=text;
   status.className="cloud-save-status"+(state?" "+state:"");
 }
-function forceCloseModal(id){
-  const modal=$("#"+id);
-  if(!modal)return;
-  modal.classList.add("hidden");
-  modal.setAttribute("aria-hidden","true");
-}
-
 function authMessage(message){
   const box=$("#authError");
   if(!box)return;
@@ -1530,7 +1522,7 @@ async function confirmSignature(){
 
     const evidence=out.data?.evidence_code||"registrada";
     setSignatureActionStatus("success","Firma registrada","Código de evidencia: "+evidence);
-    forceCloseModal("signDocumentModal");
+    closeModal("signDocumentModal");
     document.body.classList.remove("signer-review-mode");
     ctx.toast("Firma registrada · "+evidence);
 
