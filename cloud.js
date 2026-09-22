@@ -101,6 +101,29 @@ const auth=createAuthController({
   }
 });
 
+
+let authEntryEventsBound=false;
+function bindAuthEntryEvents(){
+  if(authEntryEventsBound)return;
+  authEntryEventsBound=true;
+
+  $("#googleLoginBtn")?.addEventListener("click",event=>{
+    event.preventDefault();
+    auth.signInGoogle();
+  });
+  $("#passwordLoginBtn")?.addEventListener("click",event=>{
+    event.preventDefault();
+    auth.signInPassword();
+  });
+  $("#passwordLoginPassword")?.addEventListener("keydown",event=>{
+    if(event.key==="Enter")auth.signInPassword();
+  });
+  $("#logoutBtn")?.addEventListener("click",()=>{
+    if(confirm("¿Cerrar la sesión institucional?"))auth.signOut();
+  });
+}
+bindAuthEntryEvents();
+
 const archive=createArchiveController({
   getSession:()=>session,
   getContext:()=>ctx,
@@ -1251,10 +1274,6 @@ async function archiveDocument(documentId,button){
   }catch(e){console.error(e);ctx.toast(e.message||"No fue posible archivar en Drive")}finally{setBusy(button,false)}
 }
 function bindEvents(){
-  $("#googleLoginBtn")?.addEventListener("click",auth.signInGoogle);
-  $("#passwordLoginBtn")?.addEventListener("click",auth.signInPassword);
-  $("#passwordLoginPassword")?.addEventListener("keydown",e=>{if(e.key==="Enter")auth.signInPassword();});
-  $("#logoutBtn")?.addEventListener("click",()=>{if(confirm("¿Cerrar la sesión institucional?"))auth.signOut();});
   $("#sendToSignatures")?.addEventListener("click",openSendModal);
   $("#saveCloudDocument")?.addEventListener("click",e=>draft.save(e.currentTarget));
   $("#signaturePanelNew")?.addEventListener("click",openSendModal);
