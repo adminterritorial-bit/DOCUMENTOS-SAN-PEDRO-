@@ -1,15 +1,11 @@
 import QRCode from "https://esm.sh/qrcode@1.5.4";
 import {
   supabase,
-  DOCSYS_ALLOWED_DOMAIN,
   DOCSYS_ADMIN_EMAIL,
   DOCSYS_SIGNATURE_FUNCTION,
-  authMethodOfSession,
-  isAllowedSession,
   sha256Hex,
   blobSha256,
-  blobToBase64,
-  readGoogleProviderStatus
+  blobToBase64
 } from "./cloud/supabase.js";
 import {
   $, qsa, normalize, safeName, formatDate,
@@ -20,6 +16,8 @@ import {
   maskArtifactDataUrl, signatureMarkSvg
 } from "./cloud/signature-format.js";
 import { createArchiveController } from "./cloud/archive-controller.js";
+import { createDraftController } from "./cloud/draft-controller.js";
+import { createAuthController } from "./cloud/auth-controller.js";
 
 let ctx=null;
 let session=null;
@@ -44,38 +42,6 @@ function setSignatureActionStatus(state,title,detail=""){
   $("#signatureActionStatusDetail").textContent=detail||"";
   box.classList.toggle("hidden",!title);
 }
-function setCloudSaveStatus(state,text){
-  const status=$("#cloudSaveStatus");
-  if(!status)return;
-  status.textContent=text;
-  status.className="cloud-save-status"+(state?" "+state:"");
-}
-function authMessage(message){
-  const box=$("#authError");
-  if(!box)return;
-  box.textContent=message||"";
-  box.classList.toggle("hidden",!message);
-}
-function renderProviderStatus(state,message,detail){
-  const box=$("#authProviderStatus");
-  if(!box)return;
-  box.className="auth-provider-status "+state;
-  box.innerHTML=`<span></span><div><strong>${message}</strong><small>${detail||""}</small></div>`;
-}
-async function getGoogleProviderStatus(){
-  try{
-    const {enabled,data}=await readGoogleProviderStatus();
-    renderProviderStatus(
-      enabled?"is-ready":"is-blocked",
-      enabled?"Google OAuth habilitado":"Google OAuth pendiente",
-      enabled?"Supabase Auth acepta el proveedor Google.":"Google requiere Client ID + Client Secret en Supabase Auth."
-    );
-    return {enabled,data};
-  }catch(error){
-    renderProviderStatus("is-warning","No se pudo verificar Google OAuth",error.message||"Revisa la conexión.");
-    return {enabled:null,error};
-  }
-}
 function documentLabel(){
   const type=$("#docTitleText")?.innerText.trim()||$("#formatName")?.value||"Documento";
   const number=$("#docNumber")?.value?.trim();
@@ -97,141 +63,38 @@ async function currentHash(){
   }
   return {snapshot,hash:await sha256Hex(JSON.stringify(snapshot))};
 }
-function currentCloudDraftId(){
-  if(!session?.user)return null;
-  try{
-    const saved=JSON.parse(localStorage.getItem("docsys-current-cloud-draft")||"null");
-    return saved?.user_id===session.user.id&&saved?.document_id?saved.document_id:null;
-  }catch{return null;}
-}
-function setCurrentCloudDraftId(documentId){
-  if(!session?.user||!documentId)return;
-  localStorage.setItem("docsys-current-cloud-draft",JSON.stringify({
-    user_id:session.user.id,
-    document_id:documentId
-  }));
-}
-function clearCurrentCloudDraftId(){
-  localStorage.removeItem("docsys-current-cloud-draft");
-}
+const draft=createDraftController({
+  getSession:()=>session,
+  getContext:()=>ctx,
+  currentDocumentMeta
+});
+
+const auth=createAuthController({
+  getSession:()=>session,
+  setSession:value=>{session=value;},
+  getProfile:()=>profile,
+  setProfile:value=>{profile=value;},
+  ensureProfile,
+  renderCloudSaveStatus:draft.renderStatus,
+  loadDashboard,
+  openSigner,
+  toast:message=>ctx?.toast?.(message),
+  onSignedOut:async()=>{
+    savedSignatureArtifact=null;
+    savedSignatureLoaded=false;
+    currentSignatureArtifact=null;
+    currentSignatureSource="drawn";
+    renderSavedSignatureStatus();
+  }
+});
 
 const archive=createArchiveController({
   getSession:()=>session,
   getContext:()=>ctx,
-  setCurrentCloudDraftId,
-  clearCurrentCloudDraftId,
-  getGoogleProviderStatus
+  setCurrentCloudDraftId:draft.setCurrentId,
+  clearCurrentCloudDraftId:draft.clearCurrentId,
+  getGoogleProviderStatus:auth.getGoogleProviderStatus
 });
-function renderCloudSaveStatus(data=null){
-  if(!session?.user){
-    setCloudSaveStatus("","Inicia sesión para guardar");
-    return;
-  }
-  if(document.body.classList.contains("cloud-document-locked")){
-    setCloudSaveStatus("locked","Documento protegido");
-    return;
-  }
-  if(data?.version_no){
-    setCloudSaveStatus("saved",`En sistema · v${data.version_no}`);
-    return;
-  }
-  if(currentCloudDraftId()){
-    setCloudSaveStatus("saved","Borrador vinculado");
-  }else{
-    setCloudSaveStatus("","Sin guardar en sistema");
-  }
-}
-async function validateCurrentCloudDraftLink(){
-  const id=currentCloudDraftId();
-  if(!id||!session?.user)return null;
-  const {data,error}=await supabase.from("docsys_documents")
-    .select("id,status,version_no,owner_user_id")
-    .eq("id",id)
-    .maybeSingle();
-  if(error||!data||data.status!=="draft"){
-    clearCurrentCloudDraftId();
-    renderCloudSaveStatus();
-    return null;
-  }
-  return data;
-}
-async function saveCurrentDocumentToDatabase(button=$("#saveCloudDocument")){
-  if(!session?.user){
-    setCloudSaveStatus("error","Inicia sesión");
-    ctx.toast("Inicia sesión para guardar el documento en el sistema");
-    openModal("authOverlay");
-    return null;
-  }
-  if(document.body.classList.contains("cloud-document-locked")){
-    setCloudSaveStatus("locked","Documento protegido");
-    ctx.toast("Este documento ya está protegido. Para editar, crea o abre un borrador.");
-    return null;
-  }
-
-  let linkedId=null;
-  try{
-    setCloudSaveStatus("saving","Guardando en sistema…");
-    setBusy(button,true,"Guardando…");
-    const linked=await validateCurrentCloudDraftLink();
-    linkedId=linked?.id||null;
-
-    const snapshot=ctx.getDocumentState();
-    const meta=currentDocumentMeta();
-
-    const executeSave=async documentId=>supabase.rpc("docsys_save_draft",{
-      p_document_id:documentId,
-      p_title:meta.title,
-      p_document_type:meta.document_type,
-      p_document_number:meta.document_number,
-      p_trd_code:meta.trd_code,
-      p_content_snapshot:snapshot
-    });
-
-    let out=await executeSave(linkedId);
-    if(out.error&&linkedId){
-      const detail=[out.error.message,out.error.details,out.error.hint].filter(Boolean).join(" · ");
-      const stale=/no existe|ya no es editable|estado|permiso/i.test(detail);
-      if(stale){
-        clearCurrentCloudDraftId();
-        linkedId=null;
-        out=await executeSave(null);
-      }
-    }
-
-    const {data,error}=out;
-    if(error){
-      const detail=[error.message,error.details,error.hint].filter(Boolean).join(" · ");
-      throw new Error(detail||"No fue posible guardar el documento.");
-    }
-    if(!data?.document_id)throw new Error("Supabase no devolvió el identificador del documento.");
-
-    setCurrentCloudDraftId(data.document_id);
-    renderCloudSaveStatus(data);
-    if(button){
-      const original=button.dataset.originalText||'<span>☁</span> Guardar documento';
-      button.innerHTML="✓ Guardado";
-      button.classList.add("save-success");
-      setTimeout(()=>{
-        if(!button.disabled){
-          button.innerHTML=original;
-          button.classList.remove("save-success");
-        }
-      },1400);
-    }
-    ctx.toast(data.changed===false
-      ? "Documento sincronizado · no había cambios nuevos"
-      : `Documento guardado correctamente · versión ${data.version_no}`);
-    return data;
-  }catch(error){
-    console.error("Database document save failed",error);
-    setCloudSaveStatus("error","No se pudo guardar");
-    ctx.toast("Error al guardar: "+(error.message||"revisa la conexión"));
-    return null;
-  }finally{
-    setBusy(button,false);
-  }
-}
-
 function setEditorLocked(locked,status="signing"){
   document.body.classList.toggle("cloud-document-locked",locked);
   let banner=$("#cloudLockBanner");
@@ -274,7 +137,7 @@ function setEditorLocked(locked,status="signing"){
       ?"Documento protegido: no puede sobrescribirse"
       :"Guardar este borrador en la base de datos institucional";
   }
-  renderCloudSaveStatus();
+  draft.renderStatus();
 }
 
 async function hydrateOpenedCloudDocument(){
@@ -336,115 +199,6 @@ async function ensureProfile(){
   await loadSavedSignature();
   return profile;
 }
-function renderAuth(){
-  const overlay=$("#authOverlay");
-  const chip=$("#authUserChip");
-  const send=$("#sendToSignatures");
-  if(!session?.user){
-    overlay?.classList.remove("hidden");
-    chip?.classList.add("hidden");
-    send?.classList.add("hidden");
-    renderCloudSaveStatus();
-    return;
-  }
-  overlay?.classList.add("hidden");
-  chip?.classList.remove("hidden");
-  send?.classList.remove("hidden");
-  const name=profile?.full_name||session.user.user_metadata?.full_name||session.user.email;
-  const method=authMethodOfSession(session);
-  const role=profile?.role==="admin"?"Administrador":method==="password"?"Usuario de demostración":"Usuario institucional";
-  if($("#authUserName"))$("#authUserName").textContent=name;
-  if($("#authUserRole"))$("#authUserRole").textContent=role;
-  if($("#authAvatar"))$("#authAvatar").textContent=(name||"SP").split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase().slice(0,2);
-  renderCloudSaveStatus();
-}
-async function validateSession(){
-  const {data}=await supabase.auth.getSession();
-  session=data.session;
-  if(session?.user){
-    const allowed=await isAllowedSession(session);
-    if(!allowed){
-      const rejectedEmail=session.user.email||"";
-      await supabase.auth.signOut();
-      session=null;
-      profile=null;
-      authMessage("El usuario "+rejectedEmail+" no está habilitado para este sistema. Usa una cuenta @"+DOCSYS_ALLOWED_DOMAIN+" o agrega el correo a la lista de usuarios permitidos.");
-    }else{
-      await ensureProfile();
-    }
-  }
-  renderAuth();
-  return session;
-}
-async function signInGoogle(){
-  const btn=$("#googleLoginBtn");
-  authMessage("");
-  try{
-    setBusy(btn,true,"Verificando…");
-    const provider=await getGoogleProviderStatus();
-    if(provider.enabled===false){
-      throw new Error("Google todavía no está habilitado en este proyecto de Supabase. El código del aplicativo ya está correcto; falta activar el proveedor y guardar las credenciales OAuth en Supabase Auth.");
-    }
-    const redirectTo=location.origin+location.pathname+location.search;
-    const {error}=await supabase.auth.signInWithOAuth({
-      provider:"google",
-      options:{
-        redirectTo,
-        scopes:"openid email profile",
-        queryParams:{hd:DOCSYS_ALLOWED_DOMAIN,prompt:"select_account"}
-      }
-    });
-    if(error)throw error;
-  }catch(error){
-    authMessage(error.message||"No fue posible iniciar con Google.");
-  }finally{
-    setBusy(btn,false);
-  }
-}
-async function signInPassword(){
-  const btn=$("#passwordLoginBtn");
-  const email=normalize($("#passwordLoginEmail")?.value).toLowerCase();
-  const password=$("#passwordLoginPassword")?.value||"";
-  authMessage("");
-  if(!email||!password){
-    authMessage("Ingresa correo y contraseña.");
-    return;
-  }
-  try{
-    setBusy(btn,true,"Ingresando…");
-    const {data,error}=await supabase.auth.signInWithPassword({email,password});
-    if(error)throw error;
-    session=data.session;
-    const allowed=await isAllowedSession(session);
-    if(!allowed){
-      await supabase.auth.signOut();
-      session=null;
-      throw new Error("Credenciales válidas, pero este usuario no está habilitado para el Sistema Maestro Documental.");
-    }
-    await ensureProfile();
-    renderAuth();
-    await loadDashboard();
-    const deepLinkSigner=new URLSearchParams(location.search).get("sign");
-    if(deepLinkSigner)await openSigner(deepLinkSigner);
-    ctx.toast("Sesión iniciada");
-  }catch(error){
-    authMessage(error.message==="Invalid login credentials"?"Correo o contraseña incorrectos.":(error.message||"No fue posible iniciar sesión."));
-  }finally{
-    setBusy(btn,false);
-  }
-}
-async function signOut(){
-  await supabase.auth.signOut();
-  session=null;profile=null;
-  savedSignatureArtifact=null;
-  savedSignatureLoaded=false;
-  currentSignatureArtifact=null;
-  currentSignatureSource="drawn";
-  renderSavedSignatureStatus();
-  renderAuth();
-  ctx.toast("Sesión cerrada");
-}
-
 let signerDirectory=[];
 let selectedSignerIds=[];
 
@@ -740,7 +494,7 @@ async function sendToSignatures(){
     const meta=currentDocumentMeta();
 
     const {data:flow,error:flowError}=await supabase.rpc("docsys_start_signature_flow_v3",{
-      p_document_id:currentCloudDraftId(),
+      p_document_id:draft.getCurrentId(),
       p_title:meta.title,
       p_document_type:meta.document_type,
       p_document_number:meta.document_number,
@@ -764,8 +518,8 @@ async function sendToSignatures(){
 
     closeModal("signatureRequestModal");
     clearPlacementMarkers();
-    clearCurrentCloudDraftId();
-    renderCloudSaveStatus();
+    draft.clearCurrentId();
+    draft.renderStatus();
     sessionStorage.setItem("docsys-opened-cloud-document",flow.document_id);
     setEditorLocked(true,"signing");
     ctx.showPanel("signatures");
@@ -1484,12 +1238,12 @@ async function archiveDocument(documentId,button){
   }catch(e){console.error(e);ctx.toast(e.message||"No fue posible archivar en Drive")}finally{setBusy(button,false)}
 }
 function bindEvents(){
-  $("#googleLoginBtn")?.addEventListener("click",signInGoogle);
-  $("#passwordLoginBtn")?.addEventListener("click",signInPassword);
-  $("#passwordLoginPassword")?.addEventListener("keydown",e=>{if(e.key==="Enter")signInPassword();});
-  $("#authUserChip")?.addEventListener("click",()=>{if(confirm("¿Cerrar la sesión institucional?"))signOut();});
+  $("#googleLoginBtn")?.addEventListener("click",auth.signInGoogle);
+  $("#passwordLoginBtn")?.addEventListener("click",auth.signInPassword);
+  $("#passwordLoginPassword")?.addEventListener("keydown",e=>{if(e.key==="Enter")auth.signInPassword();});
+  $("#authUserChip")?.addEventListener("click",()=>{if(confirm("¿Cerrar la sesión institucional?"))auth.signOut();});
   $("#sendToSignatures")?.addEventListener("click",openSendModal);
-  $("#saveCloudDocument")?.addEventListener("click",e=>saveCurrentDocumentToDatabase(e.currentTarget));
+  $("#saveCloudDocument")?.addEventListener("click",e=>draft.save(e.currentTarget));
   $("#signaturePanelNew")?.addEventListener("click",openSendModal);
   $("#signerDirectorySearch")?.addEventListener("input",renderSignerDirectory);
   $("#refreshSignerDirectory")?.addEventListener("click",async()=>{
@@ -1661,24 +1415,9 @@ function bindEvents(){
 export async function initCloud(options){
   ctx=options;
   bindEvents();
-  await getGoogleProviderStatus();
-  await validateSession();
-  supabase.auth.onAuthStateChange(async(event,newSession)=>{
-    session=newSession;
-    if(session?.user){
-      const allowed=await isAllowedSession(session);
-      if(allowed){
-        await ensureProfile();
-      }else if(event==="SIGNED_IN"){
-        await supabase.auth.signOut();
-        session=null;
-        profile=null;
-        authMessage("Este usuario no está habilitado para el Sistema Maestro Documental.");
-      }
-    }
-    renderAuth();
-    if(session)await loadDashboard();
-  });
+  await auth.auth.getGoogleProviderStatus();
+  await auth.validateSession();
+  supabase.auth.onAuthStateChange((event,newSession)=>auth.handleAuthStateChange(event,newSession));
 
   const params=new URLSearchParams(location.search);
   const verify=params.get("verify");
@@ -1692,5 +1431,5 @@ export async function initCloud(options){
     if(sign)await openSigner(sign);
   }
 
-  return {supabase,loadDashboard,loadArchiveWorkspace,openSendModal,saveCurrentDocumentToDatabase,clearCurrentCloudDraftId};
+  return {supabase,loadDashboard,loadArchiveWorkspace,openSendModal,draft.save,draft.clearCurrentId};
 }

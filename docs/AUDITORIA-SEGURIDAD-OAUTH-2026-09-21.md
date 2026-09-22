@@ -12,7 +12,7 @@ Permisos contractuales:
 - `authenticated` + `service_role`: sesión, borradores, directorio, firma visual, archivo y flujo de firmas.
 - solo `service_role`: completar firma, emitir OTP, anexar eventos y mantenimiento.
 - `anon`: únicamente `docsys_verify_signature(text)` para verificación pública.
-- `docsys_is_member()` se mantiene temporalmente como alias `SECURITY INVOKER` para no interrumpir la versión histórica publicada mientras se hace el corte definitivo a Vercel. El código nuevo usa `docsys_session_status()`.
+- `public.docsys_is_member()` fue retirado; el contrato público de sesión es `docsys_session_status()`, mientras que la comprobación privilegiada permanece en `docsys_private`.
 
 El Security Advisor ya no reporta funciones `docsys_*` `SECURITY DEFINER` expuestas. Las advertencias restantes con ese nombre pertenecen al aplicativo `aula_*`, alojado en el mismo proyecto, y se dejan fuera de este alcance.
 
@@ -31,7 +31,7 @@ Callback de Supabase que debe registrarse en Google Cloud:
 
 `https://dvdpgllezrmttrknbcjq.supabase.co/auth/v1/callback`
 
-Para activar el proveedor hacen falta el Client ID y Client Secret del cliente OAuth de Google Workspace. Esos secretos no están en el repositorio, Supabase Vault ni en los conectores disponibles. No deben almacenarse en GitHub ni en JavaScript.
+El Client ID, el callback y el Client Secret del cliente OAuth Web ya fueron suministrados para la configuración. El Client Secret no se almacena en GitHub ni en JavaScript. La activación final debe escribirse en Supabase Auth mediante el Dashboard o `PATCH /v1/projects/{ref}/config/auth`; el conector disponible no expone esa operación administrativa.
 
 ## Leaked Password Protection
 
@@ -49,6 +49,8 @@ https://supabase.com/docs/guides/auth/password-security#password-strength-and-le
 - `cloud/signature-format.js`
 - `cloud/archive-utils.js`
 - `cloud/archive-controller.js`
+- `cloud/draft-controller.js`
+- `cloud/auth-controller.js`
 
 Los estilos se separaron, conservando el orden de cascada, en:
 
