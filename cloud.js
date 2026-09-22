@@ -34,6 +34,7 @@ let savedSignatureArtifact=null;
 let savedSignatureLoaded=false;
 let currentSignatureArtifact=null;
 let currentSignatureSource="drawn";
+let authenticatedRouteHandled=false;
 function setSignatureActionStatus(state,title,detail=""){
   const box=$("#signatureActionStatus");
   if(!box)return;
@@ -79,7 +80,21 @@ const auth=createAuthController({
   loadDashboard,
   openSigner,
   toast:message=>ctx?.toast?.(message),
+  onAuthorizedSession:async current=>{
+    ctx?.setAuthenticatedUser?.(current?.user||null);
+    await loadDashboard();
+    if(authenticatedRouteHandled)return;
+    authenticatedRouteHandled=true;
+    await hydrateOpenedCloudDocument();
+    const params=new URLSearchParams(location.search);
+    const sign=params.get("sign");
+    const verify=params.get("verify");
+    if(sign)await openSigner(sign);
+    if(verify)await archive.verifyPublicCode(verify);
+  },
   onSignedOut:async()=>{
+    ctx?.setAuthenticatedUser?.(null);
+    authenticatedRouteHandled=false;
     savedSignatureArtifact=null;
     savedSignatureLoaded=false;
     currentSignatureArtifact=null;
@@ -1419,17 +1434,12 @@ export async function initCloud(options){
   await auth.validateSession();
   supabase.auth.onAuthStateChange((event,newSession)=>auth.handleAuthStateChange(event,newSession));
 
-  const params=new URLSearchParams(location.search);
-  const verify=params.get("verify");
-  if(verify){
-    $("#authOverlay")?.classList.add("hidden");
-    await archive.verifyPublicCode(verify);
-  }else if(session){
-    await loadDashboard();
-    await hydrateOpenedCloudDocument();
-    const sign=params.get("sign");
-    if(sign)await openSigner(sign);
-  }
-
-  return {supabase,loadDashboard,loadArchiveWorkspace,openSendModal,saveCurrentDocumentToDatabase:draft.save,clearCurrentCloudDraftId:draft.clearCurrentId};
+  return {
+    supabase,
+    loadDashboard,
+    loadArchiveWorkspace,
+    openSendModal,
+    saveCurrentDocumentToDatabase:draft.save,
+    clearCurrentCloudDraftId:draft.clearCurrentId
+  };
 }
