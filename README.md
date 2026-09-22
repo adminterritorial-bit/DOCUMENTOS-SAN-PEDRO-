@@ -129,3 +129,16 @@ Desde la refactorización del 21/09/2026 el frontend usa una sola línea de ejec
 - metadatos de consentimiento y archivo alineados con `FE-1.1-2026`.
 
 El workflow de GitHub Pages valida sintaxis JavaScript y bloquea la reintroducción de patrones heredados de versionado visual, cache-busting manual, Service Worker residual o cierres de modal duplicados.
+
+
+### Módulos cloud
+
+La integración institucional está separada por responsabilidad:
+
+- `cloud/supabase.js`: cliente Supabase, sesión, autorización y hashes.
+- `cloud/ui.js`: utilidades DOM y feedback común.
+- `cloud/signature-format.js`: representación SPSIG1 y render de firma.
+- `cloud/archive-utils.js`: jerarquía y trazabilidad del archivo digital.
+- `cloud.js`: orquestación de flujos y pantalla.
+
+Los estilos se dividen en núcleo, nube/autenticación, firma, archivo y feedback conservando el orden de cascada.
