@@ -12,6 +12,23 @@ const shell=(type,inner,extra="")=>`
   ${inner}
 </section>`;
 
+const clampInt=(value,min,max,fallback)=>{
+  const parsed=Number(value);
+  return Number.isFinite(parsed)?Math.max(min,Math.min(max,Math.round(parsed))):fallback;
+};
+
+const tableMarkup=(data={})=>{
+  const columns=clampInt(data.columns,2,8,3);
+  const rows=clampInt(data.rows,1,20,3);
+  const header=data.header!==false;
+  const style=["clean","lined","soft"].includes(data.style)?data.style:"clean";
+  const head=header
+    ? `<thead><tr>${Array.from({length:columns},(_,i)=>`<th contenteditable="true">Columna ${i+1}</th>`).join("")}</tr></thead>`
+    :"";
+  const body=`<tbody>${Array.from({length:rows},()=>`<tr>${Array.from({length:columns},()=>'<td contenteditable="true">Escriba aquí</td>').join("")}</tr>`).join("")}</tbody>`;
+  return `<table class="editable-table table-style-${style}">${head}${body}</table>`;
+};
+
 const quickAdd=()=>`
 <div class="quick-add" contenteditable="false">
   <span>Agregar debajo:</span>
@@ -39,7 +56,7 @@ export function blockHtml(type,data={}){
       <div class="kpi-card"><span class="editable" contenteditable="true">Meta</span><strong class="editable" contenteditable="true">100%</strong></div>
       <div class="kpi-card"><span class="editable" contenteditable="true">Periodo</span><strong class="editable" contenteditable="true">2026</strong></div>
     </div>`);
-    case "table": return shell(type,`<table class="editable-table"><thead><tr><th contenteditable="true">Campo</th><th contenteditable="true">Responsable</th><th contenteditable="true">Estado / Valor</th></tr></thead><tbody><tr><td contenteditable="true">Actividad</td><td contenteditable="true">Dependencia</td><td contenteditable="true">Pendiente</td></tr><tr><td contenteditable="true">Actividad</td><td contenteditable="true">Dependencia</td><td contenteditable="true">Pendiente</td></tr></tbody></table>`);
+    case "table": return shell(type,tableMarkup(data));
     case "article": return shell(type,`<div class="article-row"><strong class="article-label editable" contenteditable="true">ARTÍCULO PRIMERO.</strong><div class="article-text editable" contenteditable="true">${data.text||"Redacte aquí el contenido completo del artículo. Puede incluir obligaciones, responsables, plazos, parágrafos y condiciones."}</div></div>${quickAdd()}`);
     case "paragraph-article": return shell(type,`<div class="article-row paragraph-row"><strong class="article-label editable" contenteditable="true">PARÁGRAFO.</strong><div class="article-text editable" contenteditable="true">Redacte aquí el contenido del parágrafo.</div></div>`);
     case "considerando": return shell(type,`<h2 class="section-label editable" contenteditable="true">CONSIDERANDO</h2><p class="editable body-copy" contenteditable="true">${data.text||"Que [describa el fundamento fáctico, jurídico o administrativo que motiva la decisión]."}</p>${quickAdd()}`,"legal-block");
