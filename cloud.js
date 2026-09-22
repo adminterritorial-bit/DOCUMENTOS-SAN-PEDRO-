@@ -1356,7 +1356,7 @@ function bindEvents(){
   $("#confirmElectronicSignature")?.addEventListener("click",confirmSignature);
   $("#signatureConsent")?.addEventListener("change",updateSignatureConfirmState);
   bindSignaturePad();
-  $("#checkIntegrationsBtn")?.addEventListener("click",checkIntegrationReadiness);
+  $("#checkIntegrationsBtn")?.addEventListener("click",auth.checkIntegrationReadiness);
   qsa(".workspace-nav-btn[data-panel='archive']").forEach(btn=>btn.addEventListener("click",()=>archive.loadWorkspace()));
   $("#refreshArchive")?.addEventListener("click",async()=>{
     const btn=$("#refreshArchive");
