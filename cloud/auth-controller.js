@@ -129,24 +129,23 @@ export function createAuthController({
     const btn=$("#googleLoginBtn");
     message("");
     try{
-      setBusy(btn,true,"Verificando…");
-      const provider=await getGoogleProviderStatus();
-      if(provider.enabled===false){
-        throw new Error("Google todavía no está habilitado en Supabase Auth. Falta activar el proveedor y guardar el Client ID y Client Secret del cliente OAuth Web.");
-      }
+      setBusy(btn,true,"Abriendo Google…");
       const redirectTo=applicationRedirectUrl();
-      const {error}=await supabase.auth.signInWithOAuth({
+      const {data,error}=await supabase.auth.signInWithOAuth({
         provider:"google",
         options:{
           redirectTo,
           scopes:"openid email profile",
-          queryParams:{hd:DOCSYS_ALLOWED_DOMAIN,prompt:"select_account"}
+          queryParams:{hd:DOCSYS_ALLOWED_DOMAIN,prompt:"select_account"},
+          skipBrowserRedirect:true
         }
       });
       if(error)throw error;
+      if(!data?.url)throw new Error("Supabase no devolvió la URL de acceso de Google.");
+      window.location.assign(data.url);
     }catch(error){
-      message(error.message||"No fue posible iniciar con Google.");
-    }finally{
+      console.error("Google sign-in failed",error);
+      message(error.message||"No fue posible abrir el inicio de sesión con Google.");
       setBusy(btn,false);
     }
   }
