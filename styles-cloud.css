@@ -312,3 +312,71 @@
   .signer-directory-tools{grid-template-columns:1fr}
   .selected-signers-title{align-items:flex-start;flex-direction:column}
 }
+
+
+/* Mobile authentication and signer directory */
+@media(max-width:780px){
+  .auth-overlay{
+    z-index:1000;
+    padding:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom));
+    align-items:stretch;
+    overflow:auto;
+    background:
+      radial-gradient(circle at 15% 10%,rgba(65,181,226,.22),transparent 32%),
+      linear-gradient(155deg,#082f4d,#0a4f76 58%,#072d49);
+  }
+  .auth-card{
+    width:100%;
+    max-width:520px;
+    min-height:calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    margin:auto;
+    padding:20px 16px;
+    border-radius:24px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+  }
+  .auth-brand{align-items:flex-start}
+  .auth-brand-mark{width:52px;height:52px;border-radius:16px}
+  .auth-brand h2{font-size:20px;line-height:1.15}
+  .auth-lead{font-size:12px;line-height:1.55;margin:16px 0}
+  .google-auth-primary{padding:12px;border-radius:16px}
+  .google-login-btn{min-height:54px;border-radius:13px;font-size:13px}
+  .google-domain-note{font-size:9px;margin-top:8px}
+  .auth-provider-status{padding:10px;margin-bottom:9px}
+  .auth-provider-status strong{font-size:10px}
+  .auth-provider-status small{font-size:9px;line-height:1.35}
+  .alternate-login{margin-top:10px}
+  .alternate-login summary{min-height:44px;padding:12px;font-size:10px;display:flex;align-items:center}
+  .auth-login-method{padding:10px}
+  .auth-login-method label>span{font-size:9px}
+  .auth-login-method input{
+    min-height:48px;
+    font-size:16px;
+    border-radius:12px;
+  }
+  .password-login-btn{min-height:48px;font-size:11px}
+  .auth-method-note{font-size:8.5px}
+  .auth-security-note{margin-top:10px;padding:10px}
+  .auth-security-note strong{font-size:10px}
+  .auth-security-note small{font-size:8.5px}
+  .auth-error{font-size:10px;line-height:1.4}
+
+  .signer-directory-shell,.selected-signers-shell{margin-left:0;margin-right:0}
+  .signer-directory-tools{grid-template-columns:1fr;gap:7px}
+  .signer-directory-tools input{min-height:46px;font-size:16px}
+  .signer-directory-tools .btn{min-height:44px}
+  .signer-directory-list{grid-template-columns:1fr;max-height:none}
+  .signer-directory-card{
+    min-height:70px;
+    grid-template-columns:42px minmax(0,1fr) auto;
+    padding:10px;
+  }
+  .directory-avatar{width:42px;height:42px}
+  .directory-user-copy strong{font-size:11px}
+  .directory-user-copy small{font-size:9px}
+  .selected-signers-title{align-items:flex-start;flex-direction:column}
+  .selected-signer-card{min-height:58px;padding:9px}
+  .selected-signer-copy strong{font-size:10px}
+  .selected-signer-copy small{font-size:8.5px}
+}
