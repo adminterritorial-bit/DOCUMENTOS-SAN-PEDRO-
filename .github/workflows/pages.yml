@@ -49,6 +49,13 @@ jobs:
           grep -q 'createDraftController' cloud.js
           grep -q 'initStudioShell' app.js
           grep -q 'docsys_start_signature_flow' cloud.js
+          grep -q 'auth-locked mobile-studio' index.html
+          grep -q 'id="appShell" aria-hidden="true" inert' index.html
+          grep -q 'id="mobileCommandBar"' index.html
+          grep -q 'setApplicationAccess' cloud/auth-controller.js
+          grep -q 'setAuthenticatedUser' app.js
+          grep -q 'canonical-export-layout' app.js
+          grep -q '"scope": "./"' manifest.webmanifest
 
           python - <<'PY'
           import re
@@ -82,6 +89,9 @@ jobs:
             echo "Deprecated session RPC found in release artifact."
             exit 1
           fi
+
+          grep -q 'auth-locked mobile-studio' dist/index.html
+          grep -q 'id="mobileCommandBar"' dist/index.html
 
       - name: Configure Pages
         if: github.event_name != 'pull_request'

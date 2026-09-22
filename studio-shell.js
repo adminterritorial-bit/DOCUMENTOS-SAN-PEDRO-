@@ -88,6 +88,32 @@ export function initStudioShell({onInsert,onShowPanel}={}){
   $("#insertContentBtn")?.addEventListener("click",openInsertLibrary);
   $("#openInsertLibrary")?.addEventListener("click",openInsertLibrary);
 
+  $("#mobileCommandBar")?.addEventListener("click",event=>{
+    const action=event.target.closest("[data-mobile-action]")?.dataset.mobileAction;
+    if(!action)return;
+
+    if(action==="config"){
+      $("#focusConfig")?.click();
+      return;
+    }
+    if(action==="insert"){
+      openInsertLibrary();
+      return;
+    }
+    if(action==="save"){
+      $("#saveCloudDocument")?.click();
+      return;
+    }
+    if(action==="signatures"){
+      closeHeaderMenus();
+      onShowPanel?.("signatures");
+      return;
+    }
+    if(action==="account"){
+      toggleMenu(userBtn,userMenu);
+    }
+  });
+
   const openTableBuilder=()=>{
     closeStudioModal("insertContentModal");
     openStudioModal("tableBuilderModal");

@@ -1,1 +1,30 @@
-{"name":"Documentos San Pedro","short_name":"Docs San Pedro","start_url":"./","display":"standalone","background_color":"#edf2f7","theme_color":"#0b4778","icons":[]}
+{
+  "name": "Sistema Maestro Documental · San Pedro",
+  "short_name": "Docs San Pedro",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui",
+    "browser"
+  ],
+  "orientation": "any",
+  "background_color": "#f2f6f8",
+  "theme_color": "#0b4778",
+  "description": "Creación, gestión, firma y trazabilidad documental de la Alcaldía Municipal de San Pedro, Valle.",
+  "categories": [
+    "productivity",
+    "business"
+  ],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

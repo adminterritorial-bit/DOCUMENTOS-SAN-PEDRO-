@@ -14,9 +14,8 @@ export function createAuthController({
   setProfile,
   ensureProfile,
   renderCloudSaveStatus,
-  loadDashboard,
-  openSigner,
   toast,
+  onAuthorizedSession,
   onSignedOut
 }){
   const session=()=>getSession?.()||null;
@@ -65,6 +64,15 @@ export function createAuthController({
     }
   }
 
+  function setApplicationAccess(authorized){
+    document.body.classList.toggle("auth-locked",!authorized);
+    const shell=$("#appShell");
+    if(shell){
+      shell.toggleAttribute("inert",!authorized);
+      shell.setAttribute("aria-hidden",String(!authorized));
+    }
+  }
+
   function render(){
     const current=session();
     const currentProfile=profile();
@@ -72,6 +80,7 @@ export function createAuthController({
     const chip=$("#authUserChip");
     const send=$("#sendToSignatures");
     if(!current?.user){
+      setApplicationAccess(false);
       overlay?.classList.remove("hidden");
       chip?.classList.add("hidden");
       send?.classList.add("hidden");
@@ -79,6 +88,7 @@ export function createAuthController({
       return;
     }
 
+    setApplicationAccess(true);
     overlay?.classList.add("hidden");
     chip?.classList.remove("hidden");
     send?.classList.remove("hidden");
@@ -109,10 +119,14 @@ export function createAuthController({
         current=null;
         setSession(null);
         setProfile(null);
+        await onSignedOut?.();
         message("El usuario "+rejectedEmail+" no está habilitado para este sistema. Usa una cuenta @"+DOCSYS_ALLOWED_DOMAIN+" o agrega el correo a la lista de usuarios permitidos.");
       }else{
         await ensureProfile?.();
+        await onAuthorizedSession?.(current);
       }
+    }else{
+      await onSignedOut?.();
     }
     render();
     return current;
@@ -162,13 +176,13 @@ export function createAuthController({
       if(!allowed){
         await supabase.auth.signOut();
         setSession(null);
+        setProfile(null);
+        await onSignedOut?.();
         throw new Error("Credenciales válidas, pero este usuario no está habilitado para el Sistema Maestro Documental.");
       }
       await ensureProfile?.();
+      await onAuthorizedSession?.(data.session);
       render();
-      await loadDashboard?.();
-      const deepLinkSigner=new URLSearchParams(location.search).get("sign");
-      if(deepLinkSigner)await openSigner?.(deepLinkSigner);
       toast?.("Sesión iniciada");
     }catch(error){
       message(error.message==="Invalid login credentials"
@@ -194,15 +208,18 @@ export function createAuthController({
       const allowed=await isAllowedSession(newSession);
       if(allowed){
         await ensureProfile?.();
+        await onAuthorizedSession?.(newSession);
       }else if(event==="SIGNED_IN"){
         await supabase.auth.signOut();
         setSession(null);
         setProfile(null);
         message("Este usuario no está habilitado para el Sistema Maestro Documental.");
+        await onSignedOut?.();
       }
+    }else{
+      await onSignedOut?.();
     }
     render();
-    if(getSession?.())await loadDashboard?.();
   }
 
   return {

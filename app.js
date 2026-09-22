@@ -17,7 +17,13 @@ let selectedBlock=null;
 let dirty=false;
 let saveTimer=null;
 
-const DRAFT_KEY="san-pedro-document-draft";
+const DRAFT_KEY_BASE="san-pedro-document-draft";
+let activeDraftUserId=null;
+let localDraftHydrated=false;
+
+function draftStorageKey(){
+  return activeDraftUserId?DRAFT_KEY_BASE+":"+activeDraftUserId:null;
+}
 
 const fieldIds=[
   "docNumber","docDate","trdCode","fontFamily","fontSize","lineHeight","marginPreset",
@@ -71,11 +77,17 @@ function getState(){
 }
 
 function saveLocal(silent=false){
-  localStorage.setItem(DRAFT_KEY,JSON.stringify(getState()));
+  const key=draftStorageKey();
+  if(!key){
+    if(!silent)toast("Inicia sesión para guardar un borrador local");
+    return false;
+  }
+  localStorage.setItem(key,JSON.stringify(getState()));
   dirty=false;
   const status=$("#saveStatus");
   if(status) status.textContent="Guardado local";
   if(!silent) toast("Borrador guardado");
+  return true;
 }
 
 function queueSave(){
@@ -350,7 +362,9 @@ function updatePageCount(){
 }
 
 function restoreDraft(){
-  const raw=localStorage.getItem(DRAFT_KEY);
+  const key=draftStorageKey();
+  if(!key)return false;
+  const raw=localStorage.getItem(key);
   if(!raw)return false;
 
   try{
@@ -398,6 +412,23 @@ function restoreDraft(){
     console.error(e);
     return false;
   }
+}
+
+function setAuthenticatedUser(user){
+  const nextId=user?.id||null;
+  const changed=nextId!==activeDraftUserId;
+  activeDraftUserId=nextId;
+
+  if(!nextId){
+    localDraftHydrated=false;
+    return;
+  }
+
+  if(changed)localDraftHydrated=false;
+  if(localDraftHydrated)return;
+
+  localDraftHydrated=true;
+  restoreDraft();
 }
 
 function showPanel(name){
@@ -533,7 +564,8 @@ $("#saveDraft").onclick=()=>saveLocal();
 
 $("#resetDraft").onclick=()=>{
   if(confirm("¿Crear un documento nuevo? Se reemplazará el borrador local actual.")){
-    localStorage.removeItem(DRAFT_KEY);
+    const draftKey=draftStorageKey();
+    if(draftKey)localStorage.removeItem(draftKey);
     localStorage.removeItem("docsys-current-cloud-draft");
     sessionStorage.removeItem("docsys-opened-cloud-document");
     const cloudStatus=$("#cloudSaveStatus");
@@ -551,15 +583,30 @@ $("#resetDraft").onclick=()=>{
 };
 
 let zoomTouched=false;
+const isMobileComposer=()=>window.matchMedia("(max-width: 780px)").matches;
+
 function applyWorkspaceZoom(value){
-  const z=Math.max(40,Math.min(115,Number(value)||90));
   const control=$("#zoom");
+  if(isMobileComposer()){
+    if(control)control.value="100";
+    if($("#zoomLabel"))$("#zoomLabel").textContent="Móvil";
+    paper.style.transform="none";
+    paper.style.marginBottom="0";
+    return;
+  }
+
+  const z=Math.max(40,Math.min(115,Number(value)||90));
   if(control)control.value=String(z);
   if($("#zoomLabel"))$("#zoomLabel").textContent=z+"%";
   paper.style.transform=`scale(${z/100})`;
   paper.style.marginBottom=`-${Math.max(0,(1-z/100)*paper.scrollHeight)}px`;
 }
+
 function fitWorkspaceZoom(force=false){
+  if(isMobileComposer()){
+    applyWorkspaceZoom(100);
+    return;
+  }
   if(window.innerWidth>=900){
     if(force&&!zoomTouched)applyWorkspaceZoom(90);
     return;
@@ -569,9 +616,29 @@ function fitWorkspaceZoom(force=false){
     const stage=$(".paper-stage");
     if(!stage)return;
     const available=Math.max(300,stage.clientWidth-24);
-    const fit=Math.max(40,Math.min(78,Math.floor((available/794)*100)));
+    const fit=Math.max(40,Math.min(88,Math.floor((available/794)*100)));
     applyWorkspaceZoom(fit);
   });
+}
+
+async function withCanonicalExportLayout(task){
+  const mobile=isMobileComposer();
+  if(mobile){
+    document.body.classList.add("canonical-export-layout");
+    paper.style.transform="none";
+    paper.style.marginBottom="0";
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    pagination.reflow();
+  }
+  try{
+    return await task();
+  }finally{
+    if(mobile){
+      document.body.classList.remove("canonical-export-layout");
+      pagination.reflow();
+      fitWorkspaceZoom(true);
+    }
+  }
 }
 $("#zoom")?.addEventListener("input",e=>{
   zoomTouched=true;
@@ -580,9 +647,8 @@ $("#zoom")?.addEventListener("input",e=>{
 
 $("#exportDocx").onclick=async()=>{
   try{
-    pagination.reflow();
     saveLocal(true);
-    await exportDocx(collectExportState(),paper);
+    await withCanonicalExportLayout(()=>exportDocx(collectExportState(),paper));
     toast("Word generado");
   }catch(e){
     console.error(e);
@@ -592,9 +658,8 @@ $("#exportDocx").onclick=async()=>{
 
 $("#exportPdf").onclick=async()=>{
   try{
-    pagination.reflow();
     saveLocal(true);
-    await exportPdf(collectExportState(),paper);
+    await withCanonicalExportLayout(()=>exportPdf(collectExportState(),paper));
     toast("PDF generado");
   }catch(e){
     console.error(e);
@@ -607,13 +672,11 @@ window.addEventListener("resize",()=>{
   if(!isCompactWorkspace())closeStudioDrawers();
   fitWorkspaceZoom(false);
 });
-window.addEventListener("beforeunload",()=>{if(dirty)saveLocal(true);});
+window.addEventListener("beforeunload",()=>{if(dirty&&draftStorageKey())saveLocal(true);});
 
-if(!restoreDraft()){
-  applyTemplate("decreto",{announce:false});
-  syncFieldToDocument("trdCode");
-  fieldIds.forEach(id=>syncFieldToDocument(id));
-}
+applyTemplate("decreto",{announce:false});
+syncFieldToDocument("trdCode");
+fieldIds.forEach(id=>syncFieldToDocument(id));
 
 bindRootInteractions();
 applyDocumentStyle();
@@ -632,6 +695,7 @@ initCloud({
   buildPdfBlob,
   toast,
   showPanel,
+  setAuthenticatedUser,
   reflow:()=>pagination.reflow()
 }).catch(error=>{
   console.error("Cloud init failed",error);
