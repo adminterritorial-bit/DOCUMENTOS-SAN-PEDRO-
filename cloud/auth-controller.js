@@ -14,8 +14,6 @@ export function createAuthController({
   setProfile,
   ensureProfile,
   renderCloudSaveStatus,
-  loadDashboard,
-  openSigner,
   toast,
   onAuthorizedSession,
   onSignedOut
@@ -121,6 +119,7 @@ export function createAuthController({
         current=null;
         setSession(null);
         setProfile(null);
+        await onSignedOut?.();
         message("El usuario "+rejectedEmail+" no está habilitado para este sistema. Usa una cuenta @"+DOCSYS_ALLOWED_DOMAIN+" o agrega el correo a la lista de usuarios permitidos.");
       }else{
         await ensureProfile?.();
@@ -177,13 +176,13 @@ export function createAuthController({
       if(!allowed){
         await supabase.auth.signOut();
         setSession(null);
+        setProfile(null);
+        await onSignedOut?.();
         throw new Error("Credenciales válidas, pero este usuario no está habilitado para el Sistema Maestro Documental.");
       }
       await ensureProfile?.();
       await onAuthorizedSession?.(data.session);
       render();
-      const deepLinkSigner=new URLSearchParams(location.search).get("sign");
-      if(deepLinkSigner)await openSigner?.(deepLinkSigner);
       toast?.("Sesión iniciada");
     }catch(error){
       message(error.message==="Invalid login credentials"
