@@ -1,7 +1,6 @@
 import {
   supabase,
   DOCSYS_ALLOWED_DOMAIN,
-  DOCSYS_SIGNATURE_FUNCTION,
   authMethodOfSession,
   isAllowedSession,
   readGoogleProviderStatus
@@ -165,47 +164,6 @@ export function createAuthController({
     }
   }
 
-  async function checkIntegrationReadiness(){
-    const btn=$("#checkIntegrationsBtn");
-    const box=$("#integrationReadiness");
-    try{
-      setBusy(btn,true,"Verificando…");
-      const provider=await getGoogleProviderStatus();
-      const rows=[
-        {
-          label:"Usuario y contraseña",
-          ok:true,
-          detail:"Modo de acceso alternativo disponible para usuarios previamente creados en Supabase Auth."
-        },
-        {
-          label:"Google OAuth",
-          ok:provider.enabled===true,
-          detail:provider.enabled===true
-            ?"Habilitado en Supabase Auth"
-            :"Pendiente de activar en Authentication → Providers → Google"
-        }
-      ];
-
-      if(session()?.user){
-        const out=await supabase.functions.invoke(DOCSYS_SIGNATURE_FUNCTION,{body:{action:"readiness"}});
-        const data=out.data||{};
-        rows.push(
-          {label:"API de firmas",ok:!out.error&&data.ok!==false,detail:out.error?.message||data.error||"Edge Function disponible"},
-          {label:"Correo institucional",ok:Boolean(data.gmail_ready),detail:data.gmail_ready?"Delegación Gmail verificada":"Configuración Gmail pendiente o incompleta"},
-          {label:"Google Drive",ok:Boolean(data.drive_ready),detail:data.drive_ready?"Delegación Drive verificada":"Configuración Drive pendiente o incompleta"}
-        );
-      }else{
-        rows.push({label:"Correo y Drive",ok:false,detail:"Inicia sesión para ejecutar la prueba segura del backend."});
-      }
-
-      if(box)box.innerHTML=rows.map(row=>`<div class="${row.ok?"ok":"pending"}"><span>${row.ok?"✓":"!"}</span><div><strong>${row.label}</strong><small>${row.detail}</small></div></div>`).join("");
-    }catch(error){
-      if(box)box.innerHTML=`<div class="pending"><span>!</span><div><strong>No fue posible completar el diagnóstico</strong><small>${error.message||error}</small></div></div>`;
-    }finally{
-      setBusy(btn,false);
-    }
-  }
-
   async function signOut(){
     await supabase.auth.signOut();
     setSession(null);
@@ -239,7 +197,6 @@ export function createAuthController({
     signInGoogle,
     signInPassword,
     signOut,
-    checkIntegrationReadiness,
     handleAuthStateChange,
     getGoogleProviderStatus
   };
