@@ -77,8 +77,6 @@ const auth=createAuthController({
   setProfile:value=>{profile=value;},
   ensureProfile,
   renderCloudSaveStatus:draft.renderStatus,
-  loadDashboard,
-  openSigner,
   toast:message=>ctx?.toast?.(message),
   onAuthorizedSession:async current=>{
     ctx?.setAuthenticatedUser?.(current?.user||null);
