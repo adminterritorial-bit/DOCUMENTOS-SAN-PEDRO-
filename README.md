@@ -42,6 +42,10 @@ Tablas:
 - `docsys_signers`
 - `docsys_signature_events`
 - `docsys_signature_otps`
+- `docsys_signature_fields`
+- `docsys_signature_vault`
+- `docsys_archive_folders`
+- `docsys_archive_items`
 
 Todas las tablas sensibles tienen RLS. Los OTP se conservan únicamente de forma transitoria y mediante HMAC.
 
@@ -61,7 +65,7 @@ Para reducir el consumo de Supabase:
 
 ## Firma electrónica
 
-El mecanismo institucional implementado es **FE-1.0-2026**. Combina:
+El mecanismo institucional implementado es **FE-1.1-2026**. Combina:
 
 - cuenta autenticada y habilitada;
 - Google Workspace o contraseña de Supabase Auth durante la fase de demostración;
@@ -78,7 +82,7 @@ Este mecanismo se diseña como **firma electrónica**. No se presenta como firma
 
 Ver:
 
-- `FIRMA-ELECTRONICA-FE-1.0-2026.md`\n- `FIRMA-ELECTRONICA-FE-1.1-2026.md`
+- `FIRMA-ELECTRONICA-FE-1.1-2026.md`\n- `FIRMA-ELECTRONICA-FE-1.1-2026.md`
 - `CONFIGURACION-INTEGRACIONES.md`
 
 ## Google Drive
@@ -110,3 +114,18 @@ La API sensible de firma, OTP, correo y archivo en Drive se ejecuta en la Supaba
 `docsys-signature-api`
 
 Nunca deben publicarse en GitHub claves privadas, service-role keys, client secrets ni el JSON de la cuenta de servicio de Google.
+
+
+## Arquitectura lineal
+
+Desde la refactorización del 21/09/2026 el frontend usa una sola línea de ejecución:
+
+- tema visual único `docsys-theme`;
+- módulo principal `app.js` sin cache-busting manual por versiones;
+- almacenamiento local con una única clave estable y migración puntual de borradores anteriores;
+- un solo mecanismo de apertura/cierre de modales;
+- sin Service Worker residual;
+- flujo de firma único mediante `docsys_start_signature_flow_v3`;
+- metadatos de consentimiento y archivo alineados con `FE-1.1-2026`.
+
+El workflow de GitHub Pages valida sintaxis JavaScript y bloquea la reintroducción de patrones heredados de versionado visual, cache-busting manual, Service Worker residual o cierres de modal duplicados.
