@@ -120,7 +120,7 @@
 
 
 /* =========================================================
-   SIGNATURE PLACEMENT UX V22 — compact / fluid
+   SIGNATURE PLACEMENT UX — compact / fluid
    ========================================================= */
 .signature-placement-setup{
   margin-top:8px;padding:8px 9px;min-height:44px;
@@ -213,7 +213,7 @@
 
 
 /* =========================================================
-   REUSABLE SIGNATURE / SPSIG1 V24
+   REUSABLE SIGNATURE / SPSIG1
    ========================================================= */
 .signature-profile-rule{align-items:flex-start!important;flex-wrap:wrap!important}
 .signature-profile-rule>span{flex:1;min-width:260px}
