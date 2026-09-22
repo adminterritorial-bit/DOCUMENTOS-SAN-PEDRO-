@@ -1,19 +1,27 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 import QRCode from "https://esm.sh/qrcode@1.5.4";
 import {
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY,
+  supabase,
   DOCSYS_ALLOWED_DOMAIN,
   DOCSYS_ADMIN_EMAIL,
-  DOCSYS_SIGNATURE_FUNCTION
-} from "./supabase-config.js";
-
-const resolveRoot=r=>typeof r==="string"?document.querySelector(r):r;
-const $=(s,r=document)=>resolveRoot(r)?.querySelector(s)||null;
-const qsa=(s,r=document)=>[...(resolveRoot(r)?.querySelectorAll(s)||[])];
-const supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{
-  auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
-});
+  DOCSYS_SIGNATURE_FUNCTION,
+  authMethodOfSession,
+  isAllowedSession,
+  sha256Hex,
+  blobSha256,
+  blobToBase64,
+  readGoogleProviderStatus
+} from "./cloud/supabase.js";
+import {
+  $, qsa, normalize, safeName, formatDate,
+  openModal, closeModal, setBusy, escapeHtml
+} from "./cloud/ui.js";
+import {
+  bytesToBase64, base64ToBytes, normalizeSignatureArtifact,
+  maskArtifactDataUrl, signatureMarkSvg
+} from "./cloud/signature-format.js";
+import {
+  childFolders, descendantFolderIds, folderTotal, folderPath, traceDetailText
+} from "./cloud/archive-utils.js";
 
 let ctx=null;
 let session=null;
@@ -33,76 +41,6 @@ let currentSignatureSource="drawn";
 let archiveFolders=[];
 let archiveDocuments=[];
 let selectedArchiveFolderId=null;
-let activeArchiveTrace=null;
-
-const normalize=s=>(s||"").trim();
-const safeName=s=>(s||"documento").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"_").replace(/^_+|_+$/g,"");
-const formatDate=v=>v?new Intl.DateTimeFormat("es-CO",{dateStyle:"medium",timeStyle:"short"}).format(new Date(v)):"";
-const isGoogleUser=user=>{
-  const providers=user?.app_metadata?.providers||[];
-  return user?.app_metadata?.provider==="google"||providers.includes("google");
-};
-function jwtPayload(token){
-  try{
-    const part=token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");
-    return JSON.parse(decodeURIComponent(escape(atob(part.padEnd(Math.ceil(part.length/4)*4,"=")))));
-  }catch{return {};}
-}
-function authMethodOfSession(s){
-  const claims=jwtPayload(s?.access_token||"");
-  const methods=Array.isArray(claims.amr)?claims.amr.map(x=>x?.method).filter(Boolean):[];
-  if(methods.includes("oauth"))return "oauth";
-  if(methods.includes("password"))return "password";
-  if(s?.user?.app_metadata?.provider==="google")return "oauth";
-  if(s?.user?.app_metadata?.provider==="email")return "password";
-  return "";
-}
-async function isAllowedSession(s){
-  if(!s?.user?.email)return false;
-  const method=authMethodOfSession(s);
-  if(!["oauth","password"].includes(method))return false;
-  if(method==="oauth"&&!isGoogleUser(s.user))return false;
-  const {data,error}=await supabase.rpc("docsys_is_member");
-  if(error){console.warn("Authorization check failed",error);return false;}
-  return data===true;
-}
-
-async function sha256Hex(input){
-  const data=typeof input==="string"?new TextEncoder().encode(input):input;
-  const digest=await crypto.subtle.digest("SHA-256",data);
-  return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,"0")).join("");
-}
-async function blobSha256(blob){return sha256Hex(new Uint8Array(await blob.arrayBuffer()));}
-async function blobToBase64(blob){
-  const bytes=new Uint8Array(await blob.arrayBuffer());
-  let binary="";
-  const chunk=0x8000;
-  for(let i=0;i<bytes.length;i+=chunk) binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
-  return btoa(binary);
-}
-function openModal(id){
-  const modal=$("#"+id);
-  if(!modal)return;
-  modal.classList.remove("hidden");
-  modal.removeAttribute("aria-hidden");
-}
-function closeModal(id){
-  const modal=$("#"+id);
-  if(!modal)return;
-  modal.classList.add("hidden");
-  modal.setAttribute("aria-hidden","true");
-}
-function setBusy(btn,busy,label){
-  if(!btn)return;
-  if(busy){
-    if(!btn.dataset.originalText)btn.dataset.originalText=btn.innerHTML;
-    btn.disabled=true;
-    btn.innerHTML="<span class='button-spinner'></span>"+(label||"Procesando…");
-  }else{
-    btn.disabled=false;
-    if(btn.dataset.originalText)btn.innerHTML=btn.dataset.originalText;
-  }
-}
 function setSignatureActionStatus(state,title,detail=""){
   const box=$("#signatureActionStatus");
   if(!box)return;
@@ -131,16 +69,11 @@ function renderProviderStatus(state,message,detail){
 }
 async function getGoogleProviderStatus(){
   try{
-    const res=await fetch(SUPABASE_URL+"/auth/v1/settings",{
-      headers:{apikey:SUPABASE_PUBLISHABLE_KEY,"x-client-info":"documentos-san-pedro"}
-    });
-    if(!res.ok)throw new Error("No fue posible leer la configuración de Auth");
-    const data=await res.json();
-    const enabled=Boolean(data?.external?.google);
+    const {enabled,data}=await readGoogleProviderStatus();
     renderProviderStatus(
       enabled?"is-ready":"is-blocked",
       enabled?"Google OAuth habilitado":"Google OAuth pendiente",
-      enabled?"Supabase Auth acepta el proveedor Google.":"Activa Google en Authentication → Providers y guarda Client ID + Client Secret."
+      enabled?"Supabase Auth acepta el proveedor Google.":"Google requiere Client ID + Client Secret en Supabase Auth."
     );
     return {enabled,data};
   }catch(error){
@@ -922,71 +855,6 @@ async function loadDashboard(){
     if($("#sentSignatureList"))$("#sentSignatureList").innerHTML='<div class="signature-empty signature-error">No fue posible cargar las solicitudes enviadas.</div>';
   }
 }
-function escapeHtml(value){
-  return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[ch]));
-}
-function bytesToBase64(bytes){
-  let binary="";
-  const chunk=0x8000;
-  for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
-  return btoa(binary);
-}
-function base64ToBytes(value){
-  const binary=atob(value||"");
-  const bytes=new Uint8Array(binary.length);
-  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
-  return bytes;
-}
-function normalizeSignatureArtifact(mark){
-  if(!mark||typeof mark!=="object")return null;
-  if(mark.format==="SPSIG1"&&(mark.kind==="vector"||mark.kind==="mask1"))return mark;
-  if(mark.type==="drawn"&&Array.isArray(mark.strokes)){
-    return {format:"SPSIG1",kind:"vector",strokes:mark.strokes};
-  }
-  return null;
-}
-function maskArtifactDataUrl(mark){
-  const artifact=normalizeSignatureArtifact(mark);
-  if(!artifact||artifact.kind!=="mask1")return "";
-  const width=Number(artifact.width)||0;
-  const height=Number(artifact.height)||0;
-  if(!width||!height)return "";
-  const bytes=base64ToBytes(artifact.data||"");
-  const canvas=document.createElement("canvas");
-  canvas.width=width;
-  canvas.height=height;
-  const g=canvas.getContext("2d");
-  const image=g.createImageData(width,height);
-  for(let index=0;index<width*height;index++){
-    const ink=(bytes[index>>3]>>(7-(index&7)))&1;
-    const offset=index*4;
-    image.data[offset]=17;
-    image.data[offset+1]=45;
-    image.data[offset+2]=62;
-    image.data[offset+3]=ink?255:0;
-  }
-  g.putImageData(image,0,0);
-  return canvas.toDataURL("image/png");
-}
-function signatureMarkSvg(mark){
-  const artifact=normalizeSignatureArtifact(mark);
-  if(!artifact)return "";
-  if(artifact.kind==="mask1"){
-    const src=maskArtifactDataUrl(artifact);
-    return src?`<img class="drawn-signature-image" src="${src}" alt="" aria-hidden="true">`:"";
-  }
-  const strokes=Array.isArray(artifact.strokes)?artifact.strokes:[];
-  if(!strokes.length)return "";
-  const polylines=strokes.slice(0,24).map(stroke=>{
-    const points=(Array.isArray(stroke)?stroke:[]).slice(0,260).map(point=>{
-      const x=Math.max(0,Math.min(1,Number(point?.[0])||0))*1000;
-      const y=Math.max(0,Math.min(1,Number(point?.[1])||0))*300;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(" ");
-    return points?`<polyline points="${points}" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>`:"";
-  }).join("");
-  return polylines?`<svg class="drawn-signature-svg" viewBox="0 0 1000 300" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${polylines}</svg>`:"";
-}
 function drawnArtifactFromPad(){
   const strokes=signaturePadStrokes
     .filter(s=>s.length>1)
@@ -1391,7 +1259,7 @@ async function prepareSignerField(signerId){
   const d=request.docsys_documents||{};
 
   if(d.id&&d.content_snapshot&&sessionStorage.getItem("docsys-opened-cloud-document")!==d.id){
-    localStorage.setItem("san-pedro-document-draft-v3",JSON.stringify(d.content_snapshot));
+    localStorage.setItem("san-pedro-document-draft",JSON.stringify(d.content_snapshot));
     sessionStorage.setItem("docsys-opened-cloud-document",d.id);
     const url=new URL(location.href);
     url.searchParams.set("sign",signerId);
@@ -1623,50 +1491,20 @@ async function openCloudDocument(documentId){
       return;
     }
     if(data.content_snapshot?.archived_to_drive)throw new Error("La fuente fue transferida al archivo institucional.");
-    localStorage.setItem("san-pedro-document-draft-v3",JSON.stringify(data.content_snapshot));
+    localStorage.setItem("san-pedro-document-draft",JSON.stringify(data.content_snapshot));
     if(data.status==="draft")setCurrentCloudDraftId(documentId);
     else clearCurrentCloudDraftId();
     sessionStorage.setItem("docsys-opened-cloud-document",documentId);
     location.href=location.origin+location.pathname;
   }catch(e){ctx.toast(e.message||"No fue posible abrir el documento")}
 }
-function archiveFolderChildren(parentId){
-  return archiveFolders.filter(folder=>(folder.parent_id||null)===(parentId||null));
-}
-function archiveDescendantFolderIds(folderId){
-  const ids=new Set([folderId]);
-  const walk=id=>{
-    archiveFolderChildren(id).forEach(child=>{
-      if(ids.has(child.id))return;
-      ids.add(child.id);
-      walk(child.id);
-    });
-  };
-  walk(folderId);
-  return ids;
-}
-function archiveFolderTotal(folderId){
-  const ids=archiveDescendantFolderIds(folderId);
-  return archiveDocuments.filter(doc=>ids.has(doc.folder_id)).length;
-}
-function archiveFolderPath(folderId){
-  const byId=new Map(archiveFolders.map(folder=>[folder.id,folder]));
-  const parts=[];
-  let current=byId.get(folderId);
-  let safety=0;
-  while(current&&safety++<8){
-    parts.unshift(current.name);
-    current=current.parent_id?byId.get(current.parent_id):null;
-  }
-  return parts.join(" / ");
-}
 function renderArchiveTree(){
   const host=$("#archiveTree");
   if(!host)return;
 
   const renderNode=(folder,depth=0)=>{
-    const children=archiveFolderChildren(folder.id);
-    const total=archiveFolderTotal(folder.id);
+    const children=childFolders(archiveFolders,folder.id);
+    const total=folderTotal(archiveFolders,archiveDocuments,folder.id);
     const active=selectedArchiveFolderId===folder.id;
     return `<div class="archive-tree-branch">
       <button type="button" class="archive-folder-row ${active?"active":""}" data-archive-folder="${folder.id}" style="--archive-depth:${depth}">
@@ -1678,7 +1516,7 @@ function renderArchiveTree(){
     </div>`;
   };
 
-  const roots=archiveFolderChildren(null);
+  const roots=childFolders(archiveFolders,null);
   host.innerHTML=`<button type="button" class="archive-folder-row archive-all-row ${selectedArchiveFolderId===null?"active":""}" data-archive-folder="">
       <span class="archive-folder-icon">⌂</span>
       <span class="archive-folder-copy"><strong>Todos los expedientes</strong><small>Vista general</small></span>
@@ -1692,7 +1530,7 @@ function archiveVisibleDocuments(){
   let docs=[...archiveDocuments];
 
   if(selectedArchiveFolderId){
-    const ids=archiveDescendantFolderIds(selectedArchiveFolderId);
+    const ids=descendantFolderIds(archiveFolders,selectedArchiveFolderId);
     docs=docs.filter(doc=>ids.has(doc.folder_id));
   }
   if(query){
@@ -1715,7 +1553,7 @@ function renderArchiveDocuments(){
   const selected=selectedArchiveFolderId?archiveFolders.find(f=>f.id===selectedArchiveFolderId):null;
   $("#archiveFolderTitle").textContent=selected?.name||"Todos los expedientes";
   $("#archiveFolderMeta").textContent=selected
-    ? archiveFolderPath(selected.id)
+    ? folderPath(archiveFolders,selected.id)
     : "Documentos firmados disponibles para consulta.";
   $("#archiveDocumentCount").textContent=String(docs.length);
 
@@ -1737,11 +1575,6 @@ function renderArchiveDocuments(){
       <span class="archive-document-arrow">›</span>
     </button>`;
   }).join("");
-}
-function traceDetailText(detail){
-  const value=String(detail||"").trim();
-  if(!value||value==="{}"||value.startsWith("{"))return "";
-  return value;
 }
 function renderArchiveTrace(trace){
   activeArchiveTrace=trace||null;
