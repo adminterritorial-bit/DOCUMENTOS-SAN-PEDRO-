@@ -1,31 +1,25 @@
-name: Deploy GitHub Pages
+name: Validate Document System
 
 on:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: document-system-validation-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  validate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
 
       - name: Validate static application
         shell: bash
@@ -34,17 +28,18 @@ jobs:
           while IFS= read -r -d '' file; do
             node --check "$file"
           done < <(find . -type f -name '*.js' -print0)
+
           test ! -f sw.js
-          if grep -R -nE 'premium-v(4|9|10)|\?v=20260919-v|forceCloseModal|serviceWorker\.getRegistrations|docsys_is_member' --include='*.js' --include='*.html' --include='*.css' .; then
-            echo "Legacy patch pattern detected."
+
+          if grep -R -nE 'premium-v(4|9|10)|\?v=20260919-v|forceCloseModal|serviceWorker\.getRegistrations|docsys_is_member'             --include='*.js' --include='*.html' --include='*.css' .; then
+            echo "Legacy or transitional pattern detected."
             exit 1
           fi
 
-      - name: Upload static site
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: .
+          for css in styles-core.css styles-cloud.css styles-signatures.css styles-archive.css styles-feedback.css; do
+            test -f "$css"
+          done
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          grep -q 'docsys_session_status' cloud/supabase.js
+          grep -q 'createArchiveController' cloud.js
+          grep -q 'security invoker' docs/AUDITORIA-SEGURIDAD-OAUTH-2026-09-21.md || true
