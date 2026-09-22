@@ -1,0 +1,58 @@
+/* =========================================================
+   PROFESSIONAL ACTION FEEDBACK V32
+   ========================================================= */
+.toast{
+  z-index:260!important;
+  max-width:min(440px,calc(100vw - 32px));
+  padding:12px 15px!important;
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 18px 48px rgba(4,31,49,.32)!important;
+  font-weight:800;
+}
+.cloud-save-status.saving{background:#eaf5fb;color:#176c95}
+.cloud-save-status.locked{background:#eef1f4;color:#657684}
+.cloud-save-btn.save-success{
+  border-color:#9bcfb0!important;
+  background:#eef9f2!important;
+  color:#24714b!important;
+}
+.cloud-save-btn.is-locked{
+  border-color:#d7e1e6!important;
+  background:#f4f6f7!important;
+  color:#6f7f88!important;
+}
+
+.signature-action-status{
+  margin:0 20px 14px;
+  padding:10px 11px;
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  border:1px solid #d9e6ec;
+  border-radius:11px;
+  background:#f7fafc;
+}
+.signature-action-status-icon{
+  width:24px;height:24px;flex:0 0 24px;
+  display:grid;place-items:center;border-radius:8px;
+  background:#e8f4fa;color:#176f99;
+  font-size:8px;font-weight:900;
+}
+.signature-action-status>div{min-width:0}
+.signature-action-status strong,.signature-action-status small{display:block}
+.signature-action-status strong{font-size:8.8px;color:#2b5066}
+.signature-action-status small{margin-top:2px;font-size:7.4px;line-height:1.45;color:#738994}
+.signature-action-status.working{border-color:#c8deea;background:#f1f8fb}
+.signature-action-status.working .signature-action-status-icon{background:#dceff7;color:#0f709f}
+.signature-action-status.success{border-color:#cce5d6;background:#f3faf6}
+.signature-action-status.success .signature-action-status-icon{background:#dff2e7;color:#287950}
+.signature-action-status.success .signature-action-status-icon:before{content:"✓";font-size:11px}
+.signature-action-status.success .signature-action-status-icon{font-size:0}
+.signature-action-status.error{border-color:#efcdcd;background:#fff6f6}
+.signature-action-status.error .signature-action-status-icon{background:#fbe4e4;color:#a04444}
+.signature-action-status.error .signature-action-status-icon:before{content:"!";font-size:11px}
+.signature-action-status.error .signature-action-status-icon{font-size:0}
+
+@media(max-width:620px){
+  .signature-action-status{margin-left:14px;margin-right:14px}
+}
