@@ -9,9 +9,9 @@ Aplicación web institucional para crear, normalizar, firmar, verificar y archiv
 - Editor modular con títulos, subtítulos, artículos, parágrafos, tablas, matrices, cronogramas, KPI, notas, firmas e índice.
 - Exportación a DOCX y PDF.
 - Borradores locales para evitar consumo innecesario de base de datos.
-- Autenticación híbrida para demostración: usuario/contraseña de Supabase Auth y Google OAuth cuando esté habilitado.
+- Google Workspace como acceso institucional principal; usuario/contraseña queda como método alternativo administrado.
 - No existe registro público en la aplicación.
-- Las cuentas `@sanpedro-valle.gov.co` pueden autenticarse por contraseña durante la demo; correos externos requieren inclusión expresa en `docsys_allowed_users`.
+- Las cuentas autenticadas siguen sujetas a la autorización institucional; correos externos requieren inclusión expresa en `docsys_allowed_users`.
 - Centro de firma electrónica con 1 a 3 firmantes.
 - Flujo secuencial o paralelo.
 - OTP de un solo uso enviado al correo institucional.
@@ -82,7 +82,7 @@ Este mecanismo se diseña como **firma electrónica**. No se presenta como firma
 
 Ver:
 
-- `FIRMA-ELECTRONICA-FE-1.1-2026.md`\n- `FIRMA-ELECTRONICA-FE-1.1-2026.md`
+- `FIRMA-ELECTRONICA-FE-1.1-2026.md`
 - `CONFIGURACION-INTEGRACIONES.md`
 
 ## Google Drive
@@ -107,7 +107,7 @@ La cuenta se materializa en `auth.users` cuando realiza su primer ingreso median
 
 ## Despliegue
 
-El frontend es estático y se despliega mediante GitHub Pages desde `main`.
+El frontend es estático. GitHub Actions valida `main`; el destino de producción previsto es Vercel, con un único corte cuando OAuth y la configuración final estén cerrados.
 
 La API sensible de firma, OTP, correo y archivo en Drive se ejecuta en la Supabase Edge Function:
 
@@ -116,29 +116,31 @@ La API sensible de firma, OTP, correo y archivo en Drive se ejecuta en la Supaba
 Nunca deben publicarse en GitHub claves privadas, service-role keys, client secrets ni el JSON de la cuenta de servicio de Google.
 
 
-## Arquitectura lineal
+## Arquitectura canónica
 
-Desde la refactorización del 21/09/2026 el frontend usa una sola línea de ejecución:
+La aplicación mantiene una sola implementación vigente, sin temas apilados, cache-busting manual ni RPC de negocio con sufijos de versión.
 
-- tema visual único `docsys-theme`;
-- módulo principal `app.js` sin cache-busting manual por versiones;
-- almacenamiento local con una única clave estable y migración puntual de borradores anteriores;
-- un solo mecanismo de apertura/cierre de modales;
+- raíz visual única `document-studio`;
+- barra superior y navegación en `index.html` sin controles duplicados;
+- interacción progresiva en `studio-shell.js`;
+- `styles-core.css` reconstruido como sistema visual canónico;
+- almacenamiento local con una única clave estable;
 - sin Service Worker residual;
-- flujo de firma único mediante `docsys_start_signature_flow_v3`;
-- metadatos de consentimiento y archivo alineados con `FE-1.1-2026`.
+- flujo de firma único mediante `docsys_start_signature_flow`;
+- metadatos de firma electrónica alineados con `FE-1.1-2026`.
 
-El workflow de GitHub Pages valida sintaxis JavaScript y bloquea la reintroducción de patrones heredados de versionado visual, cache-busting manual, Service Worker residual o cierres de modal duplicados.
+El workflow valida todos los JavaScript de forma recursiva, IDs HTML duplicados y bloquea la reintroducción de aliases visuales, cache-busting o nombres técnicos versionados.
 
+### Módulos
 
-### Módulos cloud
-
-La integración institucional está separada por responsabilidad:
-
+- `studio-shell.js`: menús superiores, biblioteca de inserción y configurador de tablas.
 - `cloud/supabase.js`: cliente Supabase, sesión, autorización y hashes.
+- `cloud/auth-controller.js`: inicio/cierre de sesión y Google OAuth.
+- `cloud/draft-controller.js`: persistencia explícita de borradores.
+- `cloud/archive-controller.js`: archivo digital y trazabilidad.
 - `cloud/ui.js`: utilidades DOM y feedback común.
 - `cloud/signature-format.js`: representación SPSIG1 y render de firma.
-- `cloud/archive-utils.js`: jerarquía y trazabilidad del archivo digital.
-- `cloud.js`: orquestación de flujos y pantalla.
+- `cloud/archive-utils.js`: jerarquía de archivo.
+- `cloud.js`: orquestación de firma y operaciones documentales.
 
-Los estilos se dividen en núcleo, nube/autenticación, firma, archivo y feedback conservando el orden de cascada.
+Los estilos permanecen separados por responsabilidad: núcleo, nube/autenticación, firma, archivo y feedback. Esa separación es modular, no una cadena de temas o parches.
