@@ -2,18 +2,24 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Docs San Pedro">
+  <meta name="format-detection" content="telephone=no">
   <meta name="theme-color" content="#082f55">
   <title>Sistema Maestro Documental · San Pedro</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="apple-touch-icon" href="./favicon.svg">
   <link rel="stylesheet" href="./styles.css">
 </head>
-<body class="document-studio">
+<body class="document-studio auth-locked mobile-studio">
   <div class="ambient ambient-a"></div>
   <div class="ambient ambient-b"></div>
 
-  <div class="app">
+  <div class="app" id="appShell" aria-hidden="true" inert>
     <header class="app-header" id="appHeader">
       <div class="brand-zone">
         <img id="topLogo" alt="Escudo de San Pedro">
@@ -351,6 +357,13 @@
         </div>
       </section>
     </main>
+    <nav class="mobile-command-bar" id="mobileCommandBar" aria-label="Acciones rápidas">
+      <button type="button" data-mobile-action="config"><span>☰</span><strong>Documento</strong></button>
+      <button type="button" data-mobile-action="insert" class="mobile-primary"><span>＋</span><strong>Insertar</strong></button>
+      <button type="button" data-mobile-action="save"><span>☁</span><strong>Guardar</strong></button>
+      <button type="button" data-mobile-action="signatures"><span>✓</span><strong>Firmas</strong></button>
+      <button type="button" data-mobile-action="account"><span>●</span><strong>Cuenta</strong></button>
+    </nav>
   </div>
 
   <button class="studio-backdrop" id="studioBackdrop" type="button" aria-label="Cerrar panel lateral"></button>
@@ -380,7 +393,7 @@
     </div>
   </aside>
 
-    <div class="auth-overlay hidden" id="authOverlay" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <div class="auth-overlay" id="authOverlay" role="dialog" aria-modal="true" aria-labelledby="authTitle">
     <div class="auth-card auth-card-redesigned">
       <div class="auth-brand"><div class="auth-brand-mark">SP</div><div><span class="eyebrow">ALCALDÍA DE SAN PEDRO</span><h2 id="authTitle">Acceso al Sistema Documental</h2></div></div>
       <p class="auth-lead">Ingresa con tu cuenta institucional. Google es el método principal y tu sesión se valida contra los usuarios habilitados.</p>
