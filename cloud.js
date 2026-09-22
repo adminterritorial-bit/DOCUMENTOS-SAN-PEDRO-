@@ -1241,7 +1241,7 @@ function bindEvents(){
   $("#googleLoginBtn")?.addEventListener("click",auth.signInGoogle);
   $("#passwordLoginBtn")?.addEventListener("click",auth.signInPassword);
   $("#passwordLoginPassword")?.addEventListener("keydown",e=>{if(e.key==="Enter")auth.signInPassword();});
-  $("#authUserChip")?.addEventListener("click",()=>{if(confirm("¿Cerrar la sesión institucional?"))auth.signOut();});
+  $("#logoutBtn")?.addEventListener("click",()=>{if(confirm("¿Cerrar la sesión institucional?"))auth.signOut();});
   $("#sendToSignatures")?.addEventListener("click",openSendModal);
   $("#saveCloudDocument")?.addEventListener("click",e=>draft.save(e.currentTarget));
   $("#signaturePanelNew")?.addEventListener("click",openSendModal);
