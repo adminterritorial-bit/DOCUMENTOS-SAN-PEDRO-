@@ -75,6 +75,5 @@ jobs:
             cat /tmp/docsys-browser.log
             exit 1
           fi
-
-          test $BROWSER_EXIT -eq 0
+          grep -q 'data-docsys-boot="ready"' /tmp/docsys-dom.html
           grep -q 'Sistema Maestro' /tmp/docsys-dom.html
