@@ -1415,7 +1415,7 @@ function bindEvents(){
 export async function initCloud(options){
   ctx=options;
   bindEvents();
-  await auth.auth.getGoogleProviderStatus();
+  await auth.getGoogleProviderStatus();
   await auth.validateSession();
   supabase.auth.onAuthStateChange((event,newSession)=>auth.handleAuthStateChange(event,newSession));
 
@@ -1431,5 +1431,5 @@ export async function initCloud(options){
     if(sign)await openSigner(sign);
   }
 
-  return {supabase,loadDashboard,loadArchiveWorkspace,openSendModal,draft.save,draft.clearCurrentId};
+  return {supabase,loadDashboard,loadArchiveWorkspace,openSendModal,saveCurrentDocumentToDatabase:draft.save,clearCurrentCloudDraftId:draft.clearCurrentId};
 }
