@@ -31,11 +31,6 @@ export function initWordPagination(stack,{logoUrl=""}={}){
   stack.removeAttribute("contenteditable");
   stack.innerHTML="";
 
-  function regionHtml(selector){
-    const region=$(selector,getPages()[0]||stack);
-    return region?.innerHTML||"";
-  }
-
   function cloneRegion(selector){
     const first=getPages()[0];
     const source=$(selector,first);

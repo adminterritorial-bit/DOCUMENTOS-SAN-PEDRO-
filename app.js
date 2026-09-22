@@ -1,8 +1,8 @@
 import {LOGO_DATA_URL} from "./assets.js";
 import {TEMPLATES,longDate} from "./templates.js";
 import {insertBlock,activateBlockControls} from "./blocks.js";
-import {exportDocx,exportPdf,buildPdfBlob} from "./exporters.js?v=20260919-v33";
-import {initCloud} from "./cloud.js?v=20260919-v33";
+import {exportDocx,exportPdf,buildPdfBlob} from "./exporters.js";
+import {initCloud} from "./cloud.js";
 import {initGuidance} from "./guide.js";
 import {initWordPagination} from "./pagination.js";
 
@@ -16,8 +16,22 @@ let selectedBlock=null;
 let dirty=false;
 let saveTimer=null;
 
-const DRAFT_KEY="san-pedro-document-draft-v3";
-const LEGACY_DRAFT_KEY="san-pedro-document-draft-v2";
+const DRAFT_KEY="san-pedro-document-draft";
+const PREVIOUS_DRAFT_KEYS=["san-pedro-document-draft-v3","san-pedro-document-draft-v2"];
+
+function migrateLocalDraftStorage(){
+  if(!localStorage.getItem(DRAFT_KEY)){
+    for(const key of PREVIOUS_DRAFT_KEYS){
+      const value=localStorage.getItem(key);
+      if(value){
+        localStorage.setItem(DRAFT_KEY,value);
+        break;
+      }
+    }
+  }
+  PREVIOUS_DRAFT_KEYS.forEach(key=>localStorage.removeItem(key));
+}
+migrateLocalDraftStorage();
 
 const fieldIds=[
   "docNumber","docDate","trdCode","fontFamily","fontSize","lineHeight","marginPreset",
@@ -351,7 +365,7 @@ function updatePageCount(){
 }
 
 function restoreDraft(){
-  const raw=localStorage.getItem(DRAFT_KEY)||localStorage.getItem(LEGACY_DRAFT_KEY);
+  const raw=localStorage.getItem(DRAFT_KEY);
   if(!raw)return false;
 
   try{
@@ -534,7 +548,6 @@ $("#saveDraft").onclick=()=>saveLocal();
 $("#resetDraft").onclick=()=>{
   if(confirm("¿Crear un documento nuevo? Se reemplazará el borrador local actual.")){
     localStorage.removeItem(DRAFT_KEY);
-    localStorage.removeItem(LEGACY_DRAFT_KEY);
     localStorage.removeItem("docsys-current-cloud-draft");
     sessionStorage.removeItem("docsys-opened-cloud-document");
     const cloudStatus=$("#cloudSaveStatus");
@@ -638,7 +651,3 @@ initCloud({
   console.error("Cloud init failed",error);
   toast("No fue posible iniciar la conexión institucional");
 });
-
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
-}

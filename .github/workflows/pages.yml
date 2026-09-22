@@ -27,6 +27,19 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
+      - name: Validate static application
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in *.js; do
+            node --check "$file"
+          done
+          test ! -f sw.js
+          if grep -R -nE 'premium-v(4|9|10)|\?v=20260919-v|forceCloseModal|serviceWorker\.getRegistrations' -- *.js *.html *.css; then
+            echo "Legacy patch pattern detected."
+            exit 1
+          fi
+
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:
